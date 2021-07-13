@@ -20,6 +20,7 @@
 (require Trains/Lib/image)
 (require Trains/Editor/connections)
 (require Trains/Common/node-serialize)
+(require Trains/Common/basic-constants)
 (require 2htdp/image)
 (require 2htdp/universe)
 (require SwDev/Testing/communication)
@@ -89,8 +90,11 @@
     [(eq? 'no (message-box/custom "" "" CITY? CANCEL? #f #f '[number-order default=1])) nod*]
     [else
      (define name (get-text-from-user NAME ""))
-     (send connection add (for/list ([to nod*]) (list name (node-name to))))
-     (cons (node name (cord x y)) nod*)]))
+     (cond
+       [(and (city? name) (not (member name (map node-name nod*))))
+        (send connection add (for/list ([to nod*]) (list name (node-name to))))
+        (cons (node name (cord x y)) nod*)]
+       [else nod*])]))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; drawing 
