@@ -12,7 +12,7 @@ If you wish to inspect the code easily and experiment with it, clone the repo an
 $ git clone git@github.com:mfelleisen/Ticket.git
 $ cd Ticket 
 $ raco pkg install 
-$ raco doc Ticket 
+$ raco doc Trains 
 ```
 
 This last command will search for the docs of the newly installed "Ticket Project"
