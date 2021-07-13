@@ -15,6 +15,7 @@
 (require Trains/Common/basic-constants)
 (require SwDev/Testing/communication)
 (require 2htdp/image)
+(require json)
 
 (module+ test
   (require rackunit))
@@ -52,20 +53,22 @@
 (define (parse-map j)
   (let/ec return
     (match j
-      [(hash-table ('width w) ('height h) ('cities c) ('connections s))
+      [(hash-table ('width (? width? w)) ('height h) ('cities c) ('connections s))
        (define cities (map (parse-city w h return) c))
        (define connections (map (parse-connection (map node-name cities) return) s))
        (list w h cities connections)]
-      [_ #false])))
+      [_ (return #false)])))
 
 #; {N N [Boolean -> Empty] -> JSexpr -> Nod*}
 (define ((parse-city w h return) j)
   (match j
-    [(list (? string? n)
-           (list (and (? natural? x) (? (λ (x) (<= 0 x w))))
+    [(list (? city? n)
+           (list (and (? natural? x) (? (λ (y) (<= 0 y w))))
                  (and (? natural? y) (? (λ (y) (<= 0 y h))))))
      (node n (cord x y))]
     [_ (return #false)]))
+
+(require SwDev/Debugging/spy)
 
 #; {[Listof String] [Boolean -> Emtpy] -> JSexpr -> Connection*}
 (define ((parse-connection cities return) j)
@@ -79,9 +82,37 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
-  (define BACKGROUND (rectangle 10 10 'solid 'red))
+  (define BACKG (rectangle 10 10 'solid 'red))
 
-  (define example `(,[node "A" [cord 1 1]] ,(node "B" [cord 2 2])))
-  (check-equal? (caddr (parse-map (nodes->jsexpr example '[] BACKGROUND))) example "inverse")
+  (define example1 `(,[node "A" [cord 1 1]] ,(node "B" [cord 2 2])))
+  (define connect1 '[["A" "B" "red" 3]])
+  (define result1  `[10 10 ,example1 ,connect1])
+  (check-equal? (parse-map (nodes->jsexpr example1 connect1 BACKG)) result1 "inverse")
+
+  (check-equal? (with-input-from-string (jsexpr->string (nodes->jsexpr example1 connect1 BACKG))
+                  parse)
+                result1 "parse")
+  (check-false (with-input-from-file "node-serialize.rkt" parse) #false)
+  (check-false (with-input-from-string "" parse) #false)
+
+  (define example2 `(,[node "A%D" [cord 1 1]] ,(node "B" [cord 2 2])))
+    
+  (check-false (with-input-from-string (jsexpr->string (nodes->jsexpr example2 connect1 BACKG))
+                  parse)
+               "parse")
+
+  (define x (hash-set (nodes->jsexpr example1 connect1 BACKG) 'width "A"))
+  (check-false (with-input-from-string (jsexpr->string x) parse) "parse")
+
+  (define connect2 '[["A" "B" "red" 9]])
+  (check-false (with-input-from-string (jsexpr->string (nodes->jsexpr example1 connect2 BACKG))
+                  parse)
+               "parse")
+
+  (define connect3 '[["A" "B" "pink" 3]])
+  (check-false (with-input-from-string (jsexpr->string (nodes->jsexpr example1 connect3 BACKG))
+                  parse)
+               "parse"))
   
-  (check-false (with-input-from-file "node-serialize.rkt" parse) #false))
+  
+  
