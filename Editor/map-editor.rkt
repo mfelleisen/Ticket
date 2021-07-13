@@ -17,15 +17,18 @@
 #;               [city-name, city-name, color-string, segments-number]
 
 ;; ---------------------------------------------------------------------------------------------------
-(require "Lib/image.rkt")
-(require "connections.rkt")
-(require "node-serialize.rkt")
+(require Trains/Lib/image)
+(require Trains/Editor/connections)
+(require Trains/Common/node-serialize)
 (require 2htdp/image)
 (require 2htdp/universe)
 (require SwDev/Testing/communication)
+(require racket/runtime-path)
+(require (prefix-in p: pict))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define BACKG  (bitmap "map.png"))
+(define-runtime-path MAP "map.png")
+(define BACKG  (p:bitmap MAP))
 (define CITY   (circle 10 'solid 'red))
 (define BCOLOR 'black)
 (define FSIZE  22)

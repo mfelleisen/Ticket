@@ -15,7 +15,7 @@
         (-> [listof [list/c string? string?]] any)))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require "basic-constants.rkt")
+(require Trains/Common/basic-constants)
 (require pict)
 
 (module+ picts

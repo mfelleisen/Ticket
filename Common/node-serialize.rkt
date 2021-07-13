@@ -12,7 +12,7 @@
  parse)
 
 ;; ---------------------------------------------------------------------------------------------------
-(require "basic-constants.rkt")
+(require Trains/Common/basic-constants)
 (require SwDev/Testing/communication)
 (require 2htdp/image)
 
@@ -84,4 +84,4 @@
   (define example `(,[node "A" [cord 1 1]] ,(node "B" [cord 2 2])))
   (check-equal? (caddr (parse-map (nodes->jsexpr example '[] BACKGROUND))) example "inverse")
   
-  (check-false (with-input-from-file "map-editor.rkt" parse) #false))
+  (check-false (with-input-from-file "node-serialize.rkt" parse) #false))
