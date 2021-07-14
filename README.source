@@ -23,15 +23,20 @@ The `pkg install` will download and install those.
 
 ### TODO
 
+- develop a data representation for maps 
+  - consider efficient: access to connections and computation of connectivity
+  
+### History 
+
 - develop a map editor for placing points:
   - pop up a rectangle
-  - populate with graph (if given)
+  - populate with JSON graph (if given)
   - allow user to add named points
   - separate window for adding/subtracting connections
-  + check node name (size, letters/digits)
-  + check range of segment # in JSON 
+  - deliver JSON representation with all essential information 
+  - check node name (size, letters/digits)
+  - check range of segment # in JSON 
 
-### History 
 
 ### Organization 
 

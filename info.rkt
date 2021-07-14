@@ -1,14 +1,11 @@
 #lang info
+
 (define collection "Trains")
 (define pkg-desc "derived from the source for the Fall 2021 Sw Dev project")
 (define pkg-authors '(matthias))
 (define version "0.1")
 
 (define sw-dev "git://github.com/mfelleisen/SwDev.git")
-
-(define compile-omit-paths
-  '("Old"
-     "debugging-aid.rkt"))
 
 (define deps
   `("base"
@@ -20,7 +17,6 @@
      "htdp-lib"
      "gregor-lib"
      "gui-lib"
-     "trace-contract"
      "racket-doc"
      "profile-lib"
      "rackunit-lib"

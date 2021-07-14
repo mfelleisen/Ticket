@@ -63,6 +63,10 @@
        (unless (= (set-count (apply set city-names)) (length city-names))
          (return #false))
        (define connections (map (parse-connection city-names return) s))
+
+;;       MAKE SURE THAT NO CONNECTION IS REPEATED, EACH COLOR EXISTS AT MOST ONCE 
+;;       Use string< to make sure no connection 
+
        (list w h cities connections)]
       [_ (return #false)])))
 

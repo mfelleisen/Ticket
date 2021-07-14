@@ -16,6 +16,15 @@
 ;; -- "connections" : an arrays of arrays: [String, String, String, Natural] where 
 #;               [city-name, city-name, color-string, segments-number]
 
+(module+ homework
+  (provide
+   node
+   cord
+   #; {Connection* Nodes Image -> Image}
+   draw-connections
+   #; {Nodes Image -> Image}
+   draw-nodes))
+
 ;; ---------------------------------------------------------------------------------------------------
 (require Trains/Lib/image)
 (require Trains/Editor/connections)
@@ -33,7 +42,7 @@
 (define CITY   (circle 10 'solid 'red))
 (define BCOLOR 'black)
 (define FSIZE  22)
-(define FCOLOR 'black)
+(define FCOLOR 'white)
 (define CITY?   "Do you want a city here?")
 (define CANCEL? "Cancel")
 (define NAME    "Enter the city's name")
