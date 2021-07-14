@@ -39,6 +39,10 @@
 ;; ---------------------------------------------------------------------------------------------------
 ;; parsing from JSON 
 
+
+;; MAKE SURE THAT CITY NAMES AND CONNECTIONS DON'T GET DUPLICATED 
+
+
 #; {-> (U False [List N N Nod* Connections])}
 ;; extract width, height, and list of nodes from MAP JSexpr on STDIN, #false otherwise 
 (define (parse)
@@ -55,7 +59,10 @@
     (match j
       [(hash-table ('width (? width? w)) ('height h) ('cities c) ('connections s))
        (define cities (map (parse-city w h return) c))
-       (define connections (map (parse-connection (map node-name cities) return) s))
+       (define city-names (map node-name cities))
+       (unless (= (set-count (apply set city-names)) (length city-names))
+         (return #false))
+       (define connections (map (parse-connection city-names return) s))
        (list w h cities connections)]
       [_ (return #false)])))
 
@@ -83,36 +90,29 @@
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
   (define BACKG (rectangle 10 10 'solid 'red))
+  (define (->string x y)
+    (with-input-from-string (jsexpr->string (nodes->jsexpr x y BACKG)) parse))
 
   (define example1 `(,[node "A" [cord 1 1]] ,(node "B" [cord 2 2])))
   (define connect1 '[["A" "B" "red" 3]])
   (define result1  `[10 10 ,example1 ,connect1])
   (check-equal? (parse-map (nodes->jsexpr example1 connect1 BACKG)) result1 "inverse")
 
-  (check-equal? (with-input-from-string (jsexpr->string (nodes->jsexpr example1 connect1 BACKG))
-                  parse)
-                result1 "parse")
-  (check-false (with-input-from-file "node-serialize.rkt" parse) #false)
-  (check-false (with-input-from-string "" parse) #false)
+  (check-equal? (->string example1 connect1) result1 "parse")
+  (check-false (with-input-from-file "node-serialize.rkt" parse) "bad file format")
+  (check-false (with-input-from-string "" parse) "eof")
 
   (define example2 `(,[node "A%D" [cord 1 1]] ,(node "B" [cord 2 2])))
-    
-  (check-false (with-input-from-string (jsexpr->string (nodes->jsexpr example2 connect1 BACKG))
-                  parse)
-               "parse")
+  (check-false (->string example2 connect1) "bad city connection")
 
   (define x (hash-set (nodes->jsexpr example1 connect1 BACKG) 'width "A"))
-  (check-false (with-input-from-string (jsexpr->string x) parse) "parse")
+  (check-false (with-input-from-string (jsexpr->string x) parse) "bad width")
 
   (define connect2 '[["A" "B" "red" 9]])
-  (check-false (with-input-from-string (jsexpr->string (nodes->jsexpr example1 connect2 BACKG))
-                  parse)
-               "parse")
+  (check-false (->string example1 connect2) "bad segments")
 
   (define connect3 '[["A" "B" "pink" 3]])
-  (check-false (with-input-from-string (jsexpr->string (nodes->jsexpr example1 connect3 BACKG))
-                  parse)
-               "parse"))
-  
-  
-  
+  (check-false (->string example1 connect3) "bad color")
+
+  (define example3 `(,[node "A" [cord 1 1]] ,(node "B" [cord 2 2]) ,(node "A" [cord 3 3])))
+  (check-false (->string example3 connect1) "duplicated city"))
