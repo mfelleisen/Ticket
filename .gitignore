@@ -1,3 +1,4 @@
 .gitignore 
 *compiled*
 errors.txt
+doc/
