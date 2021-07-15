@@ -1,8 +1,8 @@
 #lang scribble/manual
 
 @(require "shared.rkt")
-@(require Fish/scribblings/overview)
-@[define hey-fish-url "https://www.daysofwonder.com/tickettoride/en/usa/"]
+@(require "overview.rkt")
+@[define ticket-to-ride-url "https://www.daysofwonder.com/tickettoride/en/usa/"]
 
 @; -----------------------------------------------------------------------------
 
@@ -10,7 +10,7 @@
 
 @author{Matthias Felleisen}
 
-@link[hey-fish-url]{Ticket to Ride} is a board game for players eight
+@link[ticket-to-ride-url]{Ticket to Ride} is a board game for players eight
 and older. 
 
 This repository is a framework for programming @emph{Trains} competitions,
