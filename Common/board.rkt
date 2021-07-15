@@ -16,7 +16,7 @@
 ;; maps city to all existing connections; False also means no connection 
 #; {type Conn = (connection City City String Natural)}
 ;; -- from city to city, its connection color, and the number of segments 
-#; {type City = (node String Posn)
+#; {type City = (node String Posn)}
 
 ;; A city can connect to many other cities. Each bundle of connections can
 ;; use any or all of the four colors. 
@@ -33,7 +33,7 @@
 ;; representation of the referee's knowledge
 ;; 
 ;; State is [Player, ..., Player]
-#; Player is (player Desitination Destination Rails [Hash Color Natural] [Conn, ..., Conn])
+#; {type Player = (player Desitination Destination Rails [Hash Color Natural] [Conn, ..., Conn])}
 ;; Destination = [List City City] || path exists
 ;; Rails = Natural, the number of rails left
 ;; Hash :: how many cards of this color are in a player's hand
