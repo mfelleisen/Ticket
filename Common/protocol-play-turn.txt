@@ -1,0 +1,60 @@
+
+---------------------------------------------------------------------------------------------------
+
+    referee                         player (p_1) . . . player (p_n)
+      |                                |                 |
+      |     tt(state)                  |                 | % player receives:
+      | -----------------------------> |                 | % - current state 
+      |     more_cards                 |                 | 
+      | <============================  |                 | % action 1: request cards 
+      |     mc(cards[])                |                 | 
+      | -----------------------------> |                 | 
+      | <============================  |                 | 
+    or 
+      |     acquire(Connection)        |                 | % action 2: acquire connection 
+  +-- | <============================  |                 | 
+  |   .                                .                 . % if legal:
+  |   .                                .                 . % referee modifies game state
+  +-> .                                .                 . % otherwise: 
+      .                                .                 . % kick player out 
+      .                                .                 .
+      |     tt(state)                  |                 |
+      | -----------------------------------------------> |
+      |     action                     |                 |
+      | <=============================================== | 
+      |                                |                 |
+      .                                .                 .
+      .                                .                 . % repeat until a player
+      .                                .                 . % has less than 3 rails
+      .                                .                 . 
+      .                                .                 .
+      |                                |                 | % one last round 
+      |     tt(state)                  |                 |
+      | -----------------------------> |                 | 
+      |     action                     |                 |
+      | <============================  |                 |
+      .                                .                 .
+      .                                .                 . 
+      .                                .                 .
+      .                                .                 .
+      |     tt(state,actions[])        |                 |
+      | -----------------------------------------------> |
+      |     action                     |                 |
+      | <=============================================== | 
+      |                                |                 |
+      .                                .                 .
+      .                                .                 .
+
+
+
+    *  to `this` player. The action argument is special.
+      - The referee may send the "empty" sequence of actions. In this
+	case, the player gets no information.
+
+      - If the referee sends in a sequence of actions, then apply this
+	player's choice and this sequence of actions to the state from the
+	_previous_ call will produce the state of this one.
+
+	Players that use a strategy tree to plan moves may benefit from
+	this optional argument in terms of performance.
+

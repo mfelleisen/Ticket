@@ -12,11 +12,11 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; a data structure that enforces the logical invariant 
-#; {type Graph = (U False [Hashof String [Hashof String Natural]])}
+#; {type Graph = [Hashof String Conn]}
 ;; maps city to all existing connections; False also means no connection 
 #; {type Conn = (connection City City String Natural)}
 ;; -- from city to city, its connection color, and the number of segments 
-#; {type City = (node String Posn)}
+#; {type City = String}
 
 ;; A city can connect to many other cities. Each bundle of connections can
 ;; use any or all of the four colors. 
