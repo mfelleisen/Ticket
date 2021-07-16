@@ -1,8 +1,15 @@
 #lang racket/gui
 
+;; a panel for adding and subtracting connections between places in the editor map 
+
 (define connector (-> (or/c '+ '-) hash? any/c))
 
 (provide
+ From
+ To  
+ Color
+ Seg# 
+
  (contract-out 
   (manage-connections
    ;; fr is the frame where the selection is added, a default frame is provided;
@@ -24,7 +31,12 @@
 ;; ---------------------------------------------------------------------------------------------------
 
 #;{type Connection* = [Listof Connection]}
-#;{type Connection = [List String String] || [List String String String Natural]}
+#;{type Connection  = [List String String] || [List String String String Natural]}
+ 
+(define From  'from)
+(define To    'to)
+(define Color 'color)
+(define Seg#  'seg#)
 
 (define FRAME (new frame% [label "edit connections"] [width 300] [height 300]))
 
@@ -46,7 +58,7 @@
 
 #; {Connector -> [String String [String Natural] -> Void]}
 (define ((callback edit-connection) a b (color #false) (seg# #false))
-  (define attr (hash 'from a 'to b 'color (or color (first COLORS)) 'seg# (or seg# (first SEG#))))
+  (define attr (hash From a To b 'color (or color (first COLORS)) 'seg# (or seg# (first SEG#))))
   #;{ (U '+ '-) String String [String -> Any] -> Choice Event -> Void}
   (define ((set action from to convert) co evt)
     (define val (send co get-string (send co get-selection)))
@@ -55,8 +67,8 @@
   (define pa (new horizontal-pane% [parent FRAME][alignment '(left top)] [spacing 1]))
   (define iv (~a "between " a " and " b))
   (new text-field% [parent pa] [label ""] [min-width 100] [init-value iv] [enabled #false])
-  (new choice% [parent pa][label C][choices COLORS]        [callback (set 'color a b values)])
-  (new choice% [parent pa][label S][choices (map ~a SEG#)] [callback (set 'seg# a b string->number)])
+  (new choice% [parent pa][label C][choices COLORS]        [callback (set Color a b values)])
+  (new choice% [parent pa][label S][choices (map ~a SEG#)] [callback (set Seg# a b string->number)])
 
   (define next (if color '- '+))
   #; {Button Event -> Void}

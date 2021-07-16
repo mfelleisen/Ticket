@@ -1,20 +1,15 @@
 #lang racket/gui
 
-(provide main)
+;; a simple map editor
 
-;; this simple map editor produces a JSexpr object MAP
-;; it optionally consumes a MAP object from STDIN to get started 
+(provide
+ #; {-> VGraph}
+ ;; this simple map editor produces a visual graph (board) representation 
+ ;; nodes can be added but not deleted (yet)
+ ;; connections are added via a separate selection-based window 
 
-;; nodes can be added but not deleted (yet)
-;; connections are added via a separate selection-based window 
-
-;; A MAP :: JSexpr has four attributes:
-;; -- "width" : a natural number in [200, 1000]
-;; -- "height" : a natural number in [200, 800]
-;; -- "cities" : an array of arrays: [String, [Natural, Natural] where
-#;               [city-name, x, y]
-;; -- "connections" : an arrays of arrays: [String, String, String, Natural] where 
-#;               [city-name, city-name, color-string, segments-number]
+ ;; TODO initialize it with a Board representation  
+ map-editor)
 
 (module+ homework
   (provide
@@ -27,8 +22,8 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (require Trains/Lib/image)
-(require Trains/Editor/connections)
-(require Trains/Common/node-serialize)
+(require Trains/Editor/connections-editor)
+(require Trains/Common/board)
 (require Trains/Common/basic-constants)
 (require 2htdp/image)
 (require 2htdp/universe)
@@ -37,8 +32,8 @@
 (require (prefix-in p: pict))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define-runtime-path MAP "map.png")
-(define BACKG  (p:bitmap MAP))
+(define-runtime-path MAP "../Resources/map.png")
+(define BACKG  (bitmap/file MAP))
 (define CITY   (circle 10 'solid 'red))
 (define BCOLOR 'black)
 (define FSIZE  22)
@@ -46,22 +41,17 @@
 (define CITY?   "Do you want a city here?")
 (define CANCEL? "Cancel")
 (define NAME    "Enter the city's name")
-(define FROM  'from)
-(define TO    'to)
-(define COLOR 'color)
-(define SEG#  'seg#)
 
 #; {-> JSexpr}
 ;; pop up map editor
 ;; write the nodes out to STDOUT as JSON
-(define (main)
+(define (map-editor)
   (define-values (nod0 connections0 background)
-    (match (parse)
+    (match #false ; (parse) 
       [(? boolean? nod0) (values '[] '[] BACKG)]
       [(list w h cities connections) (values cities connections (rectangle w h 'solid BCOLOR))]))
   (match-define (list nod* connections) (edit-graph nod0 connections0 background))
-  (define nodj (nodes->jsexpr nod* connections background))
-  nodj)
+  (construct-visual-graph (image-width background) (image-height background) nod* connections))
 
 ;; ---------------------------------------------------------------------------------------------------
 #; {Nod* Connectiion* Image -> Nod*}
@@ -83,7 +73,7 @@
        #:connections0 connections #:x x0
        (λ (+or- h)
          #; {(U '+ '-) [Hash FROM TO SEG# COLOR] -> Void}
-         (define c (list (hash-ref h FROM) (hash-ref h TO) (hash-ref h COLOR) (hash-ref h SEG#)))
+         (define c (list (hash-ref h From) (hash-ref h To) (hash-ref h Color) (hash-ref h Seg#)))
          (set! connections (if (eq? +or- '+) (cons c connections) (remove c connections))))))
     
     (define/public (add loc) (manage loc))
@@ -142,4 +132,4 @@
           'height 200
           'cities '[["A" [10 10]] ["B" [190 190]]]
           'connections '[["A" "B" "red" 3]]))
-  (with-input-from-string (with-output-to-string (λ () (send-message example))) main))
+  (with-input-from-string (with-output-to-string (λ () (send-message example))) map-editor))
