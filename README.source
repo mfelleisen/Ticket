@@ -26,7 +26,23 @@ The `pkg install` will download and install those.
 - develop a data representation for maps 
   - consider efficient: access to connections and computation of connectivity
   
-### History 
+### Design History
+
+- A city can connect to many other cities. Each bundle of connections can
+  use any or all of the four colors. 
+  - Mapping from City String to City String to Color String to Segment#
+  - this would enforce that between two cities each color is used at most once 
+
+  The Map guarantees each connection is specified at most once) to order the
+  connecting cities. Player strategies need access to all possible connections from one city to its
+  neighbors so a list is better than an enforced invariant. 
+
+  Once the map is fixed, the constraints are guaranteed.
+  BUT, every connection some player has taken is no longer available, so it should be removed.
+  fast lookup:
+  - use a list first
+  - and when it gets large use a hash of (connection ..) struct ?
+
 
 - develop a map editor for placing points:
   - pop up a rectangle

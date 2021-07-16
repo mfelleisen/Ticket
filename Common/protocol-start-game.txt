@@ -5,9 +5,9 @@ referee                         player (p_1) . . . player (p_n)
   |                                |                 |
   |     game(n,card[],avatar)      |                 | #opponents, colored cards, visualization
   | -----------------------------> |                 |
-  | <============================  |                 | 
+  | <============================= |                 | 
   |                                |                 | % p_i's assigned
-  .                                .                 . % color for a game
+  .                                .                 . 
   .                                .                 . 
   .                                .                 . 
   |     game(n,card[],avatar)      |                 | 
@@ -29,13 +29,13 @@ referee                         player (p_1) . . . player (p_n)
   | <=============================================== |
   |                                |                 |
   |                                |                 |
-  |     setup(map)                 |                 |
+  |     setup(map,nodes)           |                 |
   | -----------------------------> |                 | 
   | <============================  |                 |
   .                                .                 .
   .                                .                 . % the map for this game
-  .                                .                 .
+  .                                .                 . % plus hints for visualization 
   |                                |                 |
-  |     setup(map)                 |                 |
+  |     setup(map,nodes)           |                 |
   | -----------------------------------------------> |
   | <=============================================== |
