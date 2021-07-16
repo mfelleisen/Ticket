@@ -1,6 +1,6 @@
 #lang racket
 
-;; a graph representation of the railroad map
+;; a bi-directional graph representation of the railroad map
 
 (provide
  #; {type Path = [Listof Connection]}
