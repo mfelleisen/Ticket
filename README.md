@@ -37,6 +37,9 @@ The `pkg install` will download and install those.
   connecting cities. Player strategies need access to all possible connections from one city to its
   neighbors so a list is better than an enforced invariant. 
 
+  A data structure that enforces the logical invariant can be used for JSON
+  but it's not what we want for planning paths---which is a frequent operation. 
+
   Once the map is fixed, the constraints are guaranteed.
   BUT, every connection some player has taken is no longer available, so it should be removed.
   fast lookup:

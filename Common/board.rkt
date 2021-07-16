@@ -2,14 +2,60 @@
 
 ;; a bi-directional graph representation of the railroad map
 
+;                                                          
+;                                                          
+;                                                          
+;                                             ;            
+;                                             ;            
+;    ;;;;   ;;  ;;  ; ;;;    ;;;;    ;;;;   ;;;;;;   ;;;;  
+;   ;    ;   ;  ;   ;;  ;;  ;;  ;;   ;;  ;    ;     ;    ; 
+;   ;;;;;;    ;;    ;    ;  ;    ;   ;        ;     ;      
+;   ;         ;;    ;    ;  ;    ;   ;        ;      ;;;;  
+;   ;         ;;    ;    ;  ;    ;   ;        ;          ; 
+;   ;;   ;   ;  ;   ;;  ;;  ;;  ;;   ;        ;     ;    ; 
+;    ;;;;;  ;    ;  ; ;;;    ;;;;    ;         ;;;   ;;;;  
+;                   ;                                      
+;                   ;                                      
+;                   ;                                      
+;                                                          
+
 (provide
- #; {type Path = [Listof Connection]}
+
+ #; {type VGraph}
+ #; {N N Nod* [Listof [List String String Color Seq#]] -> VGraph}
+ ;; ASSUMPTION Nod* and the two city names are consistent 
+ construct-visual-graph
+ node
+ cord
+ node-name
+ node-posn
+
+ #; {VGraph -> N}
+ graph-width
+ #; {VGraph -> N}
+ graph-height
+ #; {VGraph -> [Listof [List String N N]]}
+ graph-locations
+
+ #; {type Path        = Connection*}
+ #; {type Connection* = [Listof Connection]}
+ #; {type Connection}
  #; {Graph City City [Listof Connection]  -> [Listof Path]}
  #; (all-paths A B blocked)
  ;; produces a list of all open paths from `A` to `B`
+ ;; with the optional argument 
  all-paths
 
- to-city to-color to-seg#)
+ #; {Graph City -> Connection*}
+ graph-connections
+ 
+ #; {Graph -> [Listof City]}
+ graph-cities
+ 
+ #; {Connection* -> [List Color Seg#]}
+ to-color+seg#
+ 
+ to-city)
 
 ;                                                                                                  
 ;                                                                                                  
@@ -29,7 +75,7 @@
 ;                                                                                                  
 
 (module+ examples
-  (provide triangle bad))
+  (provide vtriangle triangle-source triangle bad))
 
 (module+ test
   (require (submod ".." examples))
@@ -52,24 +98,43 @@
 ;                                                           ;              
 ;                                                                          
 
-;; A data structure that enforces the logical invariant can be used for JSON
-;; but it's not what we want for planning paths---which is a frequent operation. 
+;; THE VISUAL ELEMENTS 
+(struct visual-graph [width height cities graph])
 
-(struct to [city color seg#] #:transparent)
+(define graph-width visual-graph-width)
+(define graph-height visual-graph-height)
+(define (graph-locations g)
+  (for/list ([n (visual-graph-cities g)])
+    `[,(~a (node-name n)) ,(rest (vector->list (struct->vector (node-posn n))))]))
 
+#; {type VGraph = (visual-graph N N Nod* Graph)}
+
+(struct node [name posn] #:prefab)
+(struct cord [x y] #:prefab)
+#; {type Nod* = [Listof Node]}
+#; {type Node = (node String Cord)}
+#; {type Cord = (cord N N)}
+
+;; THE GRAPH STRUCTURE 
 #; {type Graph = [Hashof String [Listof Connection]]}
 ;; maps city to all existing connections
-#; {type Connection = (to City Color Seg#)}
-#; {type City = Symbol}
-#; {type Color = Symbol}
-#; {type Seg# = (U 3 4 5)}
-;; -- target city, its connection color, and the number of segments
 
-;; ASSMMTIONS:
+(struct to [city color seg#] #:transparent)
+#; {type Connection = (to City Color Seg#)}
+#; {type City       = Symbol}
+;; -- target city, its connection color, and the number of segments
+;; ASSUMPTIONS
 ;; -- cities are consistently named (keep separate city to posn map for drawing)
 ;; -- connection are two-ways (undirected)
 
 (module+ examples
+  (define triangle-source
+    '[[Seattle Boston red 3]
+      [Seattle Boston green 4]
+      [Seattle Orlando blue 5]
+      [Orlando Boston white 3]
+      [Orlando Boston green 5]])
+  
   (define triangle
     [hash 'Seattle `[,[to 'Boston 'red 3]
                      ,[to 'Boston 'green 4]
@@ -93,6 +158,59 @@
                      ,[to 'Orlando 'green 5]
                      ,[to 'Seattle 'red 3]
                      ,[to 'Seattle 'green 4]]]))
+
+;                                                                                                  
+;                                                                                                  
+;                                                                              ;                   
+;                                     ;                               ;                            
+;                                     ;                               ;                            
+;     ;;;    ;;;;   ; ;;;    ;;;;   ;;;;;;   ;;;;   ;    ;    ;;;   ;;;;;;   ;;;     ;;;;   ; ;;;  
+;    ;   ;  ;;  ;;  ;;   ;  ;    ;    ;      ;;  ;  ;    ;   ;   ;    ;        ;    ;;  ;;  ;;   ; 
+;   ;       ;    ;  ;    ;  ;         ;      ;      ;    ;  ;         ;        ;    ;    ;  ;    ; 
+;   ;       ;    ;  ;    ;   ;;;;     ;      ;      ;    ;  ;         ;        ;    ;    ;  ;    ; 
+;   ;       ;    ;  ;    ;       ;    ;      ;      ;    ;  ;         ;        ;    ;    ;  ;    ; 
+;    ;   ;  ;;  ;;  ;    ;  ;    ;    ;      ;      ;   ;;   ;   ;    ;        ;    ;;  ;;  ;    ; 
+;     ;;;    ;;;;   ;    ;   ;;;;      ;;;   ;       ;;; ;    ;;;      ;;;   ;;;;;   ;;;;   ;    ; 
+;                                                                                                  
+;                                                                                                  
+;                                                                                                  
+;                                                                                                  
+
+(define (construct-visual-graph width height nod* c*)
+  (visual-graph width height nod* (connections->graph c*)))
+
+#; {[Listof [List String String Color Seg#]] -> Graph}
+(define (connections->graph c*)
+  (define directed   (add-one-direction (hash) c*))
+  (define flipped    (map (λ (x) (list* (second x) (first x) (cddr x))) c*))
+  (define undirected (add-one-direction directed flipped))
+  undirected)
+
+#; {Graph [Listof [List String String Color Seg#]] -> Graph}
+(define (add-one-direction graph c*)
+  (for/fold ([directed-graph graph]) ([c (group-by first c*)])
+    (hash-update directed-graph  (caar c) (connect-to (map rest c)) '[])))
+  
+#; {[Listof [List String Color Seg#]] -> Connection* -> Connection*}
+(define [(connect-to c*) old]
+  (append old (map (λ (x) (apply to x)) c*)))
+
+;                                                                          
+;                                                                          
+;            ;;;     ;;;                                    ;              
+;              ;       ;                              ;     ;              
+;              ;       ;                              ;     ;              
+;     ;;;      ;       ;            ; ;;;     ;;;   ;;;;;;  ; ;;;    ;;;;  
+;    ;   ;     ;       ;            ;;  ;;   ;   ;    ;     ;;   ;  ;    ; 
+;        ;     ;       ;            ;    ;       ;    ;     ;    ;  ;      
+;    ;;;;;     ;       ;            ;    ;   ;;;;;    ;     ;    ;   ;;;;  
+;   ;    ;     ;       ;            ;    ;  ;    ;    ;     ;    ;       ; 
+;   ;   ;;     ;       ;            ;;  ;;  ;   ;;    ;     ;    ;  ;    ; 
+;    ;;; ;      ;;;     ;;;         ; ;;;    ;;; ;     ;;;  ;    ;   ;;;;  
+;                                   ;                                      
+;                                   ;                                      
+;                                   ;                                      
+;                                                                          
 
 (define (all-paths graph start end [blocked '()])
   #; {Graph City City [Listof City] -> [Listof Path]}
@@ -122,6 +240,12 @@
     (error 'graph-lookup "can't happend, city not found ~e" city))
   (remove* blocked connections))
 
+(define (graph-connections graph city) (hash-ref (visual-graph-graph graph) city '[]))
+
+(define (graph-cities graph) (map car (hash->list (visual-graph-graph graph))))
+
+(define (to-color+seg# connection*) (map (λ (x) (list (to-color x) (to-seg# x))) connection*))
+
 ;                                          
 ;                                          
 ;                                          
@@ -141,6 +265,17 @@
 
 (module+ test
 
+  ;; ------------------------------------------------------------------------------------------------
+  ;; tests for connections->graph
+  
+  (define (->set g)
+    (map (λ (x) (list (first x) (apply set (rest x)))) (hash->list g)))
+
+  (check-equal? (->set (connections->graph triangle-source)) (->set triangle))
+
+  ;; ------------------------------------------------------------------------------------------------
+  ;; tests for all-aths 
+
   (define-syntax-rule (dev-null e) (parameterize ([current-error-port (open-output-string)]) e))
 
   (check-equal? (apply set (all-paths triangle 'Seattle 'Boston))
@@ -154,3 +289,11 @@
                      `[,[to 'Boston 'red 3]]])
 
   (check-exn #px"can't" (λ () (dev-null (all-paths bad 'Seattle 'Boston)))))
+
+(module+ examples
+  (define nod*
+    [list [node 'Boston [cord 0 0]]
+          [node 'Seattle [cord 0 0]]
+          [node 'Orlando [cord 0 0]]])
+
+  (define vtriangle (visual-graph 0 0 nod* triangle)))

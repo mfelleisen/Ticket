@@ -1,11 +1,11 @@
 #lang racket
 
+;; serializing nodes from the map editor 
+
 (provide
- #; {type Node = (node String Cord)}
- #; {type Cord = (cord N N)}
- #; {type Nod* = [Listof Node]}
+
  #; {type Connection* = [Listof Connection]}
- #; {type Connection = [List String String String N]}
+ #; {type Connection  = [List String String String N]}
  (struct-out node)
  (struct-out cord)
  nodes->jsexpr
@@ -24,18 +24,6 @@
 (struct node [name posn] #:prefab)
 (struct cord [x y] #:prefab)
 
-;; ---------------------------------------------------------------------------------------------------
-;; serialize to JSexpr 
-
-#; {Nod* Connection* Image -> MAP}
-(define (nodes->jsexpr nod* connections background)
-  (hash 'width (image-width background)
-        'height (image-height background)
-        'connections connections
-        'cities
-        (for/list ([n nod*])
-          `[,(node-name n) ,(rest (vector->list (struct->vector (node-posn n))))])))
-        
 ;; ---------------------------------------------------------------------------------------------------
 ;; parsing from JSON 
 
