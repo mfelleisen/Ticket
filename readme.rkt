@@ -2,11 +2,13 @@
 
 ;; create the README.md files from README.source in the top-level and all code directories 
 
+(define EXCEPTIONS '["scribblings" "Docs"]) ;; no need for organization tables 
+
 (define (main . x)
   (define show (empty? x))
   (define untracked (git-status-check))
   (define adirs (for/list ([fd (directory-list)] #:when (good? untracked fd)) (path->string fd)))
-  (readme (remove "scribblings" adirs) show)
+  (readme (remove* EXCEPTIONS adirs) show)
   (define afils (map (λ (d) (list (build-path d "README.md") d)) adirs))
   (write-readme-and-show (make-header "directory") afils values show))
 
@@ -38,9 +40,10 @@
 #; {[Listof [List PathString String]] -> [Listof String]}
 (define (purpose-statements l clean)
   (for/list ([d l])
+    (with-handlers ([exn:fail? (lambda (xn) (error 'purpose-statement "~a \n~a" (first d) (exn-message xn)))])
     (with-input-from-file (first d)
       (λ ()
-        (clean (string-trim (caddr (port->lines))))))))
+        (clean (string-trim (caddr (port->lines)))))))))
 
 #; {[Path] -> [Setof PathString]}
 ;; a primitive way to exclude Untracked directories and files 
