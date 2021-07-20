@@ -1,6 +1,6 @@
 #lang racket
 
-;; serialization of board maps to JSON 
+;; serialization of board maps to JSON
 
 ;                                                          
 ;                                                          
@@ -295,7 +295,6 @@
   (define jgraph8 (hash 'width 10 'height 10 'connections (hash 'C (hash 'B '[])) 'cities cities))
   (check-false (with-input-from-string (jsexpr->string jgraph8) parse) "bad width")
 
-  
-  (check-false (with-input-from-file "node-serialize.rkt" parse) "bad file format")
+  (check-false (with-input-from-file "serialize.rkt" parse) "bad file format")
   
   (check-false (with-input-from-string "" parse) "eof"))
