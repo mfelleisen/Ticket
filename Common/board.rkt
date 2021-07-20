@@ -22,7 +22,8 @@
 (provide
 
  #; {type VGraph}
- #; {N N Nod* [Listof [List String String Color Seq#]] -> VGraph}
+ #; {type Node}
+ #; {N N Nod* [Listof [List Symbol Symbol ColorSymbol Seq#]] -> VGraph}
  ;; ASSUMPTION Nod* and the two city names are consistent 
  construct-visual-graph
  node
@@ -40,7 +41,7 @@
  #; {type Path        = Connection*}
  #; {type Connection* = [Listof Connection]}
  #; {type Connection}
- #; {Graph City City [Listof Connection]  -> [Listof Path]}
+ #; {Graph City City Connection*  -> [Listof Path]}
  #; (all-paths A B blocked)
  ;; produces a list of all open paths from `A` to `B`
  ;; with the optional argument 
@@ -99,7 +100,7 @@
 ;                                                                          
 
 ;; THE VISUAL ELEMENTS 
-(struct visual-graph [width height cities graph])
+(struct visual-graph [width height cities graph] #:transparent)
 
 (define graph-width visual-graph-width)
 (define graph-height visual-graph-height)
@@ -112,11 +113,11 @@
 (struct node [name posn] #:prefab)
 (struct cord [x y] #:prefab)
 #; {type Nod* = [Listof Node]}
-#; {type Node = (node String Cord)}
+#; {type Node = (node Symbol Cord)}
 #; {type Cord = (cord N N)}
 
 ;; THE GRAPH STRUCTURE 
-#; {type Graph = [Hashof String [Listof Connection]]}
+#; {type Graph = [Hashof Symbol Connection*]}
 ;; maps city to all existing connections
 
 (struct to [city color seg#] #:transparent)
@@ -179,19 +180,19 @@
 (define (construct-visual-graph width height nod* c*)
   (visual-graph width height nod* (connections->graph c*)))
 
-#; {[Listof [List String String Color Seg#]] -> Graph}
+#; {[Listof [List Symbol Symvol ColorSymbol Seg#]] -> Graph}
 (define (connections->graph c*)
   (define directed   (add-one-direction (hash) c*))
   (define flipped    (map (λ (x) (list* (second x) (first x) (cddr x))) c*))
   (define undirected (add-one-direction directed flipped))
   undirected)
 
-#; {Graph [Listof [List String String Color Seg#]] -> Graph}
+#; {Graph [Listof [List Symbol Symvol ColorSymbol Seg#]] -> Graph}
 (define (add-one-direction graph c*)
   (for/fold ([directed-graph graph]) ([c (group-by first c*)])
     (hash-update directed-graph  (caar c) (connect-to (map rest c)) '[])))
   
-#; {[Listof [List String Color Seg#]] -> Connection* -> Connection*}
+#; {[Listof [List Symbol ColorSymbol Seg#]] -> Connection* -> Connection*}
 (define [(connect-to c*) old]
   (append old (map (λ (x) (apply to x)) c*)))
 
@@ -232,7 +233,7 @@
 
   (all-paths graph start end '[]))
 
-#; {Graph City -> [Listof Connection]}
+#; {Graph City -> Connection*}
 (define (lookup graph city blocked)
   (define connections (hash-ref graph city #false))
   (when (boolean? connections)
