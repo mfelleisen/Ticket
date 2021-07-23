@@ -24,10 +24,13 @@
 ;; one hash entry (either from A to B or B to A). Use string<? to make this work.
 (define (guarantee serialized-graph)
   (define serialized-graph-proper (hash-ref serialized-graph CONNECTIONS))
-  (define dom (map car (hash->list serialized-graph-proper)))
-  (define rng (map (λ (x) (map car (hash->list (hash-ref serialized-graph-proper x)))) dom))
+  (define dom (names serialized-graph-proper))
+  (define rng (map (λ (d) (names (hash-ref serialized-graph-proper d))) dom))
   (for/and ([d dom] [r rng])
     (andmap (λ (r) (symbol<? d r)) r)))
+
+#; {[Hashof Symbol X] -> [Listof Symbol]}
+(define (names h) (map car (hash->list h)))
 
 (require (only-in json jsexpr?))
 
@@ -192,6 +195,9 @@
        (define city-names (map node-name cities))
        (unless (= (set-count (apply set city-names)) (length city-names))
          (return #false))
+       (define city-locs  (map node-posn cities))
+       (unless (= (set-count (apply set city-locs)) (length city-locs))
+         (return #false))
        (define connections (parse-connections s city-names return))
        (construct-visual-graph w h cities connections)]
       [_ (return #false)])))
@@ -276,24 +282,31 @@
   (define graph6 [construct-visual-graph 10 10 example3 connect1])
   (check-false (->string graph6) "duplicated city")
 
+  ;; -------------------------------------------------------------------------------------------------
+  ;; invalid but well-formed JSON
+
   (define jgraph3 (hash 'width "A" 'height 10 'connections #hash() 'cities '[]))
   (check-false (with-input-from-string (jsexpr->string jgraph3) parse) "bad width")
 
   (define jgraph4 (hash 'width 10 'height 10 'connections '() 'cities '[]))
-  (check-false (with-input-from-string (jsexpr->string jgraph4) parse) "bad width")
+  (check-false (with-input-from-string (jsexpr->string jgraph4) parse) "bad target connection")
 
   (define jgraph5 (hash 'width 10 'height 10 'connections (hash 'A '()) 'cities '[["A" [1 1]]]))
-  (check-false (with-input-from-string (jsexpr->string jgraph5) parse) "bad width")
+  (check-false (with-input-from-string (jsexpr->string jgraph5) parse) "bad color connection")
+  
+  (define cities1 '[["A" [1 1]] ["B" [2 2]]])
+  (define jgraph6 (hash 'width 10 'height 10 'connections (hash 'A (hash 'B '[])) 'cities cities1))
+  (check-false (with-input-from-string (jsexpr->string jgraph6) parse) "bad length connection")
+  
+  (define jgraph7 (hash 'width 10 'height 10 'connections (hash 'A (hash 'C '[])) 'cities cities1))
+  (check-false (with-input-from-string (jsexpr->string jgraph7) parse) "bad city destination")
 
-  (define cities '[["A" [1 1]] ["B" [1 1]]])
-  (define jgraph6 (hash 'width 10 'height 10 'connections (hash 'A (hash 'B '[])) 'cities cities))
-  (check-false (with-input-from-string (jsexpr->string jgraph6) parse) "bad width")
+  (define jgraph8 (hash 'width 10 'height 10 'connections (hash 'C (hash 'B '[])) 'cities cities1))
+  (check-false (with-input-from-string (jsexpr->string jgraph8) parse) "bad city origination")
 
-  (define jgraph7 (hash 'width 10 'height 10 'connections (hash 'A (hash 'C '[])) 'cities cities))
-  (check-false (with-input-from-string (jsexpr->string jgraph7) parse) "bad width")
-
-  (define jgraph8 (hash 'width 10 'height 10 'connections (hash 'C (hash 'B '[])) 'cities cities))
-  (check-false (with-input-from-string (jsexpr->string jgraph8) parse) "bad width")
+  (define cities2 '[["A" [1 1]] ["B" [1 1]]])
+  (define jgraph9 (hash 'width 10 'height 10 'connections (hash) 'cities cities2))
+  (check-false (with-input-from-string (jsexpr->string jgraph9) parse) "bad: identical locations")
 
   (check-false (with-input-from-file "serialize.rkt" parse) "bad file format")
   

@@ -1,6 +1,5 @@
 #lang racket
 
-;; ---------------------------------------------------------------------------------------------------
 ;; representation of the referee's knowledge
 ;; 
 ;; State is [Player, ..., Player]
