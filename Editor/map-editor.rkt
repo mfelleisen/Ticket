@@ -23,7 +23,7 @@
 ;; ---------------------------------------------------------------------------------------------------
 (require Trains/Lib/image)
 (require Trains/Editor/connections-editor)
-(require Trains/Common/board)
+(require Trains/Common/map)
 (require Trains/Common/basic-constants)
 (require 2htdp/image)
 (require 2htdp/universe)

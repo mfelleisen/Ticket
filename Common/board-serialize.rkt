@@ -63,14 +63,14 @@
 ;                   ;                                                                              
 ;                                                                                                  
 
-(require Trains/Common/board)
+(require Trains/Common/map)
 (require Trains/Common/basic-constants)
 (require SwDev/Testing/communication)
 
 (module+ test
   (require (submod ".."))
   (require (submod ".." examples))
-  (require (submod Trains/Common/board examples))
+  (require (submod Trains/Common/map examples))
   (require json)
   (require rackunit))
 
