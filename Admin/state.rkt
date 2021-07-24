@@ -1,15 +1,5 @@
 #lang racket
 
-;; representation of a player's knowledge about the game
-
-(provide
- pstate
- pstate-I
- pstate-others
- ii
- ii-cards
- ii-connections)
-
 ;                                                                                                  
 ;                                                                                                  
 ;        ;                                       ;                             ;                   
@@ -28,17 +18,18 @@
 ;                   ;                                                                              
 ;                                                                                                  
 
+(require Trains/Common/state)
 (require Trains/Common/map)
 
 (module+ examples
-  (provide pstate1 c0 c1))
+  (provide rstate1 ii1 ii2))
 
 (module+ test
-  (require (submod ".." examples))
   (require (submod ".."))
+  (require (submod ".." examples))
+  (require (submod Trains/Common/state examples))
   (require (submod Trains/Common/map examples))
   (require rackunit))
-           
 
 ;                                                                          
 ;                                                                          
@@ -58,31 +49,15 @@
 ;                                                           ;              
 ;                                                                          
 
-(struct pstate [I others] #:transparent)
-(struct ii [destination1 destination2 rails cards connections] #:transparent)
-
-#; {type PlayerState = (pstate MePlayer [Listof Player])}
-;; what the player knows about itself and others 
-
-#; {type MePlayer    = (ii Desitination Destination Natural [Hash Color Natural] Player)}
-;; the two destination cards, the rails left, the colored cards, and this player's possessions
-
-#; {type Player      = [Setof Connection]}
-#; {type Connection  = [list (Set City City) Color Length]}
-;; a connection between two cities has a color and a length 
-
-#; {type Destination = [set City City]} 
-;; a destination card specifies two cities; there is guaranteed to be a path between them
+#; {type RefereeState = [Listof MePlayer]}
 
 (module+ examples
-  (define cards1  (hash 'green 5))
-  (define c0 (set [list (set 'Orlando 'Seattle) 'blue 5]))
-  (define ii1 (ii (set 'Boston 'Seattle) (set 'Boston 'Orlando) 40 cards1 c0))
+  (define cards1 (hash 'green 5))
+  (define dest1  (set 'Boston 'Seattle))
+  (define ii1 (ii dest1 (set 'Boston 'Orlando) 40 cards1 (set)))
+  (define ii2 (ii dest1 (set 'Seattle 'Orlando) 5 cards1 (set [list (set 'Boston 'Seattle) 'red 3])))
 
-  (define c1 (set [list (set 'Boston 'Seattle) 'red 3]))
-
-  (define pstate1 (pstate ii1 (list c1))))
-
+  (define rstate1 (list ii1 ii2)))
 
 ;                                                                          
 ;                                                                          
@@ -100,21 +75,23 @@
 ;                                                                          
 ;                                                                          
 ;                                                                          
-;
+;                                                                          
 
-#; {Map RefereeState -> [Setof Connections]}
-;; determine the connections the active player can still acquire 
-(define (all-available-connections m ps)
+#; {RefereeState -> PlayerState}
+(define (rstate->pstate rs)
+  (pstate (first rs) (map ii-connections (rest rs))))
+
+#; {Map PlaterState Connection -> Boolean}
+;; can this player acquire the specified connection 
+(define (legal-action? m rs c)
   (define total (graph-connections m))
-  (define other (apply set-union (pstate-others ps)))
-  (set-subtract total other (ii-connections (pstate-I ps))))
+  (define active (first rs))
+  (define other (apply set-union (map ii-connections rs)))
+  (define avail (set-subtract total other))
+  (cond
+    [(not (set-member? avail c)) #false]
+    [else (>= (hash-ref (ii-cards active) (second c) 0) (third c))]))
 
-
-;; given my state and a map, can I still connect a destination
-
-;; given a state, how close is the game from being over
-
-;; serialize the player state 
 
 ;                                          
 ;                                          
@@ -134,9 +111,9 @@
 ;                                          
 ;                                          
 
-
 (module+ test
-  
-  (check-equal? 
-   (all-available-connections vtriangle pstate1)
-   (set-subtract (graph-connections vtriangle) c0 c1)))
+
+  (check-equal? (rstate->pstate rstate1) (pstate ii1 (list (ii-connections ii2))))
+
+  (check-false (legal-action? vtriangle rstate1 (list (set 'Boston 'Seattle) 'red  3)))
+  (check-true (legal-action? vtriangle rstate1 (list (set 'Boston 'Orlando) 'green  5))))

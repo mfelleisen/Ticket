@@ -58,6 +58,9 @@
  
  to-city)
 
+(module+ examples
+  (provide vtriangle triangle-source triangle vbad))
+
 ;                                                                                                  
 ;                                                                                                  
 ;        ;                                       ;                             ;                   
@@ -74,9 +77,6 @@
 ;                   ;                                                                              
 ;                   ;                                                                              
 ;                                                                                                  
-
-(module+ examples
-  (provide vtriangle triangle-source triangle bad))
 
 (module+ test
   (require (submod ".." examples))
@@ -120,7 +120,7 @@
 #; {type Graph = [Hashof Symbol Connection*]}
 ;; maps city to all existing connections
 
-(struct to [city color seg#] #:transparent)
+(struct to [city color seg#] #:prefab)
 #; {type Connection = (to City Color Seg#)}
 #; {type City       = Symbol}
 ;; -- target city, its connection color, and the number of segments
@@ -158,7 +158,15 @@
           'Boston  `[,[to 'Orlando 'white 3]
                      ,[to 'Orlando 'green 5]
                      ,[to 'Seattle 'red 3]
-                     ,[to 'Seattle 'green 4]]]))
+                     ,[to 'Seattle 'green 4]]])
+
+  (define nod*
+    [list [node 'Boston [cord 0 0]]
+          [node 'Seattle [cord 0 0]]
+          [node 'Orlando [cord 0 0]]])
+
+  (define vbad (visual-graph 0 0 nod* bad))
+  (define vtriangle (visual-graph 0 0 nod* triangle)))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -213,7 +221,15 @@
 ;                                   ;                                      
 ;                                                                          
 
-(define (all-paths graph start end [blocked '()])
+(define (all-paths vgraph start end [blocked0 '()])
+
+  (define blocked
+    (for/fold ([h (hash)]) ([x (in-set blocked0)])
+      (match-define (list cities color seg#) x)
+      (match-define (list city1 city2) (set->list cities))
+      (define h1 (hash-update h city2 (λ (x) (cons (to city1 color seg#) x)) '()))
+      (hash-update h1 city1 (λ (x) (cons (to city2 color seg#) x)) '())))
+      
   #; {Graph City City [Listof City] -> [Listof Path]}
   (define (all-paths graph start end been-there0)
     (cond
@@ -231,7 +247,7 @@
     (match-define [to city color seg#] 1step)
     (map (λ (1path) (cons 1step 1path)) (all-paths graph city end been-there)))
 
-  (all-paths graph start end '[]))
+  (all-paths (visual-graph-graph vgraph) start end '[]))
 
 #; {Graph City -> Connection*}
 (define (lookup graph city blocked)
@@ -239,9 +255,19 @@
   (when (boolean? connections)
     (displayln `[graph domain: ,(map car (hash->list graph))] (current-error-port))
     (error 'graph-lookup "can't happend, city not found ~e" city))
-  (remove* blocked connections))
+  (remove* (hash-ref blocked city '[]) connections))
 
-(define (graph-connections graph city) (hash-ref (visual-graph-graph graph) city '[]))
+(define (graph-connections graph [city #false])
+  (if (symbol? city)
+      (hash-ref (visual-graph-graph graph) city '[])
+      (set-of-all-connections graph)))
+
+(define (set-of-all-connections graph)
+  (for/fold ([s (set)]) ([c (graph-cities graph)])
+    (set-union
+     s
+     (for/set ([l (graph-connections graph c)])
+       (list (set c (to-city l)) (to-color l) (to-seg# l))))))
 
 (define (graph-cities graph) (map car (hash->list (visual-graph-graph graph))))
 
@@ -279,22 +305,23 @@
 
   (define-syntax-rule (dev-null e) (parameterize ([current-error-port (open-output-string)]) e))
 
-  (check-equal? (apply set (all-paths triangle 'Seattle 'Boston))
+  (check-equal? (apply set (all-paths vtriangle 'Seattle 'Boston))
                 [set `[,[to 'Boston 'green 4]]
                      `[,[to 'Boston 'red 3]]
                      `[,[to 'Orlando 'blue 5] ,[to 'Boston 'green 5]]
                      `[,[to 'Orlando 'blue 5] ,[to 'Boston 'white 3]]])
 
-  (check-equal? (apply set (all-paths triangle 'Seattle 'Boston `[,[to 'Orlando 'blue 5]]))
+  (define blocked1 (set [list [set 'Seattle 'Orlando] 'blue 5]))
+  (check-equal? (apply set (all-paths vtriangle 'Seattle 'Boston blocked1))
                 [set `[,[to 'Boston 'green 4]]
                      `[,[to 'Boston 'red 3]]])
 
-  (check-exn #px"can't" (λ () (dev-null (all-paths bad 'Seattle 'Boston)))))
+  (check-exn #px"can't" (λ () (dev-null (all-paths vbad 'Seattle 'Boston))))
 
-(module+ examples
-  (define nod*
-    [list [node 'Boston [cord 0 0]]
-          [node 'Seattle [cord 0 0]]
-          [node 'Orlando [cord 0 0]]])
-
-  (define vtriangle (visual-graph 0 0 nod* triangle)))
+  ;; -------------------------------------------------------------------------------------------------
+  ;; for graph-connections, all of them 
+  (define symmetric
+    (for/set ([x triangle-source])
+      (cons (set (first x) (second x)) (cddr x))))
+  
+  (check-equal? (graph-connections vtriangle) symmetric "graph-connection all"))

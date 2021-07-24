@@ -25,7 +25,7 @@
 (require Trains/Editor/connections-editor)
 (require Trains/Common/map)
 (require Trains/Common/basic-constants)
-(require 2htdp/image)
+(require (except-in 2htdp/image color?))
 (require 2htdp/universe)
 (require SwDev/Testing/communication)
 (require racket/runtime-path)

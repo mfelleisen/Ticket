@@ -39,6 +39,10 @@
  WIDTH 
  HEIGHT
  CONNECTIONS
+
+ #; {-> (U False VGraph)}
+ ;; extract VGraph from JSexpr on STDIN, #false otherwise
+ parse-vgraph
  
  (contract-out 
   [vgraph->jsexpr (-> any/c (and/c jsexpr? guarantee))]))
@@ -96,7 +100,8 @@
 (define HEIGHT 'height)
 (define CONNECTIONS 'connections)
 
-#; {type Graph  = [HashWithDomain WIDTH HEIGHT CITIES CONNECTIONS]}
+#; {type Graph  = [Hash [WIDTH M] [HEIGHT N] [CITIES Cities] [CONNECTIONS JGraph]]}
+#; {type Cities = [Listof [List String [List N N]]]}
 #; {type JGraph = [Hashof Symbol JSlice]}
 #; {type JSlice = [Hashof Symbol JColor]}
 #; {type JColor = [Hashof Color Natural]}
@@ -178,7 +183,7 @@
 
 #; {-> (U False VGraph)}
 ;; extract VGraph from JSexpr on STDIN, #false otherwise 
-(define (parse)
+(define (parse-vgraph)
   (define j (read-message))
   (cond
     [(eof-object? j) #false]
@@ -188,19 +193,25 @@
 #; {JSexpr -> (U False VGraph)}
 ;; extract width, height, and list of nodes from JSexpr, #false otherwise 
 (define (parse-map j)
-  (let/ec return
+  (let/ec k
+    (define (return x)
+      (displayln x (current-error-port))
+      (k #false))
     (match j
-      [(hash-table ('width (? width? w)) ('height h) ('cities c) ('connections s))
+      [(hash-table ((? (curry eq? WIDTH)) (? width? w))
+                   ((? (curry eq? HEIGHT)) (? height? h))
+                   ((? (curry eq? CITIES)) c)
+                   ((? (curry eq? CONNECTIONS)) s))
        (define cities (map (parse-city w h return) c))
        (define city-names (map node-name cities))
        (unless (= (set-count (apply set city-names)) (length city-names))
-         (return #false))
+         (return "duplicate city name"))
        (define city-locs  (map node-posn cities))
        (unless (= (set-count (apply set city-locs)) (length city-locs))
-         (return #false))
+         (return "two cities with identical location"))
        (define connections (parse-connections s city-names return))
        (construct-visual-graph w h cities connections)]
-      [_ (return #false)])))
+      [_ (return "not a map object (with the four required fields)")])))
 
 #; {N N [Boolean -> Empty] -> JSexpr -> Node}
 (define ((parse-city w h return) j)
@@ -209,30 +220,30 @@
            (list (and (? natural? x) (? (λ (y) (<= 0 y w))))
                  (and (? natural? y) (? (λ (y) (<= 0 y h))))))
      (node (string->symbol n) (cord x y))]
-    [_ (return #false)]))
+    [_ (return "not a proper city specification")]))
 
 #; {type LConnection = [List Symbol Symbol ColorSymbol Seq#]}
 
 #; {JSexpr [Listof Symbol] [Boolean -> Emtpy] -> [Listof LConnection]}
 (define (parse-connections j cities return)
-  (unless (hash? j) (return #false))
+  (unless (hash? j) (return "not a connection object"))
   (for/fold ([r '()]) ([(from c*) j])
-    (unless (member from cities) (return #false))
+    (unless (member from cities) (return "not a city in the domain of the connection object"))
     (append r (map (λ (x) (cons from x)) (parse-1-connection c* cities return)))))
 
 #; {JSexpr [Listof Symbol] [Boolean -> Emtpy] -> [Listof [List Symbol ColorSymbol Seg#]]}
 (define (parse-1-connection j cities return)
-  (unless (hash? j) (return #false))
+  (unless (hash? j) (return "not a connection object"))
   (for/fold ([r '()]) ([(to c*) j])
-    (unless (member to cities) (return #false))
+    (unless (member to cities) (return "not a city in the range of the connection object"))
     (append r (map (λ (x) (cons to x)) (parse-edges c* return)))))
 
 #; {JSexpr [Boolean -> Emtpy] -> [Listof [List ColorSymbol Seg#]]}
 (define (parse-edges j return)
-  (unless (hash? j) (return #false))
+  (unless (hash? j) (return "not an edge object"))
   (for/list ([(color seg#) j])
-    (unless (member (~a color) COLORS) (return #false))
-    (unless (and (natural? seg#) (member seg# SEG#)) (return #false))
+    (unless (color? (~a color)) (return "not a color"))
+    (unless (seg#? seg#) (return "not a segment length"))
     (list color seg#)))
 
 ;                                          
@@ -257,57 +268,62 @@
 
 (module+ test ;; deserialization 
 
-  (define (->string g)
-    (with-input-from-string (jsexpr->string (vgraph->jsexpr g)) parse))
+  (define-syntax-rule (dev-null e) (parameterize ([current-error-port (open-output-string)]) e))
+  
+  (define (->vgraph g)
+    (dev-null (with-input-from-string (jsexpr->string (vgraph->jsexpr g)) parse-vgraph)))
   
   (define example1 `(,[node 'A [cord 1 1]] ,(node 'B [cord 2 2])))
   (define connect1 '[[A B red 3]])
   (define graph1  [construct-visual-graph 10 10 example1 connect1])
   (check-equal? (parse-map (vgraph->jsexpr graph1)) graph1 "parse map")
-  (check-equal? (->string graph1) graph1 "parse")
+  (check-equal? (->vgraph graph1) graph1 "parse")
  
   (define example2 `(,[node 'A%D [cord 1 1]] ,(node 'B [cord 2 2])))
   (define graph2  [construct-visual-graph 10 10 example2 connect1])
-  (check-false (->string graph2) "bad city")
+  (check-false (->vgraph graph2) "bad city")
 
   (define connect4 '[[A B red 9]])
   (define graph4 [construct-visual-graph 10 10 example1 connect4])
-  (check-false (->string graph4) "bad segments")
+  (check-false (->vgraph graph4) "bad segments")
 
   (define connect5 '[[A B pink 3]])
   (define graph5 [construct-visual-graph 10 10 example1 connect5])
-  (check-false (->string graph5) "bad color")
+  (check-false (->vgraph graph5) "bad color")
   
   (define example3 `(,[node 'A [cord 1 1]] ,(node 'B [cord 2 2]) ,(node 'A [cord 3 3])))
   (define graph6 [construct-visual-graph 10 10 example3 connect1])
-  (check-false (->string graph6) "duplicated city")
+  (check-false (->vgraph graph6) "duplicated city")
 
   ;; -------------------------------------------------------------------------------------------------
   ;; invalid but well-formed JSON
+  
+  (define (->string g msg)
+    (check-false (dev-null (with-input-from-string (jsexpr->string g) parse-vgraph)) msg))
+
+  (define cities1 '[["A" [1 1]] ["B" [2 2]]])
 
   (define jgraph3 (hash 'width "A" 'height 10 'connections #hash() 'cities '[]))
-  (check-false (with-input-from-string (jsexpr->string jgraph3) parse) "bad width")
+  (->string jgraph3 "bad width")
 
   (define jgraph4 (hash 'width 10 'height 10 'connections '() 'cities '[]))
-  (check-false (with-input-from-string (jsexpr->string jgraph4) parse) "bad target connection")
+  (->string jgraph4 "bad target connection")
 
   (define jgraph5 (hash 'width 10 'height 10 'connections (hash 'A '()) 'cities '[["A" [1 1]]]))
-  (check-false (with-input-from-string (jsexpr->string jgraph5) parse) "bad color connection")
+  (->string jgraph5 "bad color connection")
   
-  (define cities1 '[["A" [1 1]] ["B" [2 2]]])
   (define jgraph6 (hash 'width 10 'height 10 'connections (hash 'A (hash 'B '[])) 'cities cities1))
-  (check-false (with-input-from-string (jsexpr->string jgraph6) parse) "bad length connection")
+  (->string jgraph6 "bad length connection")
   
   (define jgraph7 (hash 'width 10 'height 10 'connections (hash 'A (hash 'C '[])) 'cities cities1))
-  (check-false (with-input-from-string (jsexpr->string jgraph7) parse) "bad city destination")
+  (->string jgraph7 "bad city destination")
 
   (define jgraph8 (hash 'width 10 'height 10 'connections (hash 'C (hash 'B '[])) 'cities cities1))
-  (check-false (with-input-from-string (jsexpr->string jgraph8) parse) "bad city origination")
-
-  (define cities2 '[["A" [1 1]] ["B" [1 1]]])
-  (define jgraph9 (hash 'width 10 'height 10 'connections (hash) 'cities cities2))
-  (check-false (with-input-from-string (jsexpr->string jgraph9) parse) "bad: identical locations")
-
-  (check-false (with-input-from-file "serialize.rkt" parse) "bad file format")
+  (->string jgraph8 "bad city origination")
   
-  (check-false (with-input-from-string "" parse) "eof"))
+  (define jgraph9 (hash 'width 10 'height 10 'connections (hash) 'cities '[["a" [1 1]] ["B" [1 1]]]))
+  (->string jgraph9 "identical locations")
+
+  (check-false (with-input-from-file "board-serialize.rkt" parse-vgraph) "bad file format")
+  
+  (check-false (with-input-from-string "" parse-vgraph) "eof"))

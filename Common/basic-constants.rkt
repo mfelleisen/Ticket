@@ -3,7 +3,9 @@
 (provide
  width?
  height?
- city? 
+ city?
+ color?
+ seg#?
 
  COLORS
  SEG#
@@ -17,7 +19,11 @@
 ;; -----------------------------------------------------------------------------
 (define COLORS (map ~a '[red blue green white]))
 
+(define (color? x) (member x COLORS))
+
 (define SEG# '[3 4 5])
+
+(define (seg#? x) (member x SEG#))
 
 (define CITY-NAME "[a-zA-Z0-9\\ \\.\\,]+")
 (define CITY-LENGTH 25)
