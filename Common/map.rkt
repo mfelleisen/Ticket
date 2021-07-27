@@ -44,6 +44,7 @@
 
  (struct-out node)
  (struct-out cord)
+ (struct-out game-map)
 
  game-map?
 
@@ -57,10 +58,8 @@
         (r game-map?))]
   
   [graph-width (-> game-map? width?)]
-  
   [graph-height (-> game-map? height?)]
-  
-  [graph-locations (-> game-map?[listof [list/c string? (list/c natural? natural?)]])]
+  [graph-locations (-> game-map? [listof [list/c string? (list/c natural? natural?)]])]
 
   (all-paths
    ;; produces a list of all paths from `A` to `B` in the given `vgraph`
@@ -191,12 +190,12 @@
                      ,[to 'Seattle 'green 4]]])
 
   (define nod*
-    [list [node 'Boston [cord 0 0]]
-          [node 'Seattle [cord 0 0]]
-          [node 'Orlando [cord 0 0]]])
+    [list [node 'Boston  [cord 10 10]]
+          [node 'Seattle [cord 20 20]]
+          [node 'Orlando [cord 30 30]]])
 
-  (define vbad (game-map MIN-WIDTH MIN-WIDTH nod* bad))
-  (define vtriangle (game-map MIN-WIDTH MIN-WIDTH nod* triangle)))
+  (define vbad (game-map MAX-WIDTH MAX-WIDTH nod* bad))
+  (define vtriangle (game-map MAX-WIDTH MAX-WIDTH nod* triangle)))
 
 ;                                                                                                  
 ;                                                                                                  
