@@ -117,12 +117,12 @@
           'Seattle (hash)))
 
   (define vtriangle-serialized
-    (hash CITIES      `(("Boston"  (0 0))
-                        ("Seattle" (0 0))
-                        ("Orlando" (0 0)))
+    (hash CITIES      `(("Boston"  (10 10))
+                        ("Seattle" (20 20))
+                        ("Orlando" (30 30)))
           CONNECTIONS triangle-serialized
-          HEIGHT      MIN-WIDTH
-          WIDTH       MIN-WIDTH)))
+          HEIGHT      MAX-WIDTH
+          WIDTH       MAX-WIDTH)))
 
 ;                                                                          
 ;                                                                          
@@ -221,7 +221,7 @@
            (list (and (? natural? x) (? (λ (y) (<= 0 y w))))
                  (and (? natural? y) (? (λ (y) (<= 0 y h))))))
      (node (string->symbol n) (cord x y))]
-    [_ (return "not a proper city specification")]))
+    [_ (return (~e "not a proper city specification" j))]))
 
 #; {type LConnection = [List Symbol Symbol ColorSymbol Seq#]}
 
@@ -277,23 +277,23 @@
   
   (define example1 `(,[node 'A [cord 1 1]] ,(node 'B [cord 2 2])))
   (define connect1 '[[A B red 3]])
-  (define graph1  [construct-game-map MIN-WIDTH MIN-WIDTH example1 connect1])
+  (define graph1  [construct-game-map MAX-WIDTH MAX-WIDTH example1 connect1])
   
   (check-equal? (parse-map (game-map->jsexpr graph1)) graph1 "parse map")
   (check-equal? (->vgraph graph1) graph1 "parse")
  
   (define example2 `(,[node 'A%D [cord 1 1]] ,(node 'B [cord 2 2])))
   (check-exn exn:fail:contract?
-             (λ () (->vgraph [construct-game-map MIN-WIDTH MIN-WIDTH example2 connect1]))
+             (λ () (->vgraph [construct-game-map MAX-WIDTH MAX-WIDTH example2 connect1]))
              "bad city")
 
   (define connect4 '[[A B red 9]])
   (check-exn exn:fail:contract?
-             (λ () (->vgraph [construct-game-map MIN-WIDTH MIN-WIDTH example1 connect4]))
+             (λ () (->vgraph [construct-game-map MAX-WIDTH MAX-WIDTH example1 connect4]))
              "fail a cont")
   
   (define example3 `(,[node 'A [cord 1 1]] ,(node 'B [cord 2 2]) ,(node 'A [cord 3 3])))
-  (define graph6 [construct-game-map MIN-WIDTH MIN-WIDTH example3 connect1])
+  (define graph6 [construct-game-map MAX-WIDTH MAX-WIDTH example3 connect1])
   (check-false (->vgraph graph6) "duplicated city")
   
   ;; -------------------------------------------------------------------------------------------------
@@ -307,10 +307,10 @@
   (define gm3 (hash 'width "A" 'height 0 'connections #hash() 'cities '[]))
   (->string gm3 "bad width")
 
-  (define gm4 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections '() 'cities '[]))
+  (define gm4 (hash 'width MAX-WIDTH 'height MAX-WIDTH 'connections '() 'cities '[]))
   (->string gm4 "bad target connection")
 
-  (define gm* (hash 'width MIN-WIDTH 'height MIN-WIDTH 'cities cities1))
+  (define gm* (hash 'width MAX-WIDTH 'height MAX-WIDTH 'cities cities1))
   (define gm5 (hash-set  gm* 'connections (hash 'A '())))
   (->string gm5 "bad color connection")
   
