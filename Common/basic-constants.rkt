@@ -17,9 +17,9 @@
  CITY-NAME)
 
 ;; -----------------------------------------------------------------------------
-(define COLORS (map ~a '[red blue green white]))
+(define COLORS '[red blue green white])
 
-(define (color? x) (member x COLORS))
+(define (color? x) (member (if (string? x) (string->symbol x) x) COLORS))
 
 (define SEG# '[3 4 5])
 
@@ -30,10 +30,11 @@
 (define pxCITY (pregexp CITY-NAME))
 
 (define (city? s)
-  (and (string? s)
-       (<= 1 (string-length s) CITY-LENGTH)
-       (let ([m (regexp-match pxCITY s)])
-         (and (cons? m) (equal? (first m) s)))))
+  (and (or (string? s) (symbol? s))
+       (let ([s (if (string? s) s (~a s))])
+         (<= 1 (string-length s) CITY-LENGTH)
+         (let ([m (regexp-match pxCITY s)])
+           (and (cons? m) (equal? (first m) s))))))
 
 (define MIN-WIDTH 10)
 (define MAX-WIDTH 800)
