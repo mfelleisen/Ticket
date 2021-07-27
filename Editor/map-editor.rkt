@@ -25,16 +25,15 @@
  ;; this simple map editor produces a visual graph (board) representation 
  ;; nodes can be added but not deleted (yet)
  ;; connections are added via a separate selection-based window 
-
- ;; TODO initialize it with a Board representation  
  map-editor)
 
 (module+ homework
   (provide
-   node
-   cord
-   #; {Connection* Nodes Image -> Image}
+   node cord
+   
+   #; {[Listof InternalConnection] Nodes Image -> Image}
    draw-connections
+   
    #; {Nodes Image -> Image}
    draw-nodes))
 
@@ -65,7 +64,6 @@
 (require 2htdp/universe)
 (require SwDev/Testing/communication)
 (require racket/runtime-path)
-(require (prefix-in p: pict))
 
 (module+ test
   (require (submod Trains/Common/map-serialize examples))
@@ -102,25 +100,18 @@
 (define CANCEL? "Cancel")
 (define NAME    "Enter the city's name")
 
-#; {-> JSexpr}
-;; pop up map editor
-;; write the nodes out to STDOUT as JSON
+#; {-> Map}
+;; pop up map editor, wait for user to add cities to map & connections, construct map rep.
 (define (map-editor)
-  (define-values (nod0 connections0 background)
+  (define-values (cities0 connections0 background)
     (match (parse-game-map) 
       [(? boolean?)  (values '[] '[] BACKG)]
       [(? game-map? g)
-       (define w (graph-width g))
-       (define h (graph-height g))
-       (define cities
-         (for/list ([c (game-map-cities g)])
-           (node (~a (node-name c)) (node-posn c))))
-       (define connections
-         (for/list ([c (set->list (graph-connections g))])
-           (append (map ~a (set->list (first c))) (rest c))))
-       (values cities connections (rectangle w h 'solid BCOLOR))]))
-  (match-define (list nod* connections) (edit-graph nod0 connections0 background))
-  (construct-game-map (image-width background) (image-height background) nod* connections))
+       (define cities (externa->internal-cities (game-map-cities g)))
+       (define conns  (externa->internal-connections (graph-connections g)))         
+       (values cities conns (rectangle (graph-width g) (graph-height g) 'solid BCOLOR))]))
+  (match-define (list cities connections) (edit-graph cities0 connections0 background))
+  (construct-game-map (image-width background) (image-height background) cities connections))
 
 ;                                                                                          
 ;                                                                                          
@@ -140,33 +131,60 @@
 ;                                                                                     ;;;  
 ;                                                                                          
 
-#; {type Connection = [List Symbol Symbol Color Length]}
+#; {type InternalConnection = [List String String Color Length]}
+#; {type InternalCities     = [Lisof [node String [cord N N]]]}
+;; drawing and presenting choices works with strings, not symbols
 
-#; {Nod* Connectiion* Image -> [List Nod* Connection*]}
+(define (externa->internal-connections externals)
+  (for/list ([c (set->list externals)])
+    (append (map ~a (set->list (first c))) (rest c))))
+
+(define (internal->external-connections internal-connections)  
+  (for/list ([c internal-connections])
+    (append (map string->symbol (take c 2)) (drop c 2))))
+
+(define (externa->internal-cities nodes)
+  (for/list ([c nodes])
+    (node (~a (node-name c)) (node-posn c))))
+
+(define (internal->external-cities cities)
+  (for/list ([n cities])
+    (node (string->symbol (node-name n)) (node-posn n))))
+
+#; {[Listof InternalCities]
+    [Listof InternalConnection]
+    Image -> [List [Listof InternalCities] [Listof InternalConnection]]}
 (define (edit-graph nod0 connections0 backg)
   (define connection (new connection% [*connections connections0] [x0 (+ (image-width backg) 55)]))
-  (define internal-nodes (edit-with-big-bang nod0 connection backg))
-  (define external-nodes
-    (for/list ([n internal-nodes])
-      (node (string->symbol (node-name n)) (node-posn n))))
-  (define internal-connections (send connection view))
-  (define external-connections
-    (for/list ([c internal-connections])
-      (list* (string->symbol (first c)) (string->symbol (second c)) (cddr c))))
+  (define nodes (internal->external-cities (edit-with-big-bang nod0 connection backg)))
+  (define conns (internal->external-connections (send connection view)))
   (send connection stop)
-  (list external-nodes external-connections))
+  (list nodes conns))
 
-(define max-time (make-parameter 100000000))
+(define max-time (make-parameter 100000000)) ;; for testing
+#; {[Listof InternalCities] [Listof InteranlConnections] Image -> [Listof InternalCities]}
 (define (edit-with-big-bang nod0 connection backg)
   (big-bang nod0
     [to-draw (draw-graph connection backg)]
-    
-    [on-mouse (add-node connection)]
-    ;; this is just triggers a regular update of the image w/ new connections 
+    [on-mouse (add-city connection)]
+    ;; this just triggers a regular update of the image w/ new connections 
     [on-tick values 1 (max-time)]
     [close-on-stop #true]))
 
-(define connection%
+#; {[Instance Connection%] -> [Listof InternalCities] N N MouseEvent -> [Listof InternalCities]}
+(define ((add-city connection) cities x y me)
+  (cond
+    [(not (mouse=? "button-down" me)) cities]
+    [(eq? 'no (message-box/custom "" "" CITY? CANCEL? #f #f '[number-order default=1])) cities]
+    [else
+     (define name (get-text-from-user NAME ""))
+     (cond
+       [(and (city? name) (not (member name (map node-name cities))))
+        (send connection add (for/list ([to cities]) (list name (node-name to))))
+        (cons (node name (cord x y)) cities)]
+       [else cities])]))
+
+(define connection% ;; manage InternalConnections via edior and for later use 
   (class object% (init-field *connections) (init x0)
     (super-new)
 
@@ -191,22 +209,6 @@
     (define/public (add loc) (manage loc))
     (define/public (view) *connections)))
 
-;; ---------------------------------------------------------------------------------------------------
-;; adding nodes 
- 
-#; {[Instance Connection%] -> Nod* N N MouseEvent -> Nod*}
-(define ((add-node connection) nod* x y me)
-  (cond
-    [(not (mouse=? "button-down" me)) nod*]
-    [(eq? 'no (message-box/custom "" "" CITY? CANCEL? #f #f '[number-order default=1])) nod*]
-    [else
-     (define name (get-text-from-user NAME ""))
-     (cond
-       [(and (city? name) (not (member name (map node-name nod*))))
-        (send connection add (for/list ([to nod*]) (list name (node-name to))))
-        (cons (node name (cord x y)) nod*)]
-       [else nod*])]))
-
 ;                                                          
 ;                                                          
 ;        ;                             ;                   
@@ -225,33 +227,33 @@
 ;                                                     ;;;  
 ;                                                          
 
-#; {I[Instance Connection%] mage -> Nod* -> Image}
-(define ((draw-graph connection background) nodes)
-  (define +nodes (draw-nodes nodes background))
-  (define +conns (draw-connections (send connection view) nodes +nodes))
+#; {I[Instance Connection%] mage -> [Listof InternalCities] -> Image}
+(define ((draw-graph connection background) cities)
+  (define +nodes (draw-nodes cities background))
+  (define +conns (draw-connections (send connection view) cities +nodes))
   +conns)
 
-#; {Nod* Image -> Image}
-(define (draw-nodes nodes background)
-  (for/fold ([image background]) ([n nodes])
+#; {[Listof InternalCities] Image -> Image}
+(define (draw-nodes cities background)
+  (for/fold ([image background]) ([n cities])
     (match-define [node name [cord x y]] n)
     (define +city (place-image CITY x y image))
     (define +name (place-image (text name FSIZE FCOLOR) x y +city))
     +name))
 
-#; {Connection* Nod* Image -> Image}
-(define (draw-connections edges nodes background)
+#; {[Listof InternalConnection] [Listof InternalCities] Image -> Image}
+(define (draw-connections edges cities background)
   (for/fold ([image background]) ([edge-set (group-by (λ (x) (take x 2)) edges)])
     (for/fold ([image image]) ([x edge-set][j (in-naturals)])
       (define i (* 5 j))
       (match-define [list from to c s] x)
-      (match-define [cord x1 y1] (lookup from nodes))
-      (match-define [cord x2 y2] (lookup to nodes))
+      (match-define [cord x1 y1] (lookup from cities))
+      (match-define [cord x2 y2] (lookup to cities))
       (add-segments image s (+ x1 i) y1 (+ x2 i) y2 c BCOLOR))))
 
-#; {String Nod* -> Cord}
-(define (lookup name nodes)
-  (node-posn (first (memf (λ (n) (equal? (node-name n) name)) nodes))))
+#; {String [Listof InternalCities] -> Cord}
+(define (lookup name cities)
+  (node-posn (first (memf (λ (n) (equal? (node-name n) name)) cities))))
 
 ;                                          
 ;                                          
