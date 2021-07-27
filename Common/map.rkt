@@ -32,7 +32,7 @@
   (λ (c*)
     (for/and ([c c*])
       (unless (and (member (first c) cities) (member (second c) cities))
-        (displayln `[,(first c) or ,(second c) not cities: ,cities] (current-error-port))))))
+        (writeln `[,(first c) or ,(second c) not cities: ,cities] (current-error-port))))))
 
 (define (is-city? a-game-map)
   (define cities (map node-name (game-map-cities a-game-map)))
@@ -47,12 +47,18 @@
 
  (contract-out
   
-  [construct-visual-graph
+  [construct-game-map
    (->i ([w width?]
          [h height?]
          [nodes [listof [struct/c node symbol? [struct/c cord natural? natural?]]]]
          [conns (nodes) (and/c connection* (in? nodes))]) 
         (r game-map?))]
+  
+  [graph-width (-> game-map? width?)]
+  
+  [graph-height (-> game-map? height?)]
+  
+  [graph-locations (-> game-map?[listof [list/c string? (list/c natural? natural?)]])]
 
   (all-paths
    ;; produces a list of all paths from `A` to `B` in the given `vgraph`
@@ -63,18 +69,6 @@
    ;; produces a list of all paths in the given graph
    ;; GUARANTEE every path connects `A` and `B` such that `(symbol<? A B)` holds
    (-> game-map? (listof path/c))])
-   
-   
- #; {VGraph -> N}
- graph-width
- #; {VGraph -> N}
- graph-height
- #; {VGraph -> [Listof [List String N N]]}
- graph-locations
-
- #; {type Path        = Connection*}
- #; {type Connection* = [Listof Connection]}
- #; {type Connection}
  
  #; {Graph City -> Connection*}
  graph-connections
@@ -199,8 +193,8 @@
           [node 'Seattle [cord 0 0]]
           [node 'Orlando [cord 0 0]]])
 
-  (define vbad (game-map 0 0 nod* bad))
-  (define vtriangle (game-map 0 0 nod* triangle)))
+  (define vbad (game-map MIN-WIDTH MIN-WIDTH nod* bad))
+  (define vtriangle (game-map MIN-WIDTH MIN-WIDTH nod* triangle)))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -219,7 +213,7 @@
 ;                                                                                                  
 ;                                                                                                  
 
-(define (construct-visual-graph width height nod* c*)
+(define (construct-game-map width height nod* c*)
   (game-map width height nod* (connections->graph c*)))
 
 #; {[Listof [List Symbol Symvol ColorSymbol Seg#]] -> Graph}

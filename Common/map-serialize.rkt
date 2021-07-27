@@ -118,10 +118,12 @@
           'Seattle (hash)))
 
   (define vtriangle-serialized
-    (hash CITIES      '(("Boston" (0 0)) ("Seattle" (0 0)) ("Orlando" (0 0)))
+    (hash CITIES      `(("Boston"  (0 0))
+                        ("Seattle" (0 0))
+                        ("Orlando" (0 0)))
           CONNECTIONS triangle-serialized
-          HEIGHT      0
-          WIDTH       0)))
+          HEIGHT      MIN-WIDTH
+          WIDTH       MIN-WIDTH)))
 
 ;                                                                          
 ;                                                                          
@@ -210,7 +212,7 @@
        (unless (= (set-count (apply set city-locs)) (length city-locs))
          (return "two cities with identical location"))
        (define connections (parse-connections s city-names return))
-       (construct-visual-graph w h cities connections)]
+       (construct-game-map w h cities connections)]
       [_ (return "not a map object (with the four required fields)")])))
 
 #; {N N [Boolean -> Empty] -> JSexpr -> Node}
@@ -276,20 +278,20 @@
   
   (define example1 `(,[node 'A [cord 1 1]] ,(node 'B [cord 2 2])))
   (define connect1 '[[A B red 3]])
-  (define graph1  [construct-visual-graph 10 10 example1 connect1])
+  (define graph1  [construct-game-map MIN-WIDTH MIN-WIDTH example1 connect1])
   
   (check-equal? (parse-map (vgraph->jsexpr graph1)) graph1 "parse map")
   (check-equal? (->vgraph graph1) graph1 "parse")
  
   (define example2 `(,[node 'A%D [cord 1 1]] ,(node 'B [cord 2 2])))
-  (define graph2  [construct-visual-graph 10 10 example2 connect1])
+  (define graph2  [construct-game-map MIN-WIDTH MIN-WIDTH example2 connect1])
   (check-false (->vgraph graph2) "bad city")
 
   (define connect4 '[[A B red 9]])
-  (check-exn exn:fail:contract? (λ () (->vgraph [construct-visual-graph 10 10 example1 connect4])))
+  (check-exn exn:fail:contract? (λ () (->vgraph [construct-game-map MIN-WIDTH MIN-WIDTH example1 connect4])))
   
   (define example3 `(,[node 'A [cord 1 1]] ,(node 'B [cord 2 2]) ,(node 'A [cord 3 3])))
-  (define graph6 [construct-visual-graph 10 10 example3 connect1])
+  (define graph6 [construct-game-map MIN-WIDTH MIN-WIDTH example3 connect1])
   (check-false (->vgraph graph6) "duplicated city")
 
   ;; -------------------------------------------------------------------------------------------------
@@ -300,25 +302,25 @@
 
   (define cities1 '[["A" [1 1]] ["B" [2 2]]])
 
-  (define jgraph3 (hash 'width "A" 'height 10 'connections #hash() 'cities '[]))
+  (define jgraph3 (hash 'width "A" 'height 0 'connections #hash() 'cities '[]))
   (->string jgraph3 "bad width")
 
-  (define jgraph4 (hash 'width 10 'height 10 'connections '() 'cities '[]))
+  (define jgraph4 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections '() 'cities '[]))
   (->string jgraph4 "bad target connection")
 
-  (define jgraph5 (hash 'width 10 'height 10 'connections (hash 'A '()) 'cities '[["A" [1 1]]]))
+  (define jgraph5 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections (hash 'A '()) 'cities '[["A" [1 1]]]))
   (->string jgraph5 "bad color connection")
   
-  (define jgraph6 (hash 'width 10 'height 10 'connections (hash 'A (hash 'B '[])) 'cities cities1))
+  (define jgraph6 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections (hash 'A (hash 'B '[])) 'cities cities1))
   (->string jgraph6 "bad length connection")
   
-  (define jgraph7 (hash 'width 10 'height 10 'connections (hash 'A (hash 'C '[])) 'cities cities1))
+  (define jgraph7 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections (hash 'A (hash 'C '[])) 'cities cities1))
   (->string jgraph7 "bad city destination")
 
-  (define jgraph8 (hash 'width 10 'height 10 'connections (hash 'C (hash 'B '[])) 'cities cities1))
+  (define jgraph8 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections (hash 'C (hash 'B '[])) 'cities cities1))
   (->string jgraph8 "bad city origination")
   
-  (define jgraph9 (hash 'width 10 'height 10 'connections (hash) 'cities '[["a" [1 1]] ["B" [1 1]]]))
+  (define jgraph9 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections (hash) 'cities '[["a" [1 1]] ["B" [1 1]]]))
   (->string jgraph9 "identical locations")
 
   (check-false (with-input-from-file "map-serialize.rkt" parse-vgraph) "bad file format")

@@ -51,7 +51,7 @@
       [(? boolean? nod0) (values '[] '[] BACKG)]
       [(list w h cities connections) (values cities connections (rectangle w h 'solid BCOLOR))]))
   (match-define (list nod* connections) (edit-graph nod0 connections0 background))
-  (construct-visual-graph (image-width background) (image-height background) nod* connections))
+  (construct-game-map (image-width background) (image-height background) nod* connections))
 
 ;; ---------------------------------------------------------------------------------------------------
 #; {Nod* Connectiion* Image -> Nod*}
