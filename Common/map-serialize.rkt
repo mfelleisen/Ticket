@@ -324,6 +324,6 @@
   (define jgraph9 (hash 'width 10 'height 10 'connections (hash) 'cities '[["a" [1 1]] ["B" [1 1]]]))
   (->string jgraph9 "identical locations")
 
-  (check-false (with-input-from-file "board-serialize.rkt" parse-vgraph) "bad file format")
+  (check-false (with-input-from-file "map-serialize.rkt" parse-vgraph) "bad file format")
   
   (check-false (with-input-from-string "" parse-vgraph) "eof"))
