@@ -9,6 +9,7 @@
  CARDS
 
  pstate->jsexpr
+ acquired->jsexpr
  parse-state)
  
 
@@ -227,4 +228,18 @@
 
   (check-false (with-input-from-file "state-serialize.rkt" parse-state) "bad file format")
   
-  (check-false (with-input-from-string "" parse-state) "eof"))
+  (check-false (with-input-from-string "" parse-state) "eof")
+
+
+  (define A (acquired->jsexpr (all-available-connections vtriangle pstate1)))
+  (define B (sort (sort A string<? #:key first) string<? #:key second))
+
+  (define (<-string A)
+    (with-input-from-string (jsexpr->string A)
+      (compose (parse-acquired values #false #false) read-message)))
+
+  (check-false (equal? A B))
+  (check-equal? (<-string A) (<-string B)))
+
+
+  

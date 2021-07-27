@@ -3,12 +3,15 @@
 ;; representation of a player's knowledge about the game
 
 (provide
- pstate
- pstate-I
- pstate-others
- ii
- ii-cards
- ii-connections)
+
+ #; {type Connection  = [list (Set City City) Color Length]}
+ ;; a connection between two cities has a color and a length 
+ 
+ #; {Map PlayerState -> [Setof Connections]}
+ all-available-connections
+
+ (struct-out pstate)
+ (struct-out ii))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -31,7 +34,7 @@
 (require Trains/Common/map)
 
 (module+ examples
-  (provide pstate1 c0 c1))
+  (provide pstate1 pstate2 c0 c1))
 
 (module+ test
   (require (submod ".." examples))
@@ -68,8 +71,6 @@
 ;; the two destination cards, the rails left, the colored cards, and this player's possessions
 
 #; {type Player      = [Setof Connection]}
-#; {type Connection  = [list (Set City City) Color Length]}
-;; a connection between two cities has a color and a length 
 
 #; {type Destination = [set City City]} 
 ;; a destination card specifies two cities; there is guaranteed to be a path between them
@@ -77,11 +78,12 @@
 (module+ examples
   (define cards1  (hash 'green 5))
   (define c0 (set [list (set 'Orlando 'Seattle) 'blue 5]))
-  (define ii1 (ii (set 'Boston 'Seattle) (set 'Boston 'Orlando) 40 cards1 c0))
-
+  (define (ii- cards1) (ii (set 'Boston 'Seattle) (set 'Boston 'Orlando) 40 cards1 c0))
   (define c1 (set [list (set 'Boston 'Seattle) 'red 3]))
+  (define pstate1 (pstate (ii- cards1) (list c1)))
 
-  (define pstate1 (pstate ii1 (list c1))))
+  (define cards2  (hash 'green 5 'blue 7 'red 2))
+  (define pstate2 (pstate (ii- cards2) (list c1))))
 
 
 ;                                                                          
@@ -102,13 +104,24 @@
 ;                                                                          
 ;
 
-#; {Map RefereeState -> [Setof Connections]}
+#; {Map PlayerState -> [Setof Connections]}
 ;; determine the connections the active player can still acquire 
 (define (all-available-connections m ps)
   (define total (graph-connections m))
   (define other (apply set-union (pstate-others ps)))
   (set-subtract total other (ii-connections (pstate-I ps))))
 
+(define TERMINATION# 3)
+
+#; {PlayerState N -> N}
+(define (termination ps rails0)
+  (match-define [pstate I others] ps)
+  (define my-acquisitions (ii-connections I))
+  (define rails-consumed  (map rails-spent (cons my-acquisitions others)))
+  (- rails0 (apply max rails-consumed)))
+
+(define (rails-spent connections)
+  (for/sum ([c connections]) (third c)))
 
 ;; given my state and a map, can I still connect a destination
 
@@ -136,7 +149,12 @@
 
 
 (module+ test
+
+  (check-equal? (termination pstate1 45) 40)
+  (check-equal? (termination pstate1 6) 1)
+  (check-equal? (termination pstate1 8) 3)
   
+ 
   (check-equal? 
    (all-available-connections vtriangle pstate1)
    (set-subtract (graph-connections vtriangle) c0 c1)))

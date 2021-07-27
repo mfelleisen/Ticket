@@ -31,6 +31,8 @@
  node-name
  node-posn
 
+ (rename-out [visual-graph? map?])
+
  #; {VGraph -> N}
  graph-width
  #; {VGraph -> N}
@@ -41,11 +43,15 @@
  #; {type Path        = Connection*}
  #; {type Connection* = [Listof Connection]}
  #; {type Connection}
- #; {Graph City City Connection*  -> [Listof Path]}
- #; (all-paths A B blocked)
- ;; produces a list of all open paths from `A` to `B`
- ;; with the optional argument 
+
+ #; {Graph City City -> [Listof Path]}
+ #; (all-paths vgraph A B)
+ ;; produces a list of all paths from `A` to `B` in the given `vgraph`
  all-paths
+ 
+ #; {Graph -> [Listof Path]}
+ ;; produces a list of all paths in the given graph 
+ all-possible-paths 
 
  #; {Graph City -> Connection*}
  graph-connections
@@ -221,41 +227,46 @@
 ;                                   ;                                      
 ;                                                                          
 
-(define (all-paths vgraph start end [blocked0 '()])
+(define (all-possible-paths vgraph)
+  (define graph (visual-graph-graph vgraph))
+  (define cities (graph-cities vgraph))
+  (for*/fold ([paths '()]) ([from cities][to cities] #:when (or (symbol<? from to)))
+    (append paths (all-paths vgraph from to))))
 
-  (define blocked
-    (for/fold ([h (hash)]) ([x (in-set blocked0)])
-      (match-define (list cities color seg#) x)
-      (match-define (list city1 city2) (set->list cities))
-      (define h1 (hash-update h city2 (λ (x) (cons (to city1 color seg#) x)) '()))
-      (hash-update h1 city1 (λ (x) (cons (to city2 color seg#) x)) '())))
+(define (all-paths vgraph start0 end)
+  (define graph (visual-graph-graph vgraph))
       
-  #; {Graph City City [Listof City] -> [Listof Path]}
-  (define (all-paths graph start end been-there0)
+  #; {City [Listof City] -> [Listof Path]}
+  ;; find all paths from `start` to `end`, unless `start` is in `been-there0`
+  ;; ACCU `been-there0` is a list of all cities seen between `start0` and `start` in `graph`
+  (define (all-paths start been-there0)
     (cond
-      [(member start been-there0) '[]]
+      [(member start been-there0) '()]
       [else
        (define been-there (cons start been-there0))
-       (define all-steps (lookup graph start blocked))
-       (for/fold ([all-paths '()]) ([s all-steps])
-         (if (symbol=? (to-city s) end)
-             (cons (list s) all-paths)
-             (append (add-step graph end s been-there) all-paths)))]))
+       (define all-steps  (lookup graph start))
+       (for/fold ([paths '()]) ([1step all-steps])
+         (match-define [to city color seg#] 1step)
+         (define adder (add-step start city color seg#))
+         (cond
+           [(symbol=? city end) (append (list (adder '[])) paths)]
+           [else (append (map adder (all-paths city been-there)) paths)]))]))
   
-  #; {Graph City Connection [Listof City] -> [Listof Path]}
-  (define (add-step graph end 1step been-there)
-    (match-define [to city color seg#] 1step)
-    (map (λ (1path) (cons 1step 1path)) (all-paths graph city end been-there)))
+  #; {City City Color Seg# -> [Path ->  Path]}
+  (define (add-step from to color seg#)
+    (define 1step (list (set from to) color seg#))
+    (λ (path)
+      (cons 1step path)))
 
-  (all-paths (visual-graph-graph vgraph) start end '[]))
+  (all-paths start0 '[]))
 
 #; {Graph City -> Connection*}
-(define (lookup graph city blocked)
+(define (lookup graph city)
   (define connections (hash-ref graph city #false))
   (when (boolean? connections)
     (displayln `[graph domain: ,(map car (hash->list graph))] (current-error-port))
-    (error 'graph-lookup "can't happend, city not found ~e" city))
-  (remove* (hash-ref blocked city '[]) connections))
+    (error 'graph-lookup "can't happen, city not found ~e" city))
+  connections)
 
 (define (graph-connections graph [city #false])
   (if (symbol? city)
@@ -269,7 +280,7 @@
      (for/set ([l (graph-connections graph c)])
        (list (set c (to-city l)) (to-color l) (to-seg# l))))))
 
-(define (graph-cities graph) (map car (hash->list (visual-graph-graph graph))))
+(define (graph-cities graph) (map node-name (visual-graph-cities graph)))
 
 (define (to-color+seg# connection*) (map (λ (x) (list (to-color x) (to-seg# x))) connection*))
 
@@ -304,19 +315,21 @@
   ;; tests for all-aths 
 
   (define-syntax-rule (dev-null e) (parameterize ([current-error-port (open-output-string)]) e))
-
+  
   (check-equal? (apply set (all-paths vtriangle 'Seattle 'Boston))
-                [set `[,[to 'Boston 'green 4]]
-                     `[,[to 'Boston 'red 3]]
-                     `[,[to 'Orlando 'blue 5] ,[to 'Boston 'green 5]]
-                     `[,[to 'Orlando 'blue 5] ,[to 'Boston 'white 3]]])
-
-  (define blocked1 (set [list [set 'Seattle 'Orlando] 'blue 5]))
-  (check-equal? (apply set (all-paths vtriangle 'Seattle 'Boston blocked1))
-                [set `[,[to 'Boston 'green 4]]
-                     `[,[to 'Boston 'red 3]]])
-
+                [set `[[,(set 'Boston 'Seattle) green 4]]
+                     `[[,(set 'Boston 'Seattle) red 3]]
+                     `[[,(set 'Orlando 'Seattle) blue 5] [,(set 'Orlando 'Boston) green 5]]
+                     `[[,(set 'Orlando 'Seattle) blue 5] [,(set 'Orlando 'Boston) white 3]]])
+  
   (check-exn #px"can't" (λ () (dev-null (all-paths vbad 'Seattle 'Boston))))
+  
+  (check-equal? 
+   (apply set (all-possible-paths vtriangle))
+   (set-union
+    (apply set (all-paths vtriangle 'Boston 'Seattle))
+    (apply set (all-paths vtriangle 'Boston 'Orlando))
+    (apply set (all-paths vtriangle 'Orlando 'Seattle))))
 
   ;; -------------------------------------------------------------------------------------------------
   ;; for graph-connections, all of them 
