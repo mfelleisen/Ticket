@@ -31,8 +31,10 @@
   (define cities (map node-name nodes))
   (λ (c*)
     (for/and ([c c*])
-      (unless (and (member (first c) cities) (member (second c) cities))
-        (writeln `[,(first c) or ,(second c) not cities: ,cities] (current-error-port))))))
+      (define r  (and (member (first c) cities) (member (second c) cities)))
+      (unless r
+        (writeln `[,(first c) or ,(second c) not cities: ,cities] (current-error-port)))
+      r)))
 
 (define (is-city? a-game-map)
   (define cities (map node-name (game-map-cities a-game-map)))

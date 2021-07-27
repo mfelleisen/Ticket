@@ -283,18 +283,19 @@
   (check-equal? (->vgraph graph1) graph1 "parse")
  
   (define example2 `(,[node 'A%D [cord 1 1]] ,(node 'B [cord 2 2])))
-  (define graph2  [construct-game-map MIN-WIDTH MIN-WIDTH example2 connect1])
-  (check-false (->vgraph graph2) "bad city")
+  (check-exn exn:fail:contract?
+             (λ () (->vgraph [construct-game-map MIN-WIDTH MIN-WIDTH example2 connect1]))
+             "bad city")
 
   (define connect4 '[[A B red 9]])
   (check-exn exn:fail:contract?
              (λ () (->vgraph [construct-game-map MIN-WIDTH MIN-WIDTH example1 connect4]))
-             "fail a contract")
+             "fail a cont")
   
   (define example3 `(,[node 'A [cord 1 1]] ,(node 'B [cord 2 2]) ,(node 'A [cord 3 3])))
   (define graph6 [construct-game-map MIN-WIDTH MIN-WIDTH example3 connect1])
   (check-false (->vgraph graph6) "duplicated city")
-
+  
   ;; -------------------------------------------------------------------------------------------------
   ;; invalid but well-formed JSON
   
