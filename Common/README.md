@@ -36,7 +36,7 @@ security, or fairness.
 | file | purpose |
 |--------------------- | ------- |
 | [basic-constants.rkt](basic-constants.rkt) | ovide | 
-| [board.rkt](board.rkt) | a bi-directional graph representation of the railroad map | 
-| [node-serialize.rkt](node-serialize.rkt) | serializing nodes from the map editor | 
-| [serialize.rkt](serialize.rkt) | serialization of board maps to JSON | 
-| [state.rkt](state.rkt) | --------------------------------------------------------------------------------------------------- | 
+| [board-serialize.rkt](board-serialize.rkt) | serialization of board maps to JSON | 
+| [map.rkt](map.rkt) | a bi-directional graph representation of the railroad map | 
+| [state-serialize.rkt](state-serialize.rkt) | ovide | 
+| [state.rkt](state.rkt) | representation of a player's knowledge about the game | 

@@ -1,5 +1,7 @@
 #lang racket
 
+;; representation of a referee's knowledge about the game
+
 ;                                                                                                  
 ;                                                                                                  
 ;        ;                                       ;                             ;                   
