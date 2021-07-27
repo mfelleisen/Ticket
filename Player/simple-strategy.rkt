@@ -24,7 +24,7 @@
  (contract-out 
   [silly-strategy%
    (class/c
-    (init-field (the-game-map map?))
+    (init-field (the-game-map game-map?))
     (pick-destinations (->m (list/c any/c any/c any/c any/c any/c) (list/c any/c any/c any/c)))
     (choose-action (->m pstate? (or/c 'more-cards (list/c set? any/c seg#?)))))]))
 

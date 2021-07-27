@@ -242,7 +242,7 @@
 (define (parse-edges j return)
   (unless (hash? j) (return "not an edge object"))
   (for/list ([(color seg#) j])
-    (unless (color? (~a color)) (return "not a color"))
+    (unless (color? color) (return "not a color"))
     (unless (seg#? seg#) (return "not a segment length"))
     (list color seg#)))
 
@@ -268,14 +268,16 @@
 
 (module+ test ;; deserialization 
 
-  (define-syntax-rule (dev-null e) (parameterize ([current-error-port (open-output-string)]) e))
+  (define-syntax-rule (dev-null e)
+    (parameterize ([current-error-port (open-output-string)]) e))
   
-  (define (->vgraph g)
+  (define-syntax-rule (->vgraph g)
     (dev-null (with-input-from-string (jsexpr->string (vgraph->jsexpr g)) parse-vgraph)))
   
   (define example1 `(,[node 'A [cord 1 1]] ,(node 'B [cord 2 2])))
   (define connect1 '[[A B red 3]])
   (define graph1  [construct-visual-graph 10 10 example1 connect1])
+  
   (check-equal? (parse-map (vgraph->jsexpr graph1)) graph1 "parse map")
   (check-equal? (->vgraph graph1) graph1 "parse")
  
@@ -284,12 +286,7 @@
   (check-false (->vgraph graph2) "bad city")
 
   (define connect4 '[[A B red 9]])
-  (define graph4 [construct-visual-graph 10 10 example1 connect4])
-  (check-false (->vgraph graph4) "bad segments")
-
-  (define connect5 '[[A B pink 3]])
-  (define graph5 [construct-visual-graph 10 10 example1 connect5])
-  (check-false (->vgraph graph5) "bad color")
+  (check-exn exn:fail:contract? (λ () (->vgraph [construct-visual-graph 10 10 example1 connect4])))
   
   (define example3 `(,[node 'A [cord 1 1]] ,(node 'B [cord 2 2]) ,(node 'A [cord 3 3])))
   (define graph6 [construct-visual-graph 10 10 example3 connect1])

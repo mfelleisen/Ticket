@@ -178,8 +178,8 @@
 (define (parse-cards return j)
   (unless (hash? j) (return "not a card object"))
   (for/hash ([(c s) j])
-    (unless (color? (~a c)) (return "not a color (in the domain of a card object)"))
-    (unless (natural? s) (return "not a segment length (in the domain of a card object)"))
+    (unless (color? c) (return "not a color (in the domain of a card object)"))
+    (unless (natural? s) (return "not a count (in the domain of a card object)"))
     (values c s)))
 
 (define ((parse-acquired return cities conns) j)
@@ -190,7 +190,7 @@
        (if (or (boolean? conns) (set-member? conns candidate))
            candidate
            (return "non-existent connection"))]
-      [_ (return "not a connection array (with 2 cities, a color, and a segment length")])))
+      [_ (return (~s "not a connection array (with 2 cities, a color, and a segment length " x))])))
 
 (define (2cities city1 city2 return cities)
   (define c1 (string->symbol city1))
