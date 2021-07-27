@@ -19,7 +19,7 @@
 ;                   ;                                      
 ;                                                          
 
-#; {JGraph -> Boolean}
+#; {GameMap -> Boolean}
 ;; GURANATEE All connections between two cities A and B are specified in only
 ;; one hash entry (either from A to B or B to A). Use string<? to make this work.
 (define (guarantee serialized-graph)
@@ -39,13 +39,12 @@
  WIDTH 
  HEIGHT
  CONNECTIONS
-
- #; {-> (U False VGraph)}
- ;; extract VGraph from JSexpr on STDIN, #false otherwise
- parse-vgraph
  
- (contract-out 
-  [vgraph->jsexpr (-> any/c (and/c jsexpr? guarantee))]))
+ (contract-out
+  ;; extract VGraph from JSexpr on STDIN, #false otherwise
+  [parse-game-map   (-> (or/c #false game-map?))]
+  
+  [game-map->jsexpr (-> game-map? (and/c jsexpr? guarantee))]))
 
 (module+ examples
   (provide vtriangle-serialized))
@@ -143,7 +142,7 @@
 ;                                                                          
 
 #; {Nod* Connection* Image -> MAP}
-(define (vgraph->jsexpr g)
+(define (game-map->jsexpr g)
   (hash WIDTH  (graph-width g)
         HEIGHT (graph-height g)
         CITIES (graph-locations g)
@@ -185,7 +184,7 @@
 
 #; {-> (U False VGraph)}
 ;; extract VGraph from JSexpr on STDIN, #false otherwise 
-(define (parse-vgraph)
+(define (parse-game-map)
   (define j (read-message))
   (cond
     [(eof-object? j) #false]
@@ -266,7 +265,7 @@
 ;                                          
 
 (module+ test ;; serialization 
-  (check-equal? (vgraph->jsexpr vtriangle) vtriangle-serialized  "triangle"))
+  (check-equal? (game-map->jsexpr vtriangle) vtriangle-serialized  "triangle"))
 
 (module+ test ;; deserialization 
 
@@ -274,13 +273,13 @@
     (parameterize ([current-error-port (open-output-string)]) e))
   
   (define-syntax-rule (->vgraph g)
-    (dev-null (with-input-from-string (jsexpr->string (vgraph->jsexpr g)) parse-vgraph)))
+    (dev-null (with-input-from-string (jsexpr->string (game-map->jsexpr g)) parse-game-map)))
   
   (define example1 `(,[node 'A [cord 1 1]] ,(node 'B [cord 2 2])))
   (define connect1 '[[A B red 3]])
   (define graph1  [construct-game-map MIN-WIDTH MIN-WIDTH example1 connect1])
   
-  (check-equal? (parse-map (vgraph->jsexpr graph1)) graph1 "parse map")
+  (check-equal? (parse-map (game-map->jsexpr graph1)) graph1 "parse map")
   (check-equal? (->vgraph graph1) graph1 "parse")
  
   (define example2 `(,[node 'A%D [cord 1 1]] ,(node 'B [cord 2 2])))
@@ -288,7 +287,9 @@
   (check-false (->vgraph graph2) "bad city")
 
   (define connect4 '[[A B red 9]])
-  (check-exn exn:fail:contract? (λ () (->vgraph [construct-game-map MIN-WIDTH MIN-WIDTH example1 connect4])))
+  (check-exn exn:fail:contract?
+             (λ () (->vgraph [construct-game-map MIN-WIDTH MIN-WIDTH example1 connect4]))
+             "fail a contract")
   
   (define example3 `(,[node 'A [cord 1 1]] ,(node 'B [cord 2 2]) ,(node 'A [cord 3 3])))
   (define graph6 [construct-game-map MIN-WIDTH MIN-WIDTH example3 connect1])
@@ -298,31 +299,32 @@
   ;; invalid but well-formed JSON
   
   (define (->string g msg)
-    (check-false (dev-null (with-input-from-string (jsexpr->string g) parse-vgraph)) msg))
+    (check-false (dev-null (with-input-from-string (jsexpr->string g) parse-game-map)) msg))
 
   (define cities1 '[["A" [1 1]] ["B" [2 2]]])
 
-  (define jgraph3 (hash 'width "A" 'height 0 'connections #hash() 'cities '[]))
-  (->string jgraph3 "bad width")
+  (define gm3 (hash 'width "A" 'height 0 'connections #hash() 'cities '[]))
+  (->string gm3 "bad width")
 
-  (define jgraph4 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections '() 'cities '[]))
-  (->string jgraph4 "bad target connection")
+  (define gm4 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections '() 'cities '[]))
+  (->string gm4 "bad target connection")
 
-  (define jgraph5 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections (hash 'A '()) 'cities '[["A" [1 1]]]))
-  (->string jgraph5 "bad color connection")
+  (define gm* (hash 'width MIN-WIDTH 'height MIN-WIDTH 'cities cities1))
+  (define gm5 (hash-set  gm* 'connections (hash 'A '())))
+  (->string gm5 "bad color connection")
   
-  (define jgraph6 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections (hash 'A (hash 'B '[])) 'cities cities1))
-  (->string jgraph6 "bad length connection")
+  (define gm6 (hash-set gm* 'connections (hash 'A (hash 'B '[]))))
+  (->string gm6 "bad length connection")
   
-  (define jgraph7 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections (hash 'A (hash 'C '[])) 'cities cities1))
-  (->string jgraph7 "bad city destination")
+  (define gm7 (hash-set gm* 'connections (hash 'A (hash 'C '[]))))
+  (->string gm7 "bad city destination")
 
-  (define jgraph8 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections (hash 'C (hash 'B '[])) 'cities cities1))
-  (->string jgraph8 "bad city origination")
+  (define gm8 (hash-set gm*  'connections (hash 'C (hash 'B '[]))))
+  (->string gm8 "bad city origination")
   
-  (define jgraph9 (hash 'width MIN-WIDTH 'height MIN-WIDTH 'connections (hash) 'cities '[["a" [1 1]] ["B" [1 1]]]))
-  (->string jgraph9 "identical locations")
+  (define gm9 (hash-set (hash-set gm* 'connections (hash)) 'cities '[["a" [1 1]] ["B" [1 1]]]))
+  (->string gm9 "identical locations")
 
-  (check-false (with-input-from-file "map-serialize.rkt" parse-vgraph) "bad file format")
+  (check-false (with-input-from-file "map-serialize.rkt" parse-game-map) "bad file format")
   
-  (check-false (with-input-from-string "" parse-vgraph) "eof"))
+  (check-false (with-input-from-string "" parse-game-map) "eof"))
