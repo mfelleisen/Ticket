@@ -23,11 +23,12 @@
 
 (define connection  (and/c [list/c symbol? symbol? color? seg#?]
                            (λ (x) (symbol<? (first x) (second x)))))
-(define connection-from first)
-(define connection-to second)
-(define connection-color third)
-(define connection-seg# fourth)
 (define connection* [listof connection])
+(define connection-from  first)
+(define connection-to    second)
+(define connection-color third)
+(define connection-seg#  fourth)
+
 
 (define (in-cities? nodes)
   (define cities (map first nodes))

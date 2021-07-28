@@ -134,7 +134,7 @@
 ;; drawing and presenting choices works with strings, not symbols
 
 (define (external->internal-connections externals)
-  (for/list ([c (set->list externals)])
+  (for/list ([c (in-set externals)])
     (list* (~a (connection-from c)) (~a (connection-to c)) (cddr c))))
 
 (define (internal->external-connections internal-connections)  
