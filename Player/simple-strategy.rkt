@@ -26,7 +26,7 @@
    (class/c
     (init-field (the-game-map game-map?))
     (pick-destinations (->m (list/c any/c any/c any/c any/c any/c) (list/c any/c any/c any/c)))
-    (choose-action (->m pstate? (or/c 'more-cards (list/c set? any/c seg#?)))))]))
+    (choose-action (->m pstate? (or/c 'more-cards (list/c symbol? symbol? any/c seg#?)))))]))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -114,7 +114,7 @@
 
 #; {[Hash Color N] -> Connection -> Boolean}
 (define ((can-acquire? cards) x)
-  (match-define [list cities color seg#] x)
+  (match-define [list _c _d color seg#] x)
   (>= (hash-ref cards color 0) seg#))
 
 #; {[Setof City] -> [Listof City] : ordered by symbol<?}
@@ -127,13 +127,15 @@
 
 #; {Connection Connection -> Boolean}
 (define (lexi->length->color<? c1 c2)
-  (define l1 (->list (first c1)))
-  (define l2 (->list (first c2)))
-  (or (lexi<? l1 l2)
-      (and (equal? l1 l2)
-           (or (< (third c1) (third c2))
-               (and (= (third c1) (third c2))
-                    (symbol<? (second c1) (second c2)))))))
+  (let ((from-to-1 (take c1 2))
+        (from-to-2 (take c2 2)))
+    (or (lexi<? from-to-1 from-to-2)
+        (and (equal? from-to-1 from-to-2)
+             (let ([length-1 (connection-seg# c1)]
+                   [length-2 (connection-seg# c2)])
+               (or (< length-1 length-2)
+                   (and (= length-1 length-2)
+                        (symbol<? (connection-color c1) (connection-color c2)))))))))
 
 #; {City City -> Boolean}
 (define (lexi<? d1 d2)
@@ -175,5 +177,5 @@
   (check-equal? (get-field destination2 strat) '(Boston Orlando))
 
   (check-equal? (send strat choose-action pstate1) 'more-cards)
-  (check-equal? (send strat choose-action pstate2) `[,(set 'Boston 'Orlando) green 5])
+  (check-equal? (send strat choose-action pstate2) `[Boston Orlando green 5])
   (check-equal? (send strat more-cards 'green 'red) (void)))
