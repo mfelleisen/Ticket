@@ -156,10 +156,10 @@
 
 #; {Graph City -> JSlice}
 (define (to* graph city)
-  (for*/hash ([connection* (group-by to-city (game-map-connections graph city))]
-              [next-city   (in-value (to-city (first connection*)))]
+  (for*/hash ([connection* (group-by first (game-map-connections graph city))]
+              [next-city   (in-value (first (first connection*)))]
               #:when (symbol<? city next-city))
-    (define color+seg# (to-color+seg# connection*))
+    (define color+seg# (map rest connection*))
     (values next-city (connected-via color+seg#))))
 
 #; {[Listof Connection] -> JColors}

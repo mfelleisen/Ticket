@@ -44,11 +44,6 @@
 (provide
  
  (struct-out game-map)
-
- #; {Connection* -> [List Color Seg#]}
- to-color+seg#
- to-city
-
  game-map?
 
  (contract-out
@@ -64,7 +59,7 @@
 
   [game-map-all-connections (-> game-map? (set/c (list/c (set/c symbol?) color? seg#?)))]
 
-  [game-map-connections (-> game-map? symbol? (listof (struct/c to symbol? color? seg#?)))]
+  [game-map-connections (-> game-map? symbol? (listof (list/c symbol? color? seg#?)))]
 
   [game-map-cities (-> game-map? [listof symbol?])]
 
@@ -254,18 +249,17 @@
   (all-paths the-start '[]))
 
 (define (game-map-connections gm city)
-  (hash-ref (game-map-graph gm) city '[]))
+  (define connections (hash-ref (game-map-graph gm) city '[]))
+  (map (λ (x) (rest (vector->list (struct->vector x)))) connections))
 
 (define (game-map-all-connections graph)
   (for/fold ([s (set)]) ([c (game-map-cities graph)])
     (set-union
      s
      (for/set ([l (game-map-connections graph c)])
-       (list (set c (to-city l)) (to-color l) (to-seg# l))))))
+       (cons (set c (first l)) (rest l))))))
 
 (define (game-map-cities graph) (map node-name (game-map-city-places graph)))
-
-(define (to-color+seg# connection*) (map (λ (x) (list (to-color x) (to-seg# x))) connection*))
 
 ;                                          
 ;                                          
