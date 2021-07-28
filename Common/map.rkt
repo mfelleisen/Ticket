@@ -42,13 +42,13 @@
   (λ (c) (member c cities)))
 
 (provide
- 
- ; (struct-out game-map)
- game-map?
- game-map-width
- game-map-height
 
+ game-map?
+ 
  (contract-out
+
+  [game-map-width  (-> game-map? width?)]
+  [game-map-height (-> game-map? height?)]
   
   [construct-game-map
    (->i ([w width?]
