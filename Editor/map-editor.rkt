@@ -105,7 +105,7 @@
     (match (parse-game-map) 
       [(? boolean?)  (values '[] '[] BACKG)]
       [(? game-map? g)
-       (define cities (game-map-locations g))
+       (define cities (map (lambda (x) (cons (~a (first x)) (rest x))) (game-map-locations g)))
        (define conns  (external->internal-connections (game-map-all-connections g)))         
        (values cities conns (rectangle (game-map-width g) (game-map-height g) 'solid BCOLOR))]))
   (match-define (list cities connections) (edit-graph cities0 connections0 background))

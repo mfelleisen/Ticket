@@ -46,25 +46,21 @@
  game-map?
  
  (contract-out
-
-  [game-map-width  (-> game-map? width?)]
-  [game-map-height (-> game-map? height?)]
-  
   [construct-game-map
    (->i ([w width?]
          [h height?]
-         [nodes [listof [list/c symbol? [list/c natural? natural?]]]]
-         [conns (nodes) (and/c connection* (in? nodes))]) 
+         [cities-and-places [listof [list/c symbol? [list/c natural? natural?]]]]
+         [connections       [cities-and-places] (and/c connection* (in? cities-and-places))])
         (r game-map?))]
-  
-  [game-map-locations (-> game-map? [listof [list/c string? (list/c natural? natural?)]])]
+
+  [game-map-width     (-> game-map? width?)]
+  [game-map-height    (-> game-map? height?)]
+  [game-map-cities    (-> game-map? [listof symbol?])]
+  [game-map-locations (-> game-map? [listof [list/c symbol? (list/c natural? natural?)]])]
 
   [game-map-all-connections (-> game-map? (set/c (list/c (set/c symbol?) color? seg#?)))]
-
-  [game-map-connections (-> game-map? symbol? (listof (list/c symbol? color? seg#?)))]
-
-  [game-map-cities (-> game-map? [listof symbol?])]
-
+  [game-map-connections     (-> game-map? symbol? (listof (list/c symbol? color? seg#?)))]
+  
   (all-paths
    ;; produces a list of all paths from `A` to `B` in the given `vgraph`
    ;; GUARANTEE start from the symbol<? of the two cities, reach the other one (paths are 2-dir)
@@ -123,7 +119,7 @@
 
 (define (game-map-locations g)
   (for/list ([n (game-map-city-places g)])
-    `[,(~a (node-name n)) ,(rest (vector->list (struct->vector (node-posn n))))]))
+    `[,(node-name n) ,(rest (vector->list (struct->vector (node-posn n))))]))
 
 #; {type VGraph = (visual-graph N N Nod* Graph)}
 

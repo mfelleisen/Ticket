@@ -145,13 +145,12 @@
 (define (game-map->jsexpr g)
   (hash WIDTH  (game-map-width g)
         HEIGHT (game-map-height g)
-        CITIES (game-map-locations g)
+        CITIES (map (lambda (x) (cons (~a (first x)) (rest x))) (game-map-locations g))
         CONNECTIONS (graph->jsexpr g)))
 
 #; {Graph -> JGraph}
 (define (graph->jsexpr graph)
-  (define cities (game-map-cities graph))
-  (for/hash ([c cities])
+  (for/hash ([c (game-map-cities graph)])
     (values c (to* graph c))))
 
 #; {Graph City -> JSlice}
