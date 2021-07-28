@@ -1,6 +1,6 @@
 #lang racket
 
-;; a bi-directional graph representation of the railroad map
+;; a data representation of the railroad map
 
 ;                                                          
 ;                                                          
@@ -24,9 +24,6 @@
 (define connection  (and/c [list/c symbol? symbol? color? seg#?]
                            (λ (x) (symbol<? (first x) (second x)))))
 (define connection* [listof connection])
-
-(define path-step/c [list/c (set/c symbol?) color? seg#?])
-(define path/c      [listof path-step/c])
 
 (define (in? nodes)
   (define cities (map first nodes))
@@ -64,12 +61,12 @@
   (all-paths
    ;; produces a list of all paths from `A` to `B` in the given `vgraph`
    ;; GUARANTEE start from the symbol<? of the two cities, reach the other one (paths are 2-dir)
-   (->i ([g game-map?] [from (g) (is-city? g)] [to (g) (is-city? g)]) (r (listof path/c))))
+   (->i ([g game-map?] [from (g) (is-city? g)] [to (g) (is-city? g)]) (r (listof connection*))))
   
   [all-possible-paths
    ;; produces a list of all paths in the given graph
    ;; GUARANTEE every path connects `A` and `B` such that `(symbol<? A B)` holds
-   (-> game-map? (listof path/c))]))
+   (-> game-map? (listof connection*))]))
 
 (module+ examples
   (provide vrectangle)
@@ -239,9 +236,8 @@
   
   #; {City City Color Seg# -> [Path ->  Path]}
   (define (add-step from to color seg#)
-    (define 1step (list (set from to) color seg#))
-    (λ (path)
-      (cons 1step path)))
+    (define 1step (if (symbol<? from to) (list from to color seg#) (list to from color seg#)))
+    (λ (path) (cons 1step path)))
 
   (define-values (the-start the-end) (if (symbol<? start end) (values start end) (values end start)))
   (all-paths the-start '[]))
@@ -316,10 +312,10 @@
   (define-syntax-rule (dev-null e) (parameterize ([current-error-port (open-output-string)]) e))
   
   (check-equal? (apply set (all-paths vtriangle 'Seattle 'Boston))
-                [set `[[,(set 'Boston 'Seattle) green 4]]
-                     `[[,(set 'Boston 'Seattle) red 3]]
-                     `[[,(set 'Orlando 'Boston) green 5] [,(set 'Orlando 'Seattle) blue 5]]
-                     `[[,(set 'Orlando 'Boston) white 3] [,(set 'Orlando 'Seattle) blue 5]]])
+                [set `[[Boston Seattle green 4]]
+                     `[[Boston Seattle red 3]]
+                     `[[Boston Orlando green 5] [Orlando Seattle blue 5]]
+                     `[[Boston Orlando white 3] [Orlando Seattle blue 5]]])
   
   (check-equal? 
    (apply set (all-possible-paths vtriangle))
