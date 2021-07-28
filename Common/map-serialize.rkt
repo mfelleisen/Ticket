@@ -204,10 +204,10 @@
                    ((? (curry eq? CITIES)) c)
                    ((? (curry eq? CONNECTIONS)) s))
        (define cities (map (parse-city w h return) c))
-       (define city-names (map node-name cities))
+       (define city-names (map first cities))
        (unless (= (set-count (apply set city-names)) (length city-names))
          (return "duplicate city name"))
-       (define city-locs  (map node-posn cities))
+       (define city-locs  (map second cities))
        (unless (= (set-count (apply set city-locs)) (length city-locs))
          (return "two cities with identical location"))
        (define connections (parse-connections s city-names return))
@@ -220,7 +220,7 @@
     [(list (? city? n)
            (list (and (? natural? x) (? (λ (y) (<= 0 y w))))
                  (and (? natural? y) (? (λ (y) (<= 0 y h))))))
-     (node (string->symbol n) (cord x y))]
+     (list (string->symbol n) (list x y))]
     [_ (return (~e "not a proper city specification" j))]))
 
 #; {type LConnection = [List Symbol Symbol ColorSymbol Seq#]}
@@ -275,14 +275,14 @@
   (define-syntax-rule (->vgraph g)
     (dev-null (with-input-from-string (jsexpr->string (game-map->jsexpr g)) parse-game-map)))
   
-  (define example1 `(,[node 'A [cord 1 1]] ,(node 'B [cord 2 2])))
+  (define example1 `([A [1 1]] (B [2 2])))
   (define connect1 '[[A B red 3]])
   (define graph1  [construct-game-map MAX-WIDTH MAX-WIDTH example1 connect1])
   
   (check-equal? (parse-map (game-map->jsexpr graph1)) graph1 "parse map")
   (check-equal? (->vgraph graph1) graph1 "parse")
  
-  (define example2 `(,[node 'A%D [cord 1 1]] ,(node 'B [cord 2 2])))
+  (define example2 `([A%D [1 1]] (B [2 2])))
   (check-exn exn:fail:contract?
              (λ () (->vgraph [construct-game-map MAX-WIDTH MAX-WIDTH example2 connect1]))
              "bad city")
@@ -292,7 +292,7 @@
              (λ () (->vgraph [construct-game-map MAX-WIDTH MAX-WIDTH example1 connect4]))
              "fail a cont")
   
-  (define example3 `(,[node 'A [cord 1 1]] ,(node 'B [cord 2 2]) ,(node 'A [cord 3 3])))
+  (define example3 `([A [1 1]] (B [2 2]) (A [3 3])))
   (define graph6 [construct-game-map MAX-WIDTH MAX-WIDTH example3 connect1])
   (check-false (->vgraph graph6) "duplicated city")
   

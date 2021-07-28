@@ -29,7 +29,7 @@
 (define path/c      [listof path-step/c])
 
 (define (in? nodes)
-  (define cities (map node-name nodes))
+  (define cities (map first nodes))
   (λ (c*)
     (for/and ([c c*])
       (define r  (and (member (first c) cities) (member (second c) cities)))
@@ -42,10 +42,12 @@
   (λ (c) (member c cities)))
 
 (provide
-
- (struct-out node)
- (struct-out cord)
+ 
  (struct-out game-map)
+
+ #; {Connection* -> [List Color Seg#]}
+ to-color+seg#
+ to-city
 
  game-map?
 
@@ -54,7 +56,7 @@
   [construct-game-map
    (->i ([w width?]
          [h height?]
-         [nodes [listof [struct/c node symbol? [struct/c cord natural? natural?]]]]
+         [nodes [listof [list/c symbol? [list/c natural? natural?]]]]
          [conns (nodes) (and/c connection* (in? nodes))]) 
         (r game-map?))]
   
@@ -74,14 +76,10 @@
   [all-possible-paths
    ;; produces a list of all paths in the given graph
    ;; GUARANTEE every path connects `A` and `B` such that `(symbol<? A B)` holds
-   (-> game-map? (listof path/c))])
- 
- #; {Connection* -> [List Color Seg#]}
- to-color+seg#
- 
- to-city)
+   (-> game-map? (listof path/c))]))
 
 (module+ examples
+  (provide vrectangle)
   (provide vtriangle nod* triangle-source triangle))
 
 ;                                                                                                  
@@ -166,11 +164,9 @@
                      ,[to 'Orlando 'green 5]]])
   
   (define nod*
-    [list [node 'Boston  [cord 10 10]]
-          [node 'Seattle [cord 20 20]]
-          [node 'Orlando [cord 30 30]]])
-  
-  (define vtriangle (game-map MAX-WIDTH MAX-WIDTH nod* triangle)))
+    '[[Boston  [10 10]]
+      [Seattle [20 20]]
+      [Orlando [30 30]]]))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -190,7 +186,11 @@
 ;                                                                                                  
 
 (define (construct-game-map width height nod* c*)
-  (game-map width height nod* (connections->graph c*)))
+  (game-map width height (list->node nod*) (connections->graph c*)))
+
+#; {[Listof [List Symbol [List N N]]] -> [Listof Node]}
+(define (list->node lol)
+  (map (λ (x) (node (first x) (apply cord (second x)))) lol))
 
 #; {[Listof [List Symbol Symvol ColorSymbol Seg#]] -> Graph}
 (define (connections->graph c*)
@@ -285,8 +285,8 @@
 ;                                          
 
 (module+ examples ;; more
-
-  (provide vrectangle)
+  
+  (define vtriangle (game-map MAX-WIDTH MAX-WIDTH (list->node nod*) triangle))
 
   (define vrectangle
     (game-map
