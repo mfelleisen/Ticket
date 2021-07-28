@@ -47,7 +47,6 @@
  game-map?
  game-map-width
  game-map-height
- game-map-city-places 
 
  (contract-out
   
