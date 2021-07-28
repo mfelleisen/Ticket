@@ -21,7 +21,8 @@
 
 (require Trains/Common/basic-constants)
 
-(define connection  [list/c symbol? symbol? color? seg#?])
+(define connection  (and/c [list/c symbol? symbol? color? seg#?]
+                           (λ (x) (symbol<? (first x) (second x)))))
 (define connection* [listof connection])
 
 (define path-step/c [list/c (set/c symbol?) color? seg#?])
@@ -86,7 +87,7 @@
  to-city)
 
 (module+ examples
-  (provide vtriangle triangle-source triangle vbad))
+  (provide vtriangle nod* triangle-source triangle))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -160,42 +161,24 @@
 
 (module+ examples
   (define triangle-source
-    '[[Seattle Boston red 3]
-      [Seattle Boston green 4]
-      [Seattle Orlando blue 5]
-      [Orlando Boston white 3]
-      [Orlando Boston green 5]])
+    '[[Orlando Seattle blue 5]
+      [Boston Seattle red 3]
+      [Boston Seattle green 4]
+      [Boston Orlando white 3]
+      [Boston Orlando green 5]])
   
   (define triangle
-    [hash 'Seattle `[,[to 'Boston 'red 3]
-                     ,[to 'Boston 'green 4]
-                     ,[to 'Orlando 'blue 5]]
-          'Orlando `[,[to 'Boston 'white 3]
-                     ,[to 'Boston 'green 5]
-                     ,[to 'Seattle 'blue 5]]
-          'Boston  `[,[to 'Orlando 'white 3]
-                     ,[to 'Orlando 'green 5]
-                     ,[to 'Seattle 'red 3]
-                     ,[to 'Seattle 'green 4]]])
-
-  (define bad
-    [hash 'Seattle `[,[to 'Boston 'red 3]
-                     ,[to 'Boston 'green 4]
-                     ,[to 'Orlanod 'blue 5]]
-          'Orlando `[,[to 'Boston 'white 3]
-                     ,[to 'Boston 'green 5]
-                     ,[to 'Seattle 'blue 5]]
-          'Boston  `[,[to 'Orlando 'white 3]
-                     ,[to 'Orlanod 'green 5]
-                     ,[to 'Seattle 'red 3]
-                     ,[to 'Seattle 'green 4]]])
-
+    [hash 'Orlando `[,[to 'Seattle 'blue 5]]
+          'Boston  `[,[to 'Seattle 'red 3]
+                     ,[to 'Seattle 'green 4]
+                     ,[to 'Orlando 'white 3]
+                     ,[to 'Orlando 'green 5]]])
+  
   (define nod*
     [list [node 'Boston  [cord 10 10]]
           [node 'Seattle [cord 20 20]]
           [node 'Orlando [cord 30 30]]])
-
-  (define vbad (game-map MAX-WIDTH MAX-WIDTH nod* bad))
+  
   (define vtriangle (game-map MAX-WIDTH MAX-WIDTH nod* triangle)))
 
 ;                                                                                                  
@@ -220,13 +203,7 @@
 
 #; {[Listof [List Symbol Symvol ColorSymbol Seg#]] -> Graph}
 (define (connections->graph c*)
-  (define directed   (add-one-direction (hash) c*))
-  (define flipped    (map (λ (x) (list* (second x) (first x) (cddr x))) c*))
-  (define undirected (add-one-direction directed flipped))
-  undirected)
-
-#; {Graph [Listof [List Symbol Symvol ColorSymbol Seg#]] -> Graph}
-(define (add-one-direction graph c*)
+  (define graph (hash))
   (for/fold ([directed-graph graph]) ([c (group-by first c*)])
     (hash-update directed-graph (caar c) (connect-to (map rest c)) '[])))
   
@@ -268,7 +245,7 @@
       [(member start been-there0) '()]
       [else
        (define been-there (cons start been-there0))
-       (define all-steps  (lookup graph start))
+       (define all-steps  (hash-ref graph start '[]))
        (for/fold ([paths '()]) ([1step all-steps])
          (match-define [to city color seg#] 1step)
          (define adder (add-step start city color seg#))
@@ -284,14 +261,6 @@
 
   (define-values (the-start the-end) (if (symbol<? start end) (values start end) (values end start)))
   (all-paths the-start '[]))
-
-#; {Graph City -> Connection*}
-(define (lookup graph city)
-  (define connections (hash-ref graph city #false))
-  (when (boolean? connections)
-    (displayln `[graph domain: ,(map car (hash->list graph))] (current-error-port))
-    (error 'graph-lookup "can't happen, city not found ~e" city))
-  connections)
 
 (define (game-map-connections gm city)
   (hash-ref (game-map-graph gm) city '[]))
@@ -347,6 +316,9 @@
 
 (module+ test
 
+  (check-equal? (construct-game-map MAX-WIDTH MAX-WIDTH nod* triangle-source) vtriangle)
+
+
   ;; ------------------------------------------------------------------------------------------------
   ;; tests for connections->graph
   
@@ -365,8 +337,6 @@
                      `[[,(set 'Boston 'Seattle) red 3]]
                      `[[,(set 'Orlando 'Boston) green 5] [,(set 'Orlando 'Seattle) blue 5]]
                      `[[,(set 'Orlando 'Boston) white 3] [,(set 'Orlando 'Seattle) blue 5]]])
-  
-  (check-exn #px"can't" (λ () (dev-null (all-paths vbad 'Seattle 'Boston))))
   
   (check-equal? 
    (apply set (all-possible-paths vtriangle))

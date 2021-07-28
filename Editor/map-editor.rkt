@@ -141,7 +141,7 @@
 
 (define (internal->external-connections internal-connections)  
   (for/list ([c internal-connections])
-    (append (map string->symbol (take c 2)) (drop c 2))))
+    (append (map string->symbol (sort (take c 2) string<?)) (drop c 2))))
 
 (define (externa->internal-cities nodes)
   (for/list ([c nodes])
