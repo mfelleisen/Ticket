@@ -55,7 +55,7 @@
   [game-map-cities    (-> game-map? [listof symbol?])]
   [game-map-locations (-> game-map? [listof [list/c symbol? (list/c natural? natural?)]])]
 
-  [game-map-all-connections (-> game-map? (set/c (list/c (set/c symbol?) color? seg#?)))]
+  [game-map-all-connections (-> game-map? (set/c (list/c symbol? symbol? color? seg#?)))]
   [game-map-connections     (-> game-map? symbol? (listof (list/c symbol? color? seg#?)))]
   
   (all-paths
@@ -236,10 +236,10 @@
   
   #; {City City Color Seg# -> [Path ->  Path]}
   (define (add-step from to color seg#)
-    (define 1step (if (symbol<? from to) (list from to color seg#) (list to from color seg#)))
+    (define 1step (append (list-cities from to) (list color seg#)))
     (λ (path) (cons 1step path)))
 
-  (define-values (the-start the-end) (if (symbol<? start end) (values start end) (values end start)))
+  (match-define (list the-start the-end) (list-cities start end))
   (all-paths the-start '[]))
 
 (define (game-map-connections gm city)
@@ -251,7 +251,7 @@
     (set-union
      s
      (for/set ([l (game-map-connections graph c)])
-       (cons (set c (first l)) (rest l))))))
+       (append (list-cities c (first l)) (rest l))))))
 
 (define (game-map-cities graph) (map node-name (game-map-city-places graph)))
 
@@ -328,7 +328,7 @@
   ;; for game-map-connections, all of them 
   (define symmetric
     (for/set ([x triangle-source])
-      (cons (set (first x) (second x)) (cddr x))))
+      (append (list-cities (first x) (second x)) (cddr x))))
   
   (check-equal? (game-map-all-connections vtriangle) symmetric "game-map-connection all")
 

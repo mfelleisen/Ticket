@@ -135,7 +135,7 @@
 
 (define (external->internal-connections externals)
   (for/list ([c (set->list externals)])
-    (append (map ~a (set->list (first c))) (rest c))))
+    (list* (~a (first c)) (~a (second c)) (cddr c))))
 
 (define (internal->external-connections internal-connections)  
   (for/list ([c internal-connections])

@@ -4,6 +4,10 @@
  width?
  height?
  city?
+
+ #; {Symbol Symbol -> [List Symbol Symbol] :: ordered via symbol<?}
+ list-cities
+ 
  color?
  seg#?
 
@@ -35,6 +39,9 @@
          (<= 1 (string-length s) CITY-LENGTH)
          (let ([m (regexp-match pxCITY s)])
            (and (cons? m) (equal? (first m) s))))))
+
+(define (list-cities start end)
+  (if (symbol<? start end) (list start end) (list end start)))
 
 (define MIN-WIDTH 10)
 (define MAX-WIDTH 800)

@@ -110,15 +110,10 @@
 
 (define (acquired->jsexpr c0)
   (for/list ([c (in-set c0)])
-    (match-define [list cities color seg#] c)
-    (match-define [list city1 city2] (set->list cities))
-    (if (symbol<? city1 city2)
-        (list city1 city2 (~a color) seg#)
-        (list (~a city2) (~a city1) (~a color) seg#))))
+    (match-define [list city1 city2 color seg#] c)
+    (append (map ~a (list-cities city1 city2)) (list (~a color) seg#))))
 
-(define (destination->jsexpr d)
-  (match-define [list city1 city2] (set->list d))
-  (if (symbol<? city1 city2) (list city1 city2) (list (~a city2) (~a city1))))
+(define (destination->jsexpr d) (map ~a (apply list-cities d)))
 
 ;                                                                                          
 ;                                                                                          
@@ -186,7 +181,7 @@
   (for/set ([x j])
     (match x
       [(list (? city? city1) (? city? city2) (? color? c) (? seg#? s))
-       (define candidate (list (2cities city1 city2 return cities) (string->symbol c) s))
+       (define candidate (append (2cities city1 city2 return cities) (list (string->symbol c) s)))
        (if (or (boolean? conns) (set-member? conns candidate))
            candidate
            (return "non-existent connection"))]
@@ -196,7 +191,7 @@
   (define c1 (string->symbol city1))
   (define c2 (string->symbol city2))
   (if (or (boolean? cities) (and (member c1 cities) (member c2 cities)))
-      (set c1 c2)
+      (list c1 c2)
       (return (~a "not cities: " city1 "::" cities))))
 
 ;                                          
@@ -221,7 +216,7 @@
   (define-syntax-rule (dev-null e) (parameterize ([current-error-port (open-output-string)]) e))
   
   (define (->string g [vg #false])
-    #;dev-null (with-input-from-string (jsexpr->string (pstate->jsexpr g)) (λ () (parse-state vg))))
+    (dev-null (with-input-from-string (jsexpr->string (pstate->jsexpr g)) (λ () (parse-state vg)))))
   
   (check-equal? (->string pstate1) pstate1)
   (check-equal? (->string pstate1 vtriangle) pstate1)
@@ -233,13 +228,8 @@
 
   (define A (acquired->jsexpr (all-available-connections vtriangle pstate1)))
   (define B (sort (sort A string<? #:key first) string<? #:key second))
-
-  (define (<-string A)
-    (with-input-from-string (jsexpr->string A)
-      (compose (parse-acquired values #false #false) read-message)))
-
-  (check-false (equal? A B))
-  (check-equal? (<-string A) (<-string B)))
+  
+  (check-equal? A B))
 
 
   

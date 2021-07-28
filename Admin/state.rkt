@@ -92,8 +92,7 @@
   (define avail (set-subtract total other))
   (cond
     [(not (set-member? avail c)) #false]
-    [else (>= (hash-ref (ii-cards active) (second c) 0) (third c))]))
-
+    [else (>= (hash-ref (ii-cards active) (connection-color c) 0) (connection-seg# c))]))
 
 ;                                          
 ;                                          
@@ -118,4 +117,4 @@
   (check-equal? (rstate->pstate rstate1) (pstate ii1 (list (ii-connections ii2))))
 
   (check-false (legal-action? vtriangle rstate1 (list (set 'Boston 'Seattle) 'red  3)))
-  (check-true (legal-action? vtriangle rstate1 (list (set 'Boston 'Orlando) 'green  5))))
+  (check-true (legal-action? vtriangle rstate1 (list 'Boston 'Orlando 'green  5))))

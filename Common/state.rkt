@@ -4,8 +4,10 @@
 
 (provide
 
- #; {type Connection  = [list (Set City City) Color Length]}
- ;; a connection between two cities has a color and a length 
+ #; {type Connection  = [list City City Color Length]}
+ ;; a connection between two cities has a color and a length
+ connection-color
+ connection-seg#
  
  #; {Map PlayerState -> [Setof Connections]}
  all-available-connections
@@ -72,14 +74,18 @@
 
 #; {type Player      = [Setof Connection]}
 
-#; {type Destination = [set City City]} 
+#; {type Destination = [List City City]} 
 ;; a destination card specifies two cities; there is guaranteed to be a path between them
+
+(define connection-color third)
+(define connection-seg# fourth)
 
 (module+ examples
   (define cards1  (hash 'green 5))
-  (define c0 (set [list (set 'Orlando 'Seattle) 'blue 5]))
-  (define (ii- cards1) (ii (set 'Boston 'Seattle) (set 'Boston 'Orlando) 40 cards1 c0))
-  (define c1 (set [list (set 'Boston 'Seattle) 'red 3]))
+  (define c0 (set [list 'Orlando 'Seattle 'blue 5]))
+  (define (ii- cards1) (ii (list 'Boston 'Seattle) (list 'Boston 'Orlando) 40 cards1 c0))
+
+  (define c1 (set [list 'Boston 'Seattle 'red 3]))
   (define pstate1 (pstate (ii- cards1) (list c1)))
 
   (define cards2  (hash 'green 5 'blue 7 'red 2))
@@ -121,7 +127,7 @@
   (- rails0 (apply max rails-consumed)))
 
 (define (rails-spent connections)
-  (for/sum ([c connections]) (third c)))
+  (for/sum ([c connections]) (connection-seg# c)))
 
 ;; given my state and a map, can I still connect a destination
 
