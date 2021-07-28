@@ -61,6 +61,10 @@
   [graph-height (-> game-map? height?)]
   [graph-locations (-> game-map? [listof [list/c string? (list/c natural? natural?)]])]
 
+  [game-map-all-connections (-> game-map? (set/c (list/c (set/c symbol?) color? seg#?)))]
+
+  [game-map-connections (-> game-map? symbol? (listof (struct/c to symbol? color? seg#?)))]
+
   (all-paths
    ;; produces a list of all paths from `A` to `B` in the given `vgraph`
    ;; GUARANTEE start from the symbol<? of the two cities, reach the string>=? of the two 
@@ -70,9 +74,6 @@
    ;; produces a list of all paths in the given graph
    ;; GUARANTEE every path connects `A` and `B` such that `(symbol<? A B)` holds
    (-> game-map? (listof path/c))])
- 
- #; {Graph City -> Connection*}
- graph-connections
  
  #; {Graph -> [Listof City]}
  graph-cities
@@ -227,7 +228,7 @@
 #; {Graph [Listof [List Symbol Symvol ColorSymbol Seg#]] -> Graph}
 (define (add-one-direction graph c*)
   (for/fold ([directed-graph graph]) ([c (group-by first c*)])
-    (hash-update directed-graph  (caar c) (connect-to (map rest c)) '[])))
+    (hash-update directed-graph (caar c) (connect-to (map rest c)) '[])))
   
 #; {[Listof [List Symbol ColorSymbol Seg#]] -> Connection* -> Connection*}
 (define [(connect-to c*) old]
@@ -292,16 +293,14 @@
     (error 'graph-lookup "can't happen, city not found ~e" city))
   connections)
 
-(define (graph-connections graph [city #false])
-  (if (symbol? city)
-      (hash-ref (game-map-graph graph) city '[])
-      (set-of-all-connections graph)))
+(define (game-map-connections gm city)
+  (hash-ref (game-map-graph gm) city '[]))
 
-(define (set-of-all-connections graph)
+(define (game-map-all-connections graph)
   (for/fold ([s (set)]) ([c (graph-cities graph)])
     (set-union
      s
-     (for/set ([l (graph-connections graph c)])
+     (for/set ([l (game-map-connections graph c)])
        (list (set c (to-city l)) (to-color l) (to-seg# l))))))
 
 (define (graph-cities graph) (map node-name (game-map-cities graph)))
@@ -382,6 +381,6 @@
     (for/set ([x triangle-source])
       (cons (set (first x) (second x)) (cddr x))))
   
-  (check-equal? (graph-connections vtriangle) symmetric "graph-connection all")
+  (check-equal? (game-map-all-connections vtriangle) symmetric "graph-connection all")
 
   (all-possible-paths vrectangle))

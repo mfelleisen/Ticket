@@ -156,7 +156,7 @@
 
 #; {Graph City -> JSlice}
 (define (to* graph city)
-  (for*/hash ([connection* (group-by to-city (graph-connections graph city))]
+  (for*/hash ([connection* (group-by to-city (game-map-connections graph city))]
               [next-city   (in-value (to-city (first connection*)))]
               #:when (symbol<? city next-city))
     (define color+seg# (to-color+seg# connection*))

@@ -108,7 +108,7 @@
       [(? boolean?)  (values '[] '[] BACKG)]
       [(? game-map? g)
        (define cities (externa->internal-cities (game-map-cities g)))
-       (define conns  (externa->internal-connections (graph-connections g)))         
+       (define conns  (externa->internal-connections (game-map-all-connections g)))         
        (values cities conns (rectangle (graph-width g) (graph-height g) 'solid BCOLOR))]))
   (match-define (list cities connections) (edit-graph cities0 connections0 background))
   (construct-game-map (image-width background) (image-height background) cities connections))

@@ -86,7 +86,7 @@
 #; {Map PlaterState Connection -> Boolean}
 ;; can this player acquire the specified connection 
 (define (legal-action? m rs c)
-  (define total (graph-connections m))
+  (define total (game-map-all-connections m))
   (define active (first rs))
   (define other (apply set-union (map ii-connections rs)))
   (define avail (set-subtract total other))

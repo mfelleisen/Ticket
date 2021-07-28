@@ -107,7 +107,7 @@
 #; {Map PlayerState -> [Setof Connections]}
 ;; determine the connections the active player can still acquire 
 (define (all-available-connections m ps)
-  (define total (graph-connections m))
+  (define total (game-map-all-connections m))
   (define other (apply set-union (pstate-others ps)))
   (set-subtract total other (ii-connections (pstate-I ps))))
 
@@ -157,4 +157,4 @@
  
   (check-equal? 
    (all-available-connections vtriangle pstate1)
-   (set-subtract (graph-connections vtriangle) c0 c1)))
+   (set-subtract (game-map-all-connections vtriangle) c0 c1)))
