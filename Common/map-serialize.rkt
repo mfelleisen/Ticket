@@ -143,14 +143,14 @@
 
 #; {Nod* Connection* Image -> MAP}
 (define (game-map->jsexpr g)
-  (hash WIDTH  (graph-width g)
-        HEIGHT (graph-height g)
-        CITIES (graph-locations g)
+  (hash WIDTH  (game-map-width g)
+        HEIGHT (game-map-height g)
+        CITIES (game-map-locations g)
         CONNECTIONS (graph->jsexpr g)))
 
 #; {Graph -> JGraph}
 (define (graph->jsexpr graph)
-  (define cities (graph-cities graph))
+  (define cities (game-map-cities graph))
   (for/hash ([c cities])
     (values c (to* graph c))))
 

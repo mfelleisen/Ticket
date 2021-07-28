@@ -38,7 +38,7 @@
       r)))
 
 (define (is-city? a-game-map)
-  (define cities (map node-name (game-map-cities a-game-map)))
+  (define cities (map node-name (game-map-city-places a-game-map)))
   (λ (c) (member c cities)))
 
 (provide
@@ -58,28 +58,23 @@
          [conns (nodes) (and/c connection* (in? nodes))]) 
         (r game-map?))]
   
-  [graph-width (-> game-map? width?)]
-  [graph-height (-> game-map? height?)]
-  [graph-locations (-> game-map? [listof [list/c string? (list/c natural? natural?)]])]
+  [game-map-locations (-> game-map? [listof [list/c string? (list/c natural? natural?)]])]
 
   [game-map-all-connections (-> game-map? (set/c (list/c (set/c symbol?) color? seg#?)))]
 
   [game-map-connections (-> game-map? symbol? (listof (struct/c to symbol? color? seg#?)))]
 
+  [game-map-cities (-> game-map? [listof symbol?])]
+
   (all-paths
    ;; produces a list of all paths from `A` to `B` in the given `vgraph`
-   ;; GUARANTEE start from the symbol<? of the two cities, reach the string>=? of the two 
+   ;; GUARANTEE start from the symbol<? of the two cities, reach the other one (paths are 2-dir)
    (->i ([g game-map?] [from (g) (is-city? g)] [to (g) (is-city? g)]) (r (listof path/c))))
   
   [all-possible-paths
    ;; produces a list of all paths in the given graph
    ;; GUARANTEE every path connects `A` and `B` such that `(symbol<? A B)` holds
    (-> game-map? (listof path/c))])
- 
- #; {Graph -> [Listof City]}
- graph-cities
-
- graph-nodes
  
  #; {Connection* -> [List Color Seg#]}
  to-color+seg#
@@ -129,14 +124,10 @@
 ;                                                                          
 
 ;; THE VISUAL ELEMENTS 
-(struct game-map [width height cities graph] #:transparent)
+(struct game-map [width height city-places graph] #:transparent)
 
-(define graph-nodes game-map-cities)
-
-(define graph-width game-map-width)
-(define graph-height game-map-height)
-(define (graph-locations g)
-  (for/list ([n (game-map-cities g)])
+(define (game-map-locations g)
+  (for/list ([n (game-map-city-places g)])
     `[,(~a (node-name n)) ,(rest (vector->list (struct->vector (node-posn n))))]))
 
 #; {type VGraph = (visual-graph N N Nod* Graph)}
@@ -230,7 +221,7 @@
 
 (define (all-possible-paths vgraph)
   (define graph  (game-map-graph vgraph))
-  (define cities (graph-cities vgraph))
+  (define cities (game-map-cities vgraph))
   (for*/fold ([paths '()]) ([from cities][to cities] #:when (symbol<? from to))
     (append paths (all-paths vgraph from to))))
 
@@ -266,13 +257,13 @@
   (hash-ref (game-map-graph gm) city '[]))
 
 (define (game-map-all-connections graph)
-  (for/fold ([s (set)]) ([c (graph-cities graph)])
+  (for/fold ([s (set)]) ([c (game-map-cities graph)])
     (set-union
      s
      (for/set ([l (game-map-connections graph c)])
        (list (set c (to-city l)) (to-color l) (to-seg# l))))))
 
-(define (graph-cities graph) (map node-name (game-map-cities graph)))
+(define (game-map-cities graph) (map node-name (game-map-city-places graph)))
 
 (define (to-color+seg# connection*) (map (λ (x) (list (to-color x) (to-seg# x))) connection*))
 
@@ -346,11 +337,11 @@
     (apply set (all-paths vtriangle 'Orlando 'Seattle))))
 
   ;; -------------------------------------------------------------------------------------------------
-  ;; for graph-connections, all of them 
+  ;; for game-map-connections, all of them 
   (define symmetric
     (for/set ([x triangle-source])
       (cons (set (first x) (second x)) (cddr x))))
   
-  (check-equal? (game-map-all-connections vtriangle) symmetric "graph-connection all")
+  (check-equal? (game-map-all-connections vtriangle) symmetric "game-map-connection all")
 
   (all-possible-paths vrectangle))

@@ -145,7 +145,7 @@
     [else (parse-proper j vgraph)]))
 
 (define (parse-proper j vgraph)
-  (define cities (and vgraph (graph-cities vgraph)))
+  (define cities (and vgraph (game-map-cities vgraph)))
   (define conns  (and vgraph (game-map-all-connections vgraph)))
   (let/ec k
     (define (return s)

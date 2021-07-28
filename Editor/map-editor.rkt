@@ -107,9 +107,9 @@
     (match (parse-game-map) 
       [(? boolean?)  (values '[] '[] BACKG)]
       [(? game-map? g)
-       (define cities (externa->internal-cities (game-map-cities g)))
-       (define conns  (externa->internal-connections (game-map-all-connections g)))         
-       (values cities conns (rectangle (graph-width g) (graph-height g) 'solid BCOLOR))]))
+       (define cities (external->internal-cities (game-map-city-places g)))
+       (define conns  (external->internal-connections (game-map-all-connections g)))         
+       (values cities conns (rectangle (game-map-width g) (game-map-height g) 'solid BCOLOR))]))
   (match-define (list cities connections) (edit-graph cities0 connections0 background))
   (construct-game-map (image-width background) (image-height background) cities connections))
 
@@ -135,7 +135,7 @@
 #; {type InternalCities     = [Lisof [node String [cord N N]]]}
 ;; drawing and presenting choices works with strings, not symbols
 
-(define (externa->internal-connections externals)
+(define (external->internal-connections externals)
   (for/list ([c (set->list externals)])
     (append (map ~a (set->list (first c))) (rest c))))
 
@@ -143,7 +143,7 @@
   (for/list ([c internal-connections])
     (append (map string->symbol (sort (take c 2) string<?)) (drop c 2))))
 
-(define (externa->internal-cities nodes)
+(define (external->internal-cities nodes)
   (for/list ([c nodes])
     (node (~a (node-name c)) (node-posn c))))
 
