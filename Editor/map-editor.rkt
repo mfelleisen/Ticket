@@ -135,11 +135,11 @@
 
 (define (external->internal-connections externals)
   (for/list ([c (set->list externals)])
-    (list* (~a (first c)) (~a (second c)) (cddr c))))
+    (list* (~a (connection-from c)) (~a (connection-to c)) (cddr c))))
 
 (define (internal->external-connections internal-connections)  
   (for/list ([c internal-connections])
-    (append (map string->symbol (sort (take c 2) string<?)) (drop c 2))))
+    (append (list-cities (string->symbol (first c)) (string->symbol (second c))) (drop c 2))))
 
 (define (internal->external-cities cities)
   (map (λ (x) (cons (string->symbol (first x)) (rest x))) cities))

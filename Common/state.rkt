@@ -6,9 +6,7 @@
 
  #; {type Connection  = [list City City Color Length]}
  ;; a connection between two cities has a color and a length
- connection-color
- connection-seg#
- 
+
  #; {Map PlayerState -> [Setof Connections]}
  all-available-connections
 
@@ -76,9 +74,6 @@
 
 #; {type Destination = [List City City]} 
 ;; a destination card specifies two cities; there is guaranteed to be a path between them
-
-(define connection-color third)
-(define connection-seg# fourth)
 
 (module+ examples
   (define cards1  (hash 'green 5))

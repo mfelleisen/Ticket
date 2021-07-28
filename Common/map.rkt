@@ -23,6 +23,10 @@
 
 (define connection  (and/c [list/c symbol? symbol? color? seg#?]
                            (λ (x) (symbol<? (first x) (second x)))))
+(define connection-from first)
+(define connection-to second)
+(define connection-color third)
+(define connection-seg# fourth)
 (define connection* [listof connection])
 
 (define (in? nodes)
@@ -41,6 +45,11 @@
 (provide
 
  game-map?
+
+ connection-from
+ connection-to 
+ connection-color
+ connection-seg#
  
  (contract-out
   [construct-game-map
@@ -127,16 +136,15 @@
 #; {type Cord = (cord N N)}
 
 ;; THE GRAPH STRUCTURE 
-#; {type Graph = [Hashof Symbol Connection*]}
-;; maps city to all existing connections
+#; {type Graph = [Hashof Symbol Slice*]}
+;; maps city to all existing Slices
 
 (struct to [city color seg#] #:prefab)
-#; {type Connection = (to City Color Seg#)}
-#; {type City       = Symbol}
-;; -- target city, its connection color, and the number of segments
+#; {type Slice = (to Symbol Color Seg#)}
+;; -- target city, its color, and the number of segments
 ;; ASSUMPTIONS
 ;; -- cities are consistently named (keep separate city to posn map for drawing)
-;; -- connection are two-ways (undirected)
+;; -- `to`s are two-ways (undirected)
 
 (module+ examples
   (define triangle-source
@@ -179,8 +187,8 @@
   (game-map width height (list->node nod*) (connections->graph c*)))
 
 #; {[Listof [List Symbol [List N N]]] -> [Listof Node]}
-(define (list->node lol)
-  (map (λ (x) (node (first x) (apply cord (second x)))) lol))
+(define (list->node nod*)
+  (map (λ (x) (node (first x) (apply cord (second x)))) nod*))
 
 #; {[Listof [List Symbol Symvol ColorSymbol Seg#]] -> Graph}
 (define (connections->graph c*)
@@ -188,7 +196,7 @@
   (for/fold ([directed-graph graph]) ([c (group-by first c*)])
     (hash-update directed-graph (caar c) (connect-to (map rest c)) '[])))
   
-#; {[Listof [List Symbol ColorSymbol Seg#]] -> Connection* -> Connection*}
+#; {[Listof [List Symbol ColorSymbol Seg#]] -> Slice* -> Slice*}
 (define [(connect-to c*) old]
   (append old (map (λ (x) (apply to x)) c*)))
 

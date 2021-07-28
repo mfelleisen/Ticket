@@ -227,7 +227,7 @@
 
 
   (define A (acquired->jsexpr (all-available-connections vtriangle pstate1)))
-  (define B (sort (sort A string<? #:key first) string<? #:key second))
+  (define B (sort (sort A string<? #:key connection-from) string<? #:key connection-to))
   
   (check-equal? A B))
 
