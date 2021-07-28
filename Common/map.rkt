@@ -29,7 +29,7 @@
 (define connection-seg# fourth)
 (define connection* [listof connection])
 
-(define (in? nodes)
+(define (in-cities? nodes)
   (define cities (map first nodes))
   (λ (c*)
     (for/and ([c c*])
@@ -56,7 +56,7 @@
    (->i ([w width?]
          [h height?]
          [cities-and-places [listof [list/c symbol? [list/c natural? natural?]]]]
-         [connections       [cities-and-places] (and/c connection* (in? cities-and-places))])
+         [connections       [cities-and-places] (and/c connection* (in-cities? cities-and-places))])
         (r game-map?))]
 
   [game-map-width     (-> game-map? width?)]
@@ -193,12 +193,8 @@
 #; {[Listof [List Symbol Symvol ColorSymbol Seg#]] -> Graph}
 (define (connections->graph c*)
   (define graph (hash))
-  (for/fold ([directed-graph graph]) ([c (group-by first c*)])
-    (hash-update directed-graph (caar c) (connect-to (map rest c)) '[])))
-  
-#; {[Listof [List Symbol ColorSymbol Seg#]] -> Slice* -> Slice*}
-(define [(connect-to c*) old]
-  (append old (map (λ (x) (apply to x)) c*)))
+  (for*/fold ([directed-graph graph]) ([c (group-by connection-from c*)][from (in-value (caar c))])
+    (hash-update directed-graph from (curry append (map (λ (x) (apply to (rest x))) c)) '[])))
 
 ;                                                                          
 ;                                                                          
@@ -255,11 +251,11 @@
   (map (λ (x) (rest (vector->list (struct->vector x)))) connections))
 
 (define (game-map-all-connections graph)
-  (for/fold ([s (set)]) ([c (game-map-cities graph)])
+  (for/fold ([s (set)]) ([from (game-map-cities graph)])
     (set-union
      s
-     (for/set ([l (game-map-connections graph c)])
-       (append (list-cities c (first l)) (rest l))))))
+     (for/set ([c (game-map-connections graph from)])
+       (append (list-cities from (first c)) (rest c))))))
 
 (define (game-map-cities graph) (map node-name (game-map-city-places graph)))
 
