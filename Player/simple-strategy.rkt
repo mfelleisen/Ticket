@@ -22,13 +22,13 @@
 
 (provide
  (contract-out 
-  [silly-strategy%
+  [simple-strategy%
    (class/c
-    (init-field (the-game-map game-map?))
+    (init-field (the-game-map game-map?) (rails# natural?))
     (pick-destinations
      (->m (list/c any/c any/c any/c any/c any/c) (list/c any/c any/c any/c)))
     (choose-action
-     (->m pstate? (or/c string? (list/c symbol? symbol? color? seg#?)))))]))
+     (->m pstate? (or/c string? action?))))]))
 
 (module+ homework
   (provide MORE))
@@ -51,9 +51,11 @@
 ;                   ;                                                                              
 ;                                                                                                  
 
+(require Trains/Common/basic-constants)
 (require Trains/Common/map)
 (require Trains/Common/state)
-(require Trains/Common/basic-constants)
+(require Trains/Common/player-interface)
+
 
 (module+ test
   (require (submod ".."))
@@ -79,11 +81,9 @@
 ;                                                     ;;;    ;;    
 ;                                                                  
 
-(define MORE "more cards")
-
-(define silly-strategy%
+(define simple-strategy%
   (class object%
-    (init-field the-game-map)
+    (init-field the-game-map rails#)
 
     (field
      [destination1 #false]
@@ -103,12 +103,12 @@
     #; {PlayerState -> Action}
     (define/public (choose-action ps)
       (match-define [pstate I others] ps)
-      (match-define [ii _d1 _d2 _r cards _acquired] I)
+      (match-define [ii _d1 _d2 rails# cards _acquired] I)
       (cond
         [(< (total-number-of-cards cards) 10) MORE]
         [else
          (define available  (set->list (all-available-connections the-game-map ps)))
-         (define acquirable (filter (can-acquire? cards) available))
+         (define acquirable (filter (can-acquire? rails# cards) available))
          (if (empty? acquirable)
              MORE
              (first (sort acquirable lexi->length->color<?)))]))
@@ -119,10 +119,10 @@
 
     (super-new)))
 
-#; {[Hash Color N] -> Connection -> Boolean}
-(define ((can-acquire? cards) x)
+#; {N [Hash Color N] -> Connection -> Boolean}
+(define ((can-acquire? rails# cards) x)
   (match-define [list _c _d color seg#] x)
-  (>= (hash-ref cards color 0) seg#))
+  (and (>= rails# seg#) (>= (hash-ref cards color 0) seg#)))
 
 #; {[Hash Color N] -> N}
 (define (total-number-of-cards c)
@@ -165,8 +165,8 @@
 ;                                          
 
 (module+ test
-  (define strat-tri (new silly-strategy% [the-game-map vtriangle]))
-  (define strat-rec (new silly-strategy% [the-game-map vrectangle]))
+  (define strat-tri (new simple-strategy% [the-game-map vtriangle] [rails# 45]))
+  (define strat-rec (new simple-strategy% [the-game-map vrectangle][rails# 45]))
 
   (check-equal?
    (send strat-tri pick-destinations '[(Boston Seattle)
