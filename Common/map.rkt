@@ -286,17 +286,14 @@
      1000
      800
      '(#s(node |San Diego| #s(cord 176 571))
-       #s(node Orlando #s(cord 815 528))
-       #s(node Boston #s(cord 893 201))
-       #s(node Seattle #s(cord 131 168)))
-     '#hash((Boston
-             . (#s(to Seattle red 3) #s(to Orlando green 5)))
-            (Orlando
-             . (#s(to Seattle green 5) #s(to Boston green 5) #s(to |San Diego| green 5)))
-            (|San Diego|
-             . (#s(to Seattle blue 4) #s(to Orlando green 5)))
-            (Seattle
-             . (#s(to |San Diego| blue 4) #s(to Orlando green 5) #s(to Boston red 3)))))))
+       #s(node Orlando     #s(cord 815 528))
+       #s(node Boston      #s(cord 893 201))
+       #s(node Seattle     #s(cord 131 168)))
+     '#hash((Boston      . (#s(to Seattle white 3) #s(to Orlando white 5)))
+            (Orlando     . (#s(to |San Diego| blue 5)
+                            #s(to |San Diego| red 5)))
+            (|San Diego| . (#s(to Seattle white 4)))
+            (Seattle     . ())))))
 
 (module+ test
 

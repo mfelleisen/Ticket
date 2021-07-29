@@ -34,7 +34,10 @@
 (require Trains/Common/map)
 
 (module+ examples
-  (provide pstate1 pstate2 c0 c1))
+  (provide pstate1 pstate2
+           #; {Color N -> PlayerState : like pstate2, different color count for c}
+           like-pstate2 
+           c0 c1))
 
 (module+ test
   (require (submod ".." examples))
@@ -83,8 +86,12 @@
   (define c1 (set [list 'Boston 'Seattle 'red 3]))
   (define pstate1 (pstate (ii- cards1) (list c1)))
 
-  (define cards2  (hash 'green 5 'blue 7 'red 2))
-  (define pstate2 (pstate (ii- cards2) (list c1))))
+  (define cards2  (hash 'green 5 'blue 7 'red 6))
+  
+  (define (like-pstate2 c n)
+    (pstate (ii- (hash-set cards2 c n)) (list c1)))
+
+  (define pstate2 (like-pstate2 'green 5)))
 
 
 ;                                                                          
@@ -123,12 +130,6 @@
 
 (define (rails-spent connections)
   (for/sum ([c connections]) (connection-seg# c)))
-
-;; given my state and a map, can I still connect a destination
-
-;; given a state, how close is the game from being over
-
-;; serialize the player state 
 
 ;                                          
 ;                                          
