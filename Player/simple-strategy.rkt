@@ -170,10 +170,10 @@
 
   (check-equal?
    (send strat-tri pick-destinations '[(Boston Seattle)
-                                   (Boston Seattle)
-                                   (Boston Orlando)
-                                   (Boston Orlando)
-                                   (Orlando Seattle)])
+                                       (Boston Seattle)
+                                       (Boston Orlando)
+                                       (Boston Orlando)
+                                       (Orlando Seattle)])
    '[(Boston Seattle) (Boston Seattle) (Orlando Seattle)])
   
   (check-equal? (get-field destination1 strat-tri) '(Boston Orlando))

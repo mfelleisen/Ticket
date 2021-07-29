@@ -15,16 +15,16 @@ referee                         player (p_1) . . . player (p_n)
   |                                |                 |
   |                                |                 |
   |                                |                 |
-  |     go(destinations[])         |                 | % given these 5 destinations, 
+  |     pick(destinations[])       |                 | % given these 5 destinations, 
   | -----------------------------> |                 | % where does the player 
   |     destinations[]             |                 | % want to go (return 3)
-  | <============================= |		     |
+  | <============================= |                 |
   |                                |                 | 
   .                                .                 .
   .                                .                 . 
   .                                .                 . 
   .                                .                 . 
-  |     go(destinations[])         |                 |
+  |     pick(destinations[])       |                 |
   | -----------------------------> |                 | 
   |     destinations[]             |                 |
   | <=============================================== |

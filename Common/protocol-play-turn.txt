@@ -1,13 +1,13 @@
 
     referee                         player (p_1) . . . player (p_n)
       |                                |                 |
-      |     tt(state)                  |                 | % player receives:
-      | -----------------------------> |                 | % - current state		
+      |   play(state)                  |                 | % player receives:
+      | -----------------------------> |                 | % - current state            
 
 action 1:
       |     more_cards                 |                 | 
       | <============================  |                 | % request cards 
-      |     mc(cards[])                |                 | % receive cards
+      |     more(cards[])              |                 | % receive cards
       | -----------------------------> |                 | 
       | <============================  |                 | 
 
@@ -19,7 +19,7 @@ action 2:
   +-> .                                .                 . % otherwise: 
       .                                .                 . % kick player out 
       .                                .                 .
-      |     tt(state)                  |                 |
+      |   play(state)                  |                 |
       | -----------------------------------------------> |
       |     action                     |                 |
       | <=============================================== | 
@@ -30,7 +30,7 @@ action 2:
       .                                .                 . 
       .                                .                 .
       |                                |                 | % one last round 
-      |     tt(state)                  |                 |
+      |   play(state)                  |                 |
       | -----------------------------> |                 | 
       |     action                     |                 |
       | <============================  |                 |
@@ -38,7 +38,7 @@ action 2:
       .                                .                 . 
       .                                .                 .
       .                                .                 .
-      |     tt(state)                  |                 |
+      |   play(state)                  |                 |
       | -----------------------------------------------> |
       |     action                     |                 |
       | <=============================================== | 
