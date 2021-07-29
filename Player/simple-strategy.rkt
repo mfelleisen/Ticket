@@ -28,7 +28,10 @@
     (pick-destinations
      (->m (list/c any/c any/c any/c any/c any/c) (list/c any/c any/c any/c)))
     (choose-action
-     (->m pstate? (or/c 'more-cards (list/c symbol? symbol? color? seg#?)))))]))
+     (->m pstate? (or/c string? (list/c symbol? symbol? color? seg#?)))))]))
+
+(module+ homework
+  (provide MORE))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -76,6 +79,8 @@
 ;                                                     ;;;    ;;    
 ;                                                                  
 
+(define MORE "more cards")
+
 (define silly-strategy%
   (class object%
     (init-field the-game-map)
@@ -94,18 +99,18 @@
       (set!-values (destination1 destination2) (apply values chosen))
       (remove* chosen five-destinations))
 
-    #; {type Action = (U 'more-cards Connection)}
+    #; {type Action = (U MORE Connection)}
     #; {PlayerState -> Action}
     (define/public (choose-action ps)
       (match-define [pstate I others] ps)
       (match-define [ii _d1 _d2 _r cards _acquired] I)
       (cond
-        [(< (total-number-of-cards cards) 10) 'more-cards]
+        [(< (total-number-of-cards cards) 10) MORE]
         [else
          (define available  (set->list (all-available-connections the-game-map ps)))
          (define acquirable (filter (can-acquire? cards) available))
          (if (empty? acquirable)
-             'more-cards
+             MORE
              (first (sort acquirable lexi->length->color<?)))]))
 
     #; {Color Color -> Void}
@@ -174,8 +179,8 @@
   (check-equal? (get-field destination1 strat-tri) '(Boston Orlando))
   (check-equal? (get-field destination2 strat-tri) '(Boston Orlando))
 
-  (check-equal? (send strat-tri choose-action pstate1) 'more-cards)
+  (check-equal? (send strat-tri choose-action pstate1) MORE)
   (check-equal? (send strat-tri choose-action pstate2) `[Boston Orlando green 5])
-  (check-equal? (send strat-tri choose-action (like-pstate2 'green 3)) 'more-cards)
+  (check-equal? (send strat-tri choose-action (like-pstate2 'green 3)) MORE)
   (check-equal? (send strat-tri more-cards 'green 'red) (void))
   (check-equal? (send strat-rec choose-action (like-pstate2 'green 2)) '(Orlando |San Diego| blue 5)))
