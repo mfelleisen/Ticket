@@ -2,9 +2,9 @@
 referee                         player (p_1) . . . player (p_n)
   |                                |                 |
   |                                |                 |
-  |     setup(map,n,r)             |                 | % the map for this game
-  | -----------------------------> |                 | % the number of opponents
-  | <============================  |                 | % the number of rails 
+  |     setup(map,r,cards)         |                 | % the map for this game
+  | -----------------------------> |                 | % the number of rails 
+  | <============================  |                 | % colored cards 
   .                                .                 .
   .                                .                 . 
   .                                .                 . 

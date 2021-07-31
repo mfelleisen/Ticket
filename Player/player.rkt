@@ -1,6 +1,9 @@
 #lang racket
 
 (provide
+
+ #; {type XPlayer}
+
  (contract-out
   [player% referee-player%/c]))
 
@@ -10,7 +13,7 @@
   (class object% [init-field strategy%]
     (field [strategy #false])
 
-    [define/public (setup gm opponents rails)
+    [define/public (setup gm rails cards)
       (set! strategy (new strategy% [the-game-map gm] [rails# rails]))]
 
     [define/public (pick destinations)
@@ -35,7 +38,7 @@
 
   (define p1 (new player% [strategy% simple-strategy%]))
 
-  (send p1 setup vtriangle 5 45)
+  (send p1 setup vtriangle 45 '[red red blue blue])
   (send p1 pick '[(Boston Seattle)
                   (Boston Seattle)
                   (Boston Orlando)
