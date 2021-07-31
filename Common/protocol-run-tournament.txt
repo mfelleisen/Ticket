@@ -1,7 +1,7 @@
 
 manager                         player (p_1) . . . player (p_n)
   |                                |                 |
-  |  new(players[])                |                 | 
+  |  new(map, players[])           |                 | 
   | -----------------> referee     |                 |  
   |                      |         |                 |
   .                      .         .                 .
@@ -10,9 +10,8 @@ manager                         player (p_1) . . . player (p_n)
   .                      .         .                 .
   .                      .         .                 .
   |                      |         |                 |
-  | players[players[]],  |         |                 | % the ranking
-  | players[]            |         |                 | % the "cheaters"
-  | <=================== |         |                 |
+  | players*[],players[] |         |                 | % the ranking
+  | <=================== |         |                 | % & cheaters 
   .                     ___        .                 .
   .                                .                 .
   .                                .                 . % as long as 
@@ -28,7 +27,7 @@ manager                         player (p_1) . . . player (p_n)
   .                      .         .                 .
   .                      .         .                 .
   |                      |         |                 |
-  | players[players[]],  |         |                 | % the ranking
+  | players*[],players[] |         |                 | % the ranking
   | players[]            |         |                 | % the "cheaters"
   | <=================== |         |                 |
   .                     ___        .                 .
