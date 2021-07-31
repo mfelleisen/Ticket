@@ -2,6 +2,9 @@
 
 ;; representation of a referee's knowledge about the game
 
+(provide
+ (struct-out rstate))
+
 ;                                                                                                  
 ;                                                                                                  
 ;        ;                                       ;                             ;                   
@@ -51,15 +54,19 @@
 ;                                                           ;              
 ;                                                                          
 
-#; {type RefereeState = [Listof MePlayer]}
+(struct rstate [players cards drop-outs] #;transparent)
+#; {type RefereeState = (rstate [Listof [MePlayer XPlayer]] [Listof Cards] [Listof XPlayer])}
+#; {type XPlayer      = .. see player interface ..}
+
+;; the MeState must be parameterized over a paylaod 
 
 (module+ examples
   (define cards1 (hash 'green 5))
   (define dest1  (set 'Boston 'Seattle))
-  (define ii1 (ii dest1 (set 'Boston 'Orlando) 40 cards1 (set)))
-  (define ii2 (ii dest1 (set 'Seattle 'Orlando) 5 cards1 (set [list (set 'Boston 'Seattle) 'red 3])))
+  (define ii1 (ii dest1 (set 'Boston 'Orlando) 40 cards1 (set) #f))
+  (define ii2 (ii dest1 (set 'Seattle 'Orlando) 5 cards1 (set [list (set 'Boston 'Seattle) 'red 3]) #f))
 
-  (define rstate1 (list ii1 ii2)))
+  (define rstate1 (rstate (list ii1 ii2) '[] '[])))
 
 ;                                                                          
 ;                                                                          
@@ -81,15 +88,21 @@
 
 #; {RefereeState -> PlayerState}
 (define (rstate->pstate rs)
-  (pstate (first rs) (map ii-connections (rest rs))))
+  (define players (map nuke-external (rstate-players rs)))
+  (pstate (first players) (map ii-connections (rest players))))
 
-#; {Map PlaterState Connection -> Boolean}
+(define (nuke-external iplayer)
+  (set-ii-payload! iplayer #false)
+  iplayer)
+
+#; {Map RefereeState Connection -> Boolean}
 ;; can this player acquire the specified connection 
 (define (legal-action? m rs c)
-  (define total (game-map-all-connections m))
-  (define active (first rs))
-  (define other (apply set-union (map ii-connections rs)))
-  (define avail (set-subtract total other))
+  (define players (rstate-players rs))
+  (define total   (game-map-all-connections m))
+  (define active  (first players))
+  (define other   (apply set-union (map ii-connections players)))
+  (define avail   (set-subtract total other))
   (cond
     [(not (set-member? avail c)) #false]
     [else (>= (hash-ref (ii-cards active) (connection-color c) 0) (connection-seg# c))]))

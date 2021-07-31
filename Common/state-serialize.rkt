@@ -101,7 +101,7 @@
         CONNECTIONS (for/list ([x (pstate-others ps)]) (acquired->jsexpr x))))
 
 (define (ii->jsexpr i)
-  (match-define [ii d1 d2 rails cards connections] i)
+  (match-define [ii d1 d2 rails cards connections _payload] i)
   (hash (DESTINATION 1) (destination->jsexpr d1)
         (DESTINATION 2) (destination->jsexpr d2)
         RAILS           rails
@@ -162,7 +162,8 @@
          (parse-destination return d2 cities)
          rails
          (parse-cards return cd)
-         ((parse-acquired return cities conns) cs))]
+         ((parse-acquired return cities conns) cs)
+         #false)]
     [_ (return "not a player object (with the six required fields)")]))
 
 (define (parse-destination return j cities)

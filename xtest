@@ -14,6 +14,8 @@ time raco test Admin/*.rkt  2>> errors.txt
 # time raco test Remote/*.rkt  2>> errors.txt
 
 time raco test Editor/map-editor.rkt
+
+echo "end" >> errors.txt
  
 echo "grepping" 
 if grep --quiet "non-zero exit" errors.txt; then 

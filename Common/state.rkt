@@ -65,23 +65,23 @@
 ;                                                                          
 
 (struct pstate [I others] #:transparent)
-(struct ii [destination1 destination2 rails cards connections] #:transparent)
+(struct ii [destination1 destination2 rails cards connections{ payload #:mutable}] #:transparent)
 
-#; {type PlayerState = (pstate MePlayer [Listof Player])}
+#; {type PlayerState  = (pstate [MePlayer Any] [Listof Player])}
 ;; what the player knows about itself and others 
 
-#; {type MePlayer    = (ii Desitination Destination Natural [Hash Color Natural] Player)}
+#; {type [MePlayer X] = (ii Desitination Destination Natural [Hash Color Natural] Player X)}
 ;; the two destination cards, the rails left, the colored cards, and this player's possessions
 
-#; {type Player      = [Setof Connection]}
+#; {type Player       = [Setof Connection]}
 
-#; {type Destination = [List City City]} 
+#; {type Destination  = [List City City]} 
 ;; a destination card specifies two cities; there is guaranteed to be a path between them
 
 (module+ examples
   (define cards1  (hash 'green 5))
   (define c0 (set [list 'Orlando 'Seattle 'blue 5]))
-  (define (ii- cards1) (ii (list 'Boston 'Seattle) (list 'Boston 'Orlando) 40 cards1 c0))
+  (define (ii- cards1) (ii (list 'Boston 'Seattle) (list 'Boston 'Orlando) 40 cards1 c0 #f))
 
   (define c1 (set [list 'Boston 'Seattle 'red 3]))
   (define pstate1 (pstate (ii- cards1) (list c1)))
