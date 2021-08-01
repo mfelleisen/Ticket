@@ -65,7 +65,7 @@
 ;                                                                          
 
 (struct pstate [I others] #:transparent)
-(struct ii [destination1 destination2 rails cards connections{ payload #:mutable}] #:transparent)
+(struct ii [destination1 destination2 rails cards connections {payload #:mutable}] #:transparent)
 
 #; {type PlayerState  = (pstate [MePlayer Any] [Listof Player])}
 ;; what the player knows about itself and others 

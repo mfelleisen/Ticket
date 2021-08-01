@@ -63,8 +63,8 @@
 (module+ examples
   (define cards1 (hash 'green 5))
   (define dest1  (set 'Boston 'Seattle))
-  (define ii1 (ii dest1 (set 'Boston 'Orlando) 40 cards1 (set) #f))
-  (define ii2 (ii dest1 (set 'Seattle 'Orlando) 5 cards1 (set [list (set 'Boston 'Seattle) 'red 3]) #f))
+  (define ii1 (ii dest1 '(oston Orlando) 40 cards1 (set) #f))
+  (define ii2 (ii dest1 '(Orlando Seattle) 5 cards1 (set '[(Boston Seattle) red 3]) #f))
 
   (define rstate1 (rstate (list ii1 ii2) '[] '[])))
 
