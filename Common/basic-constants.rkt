@@ -18,7 +18,11 @@
 
  ;; for homework only 
  CITY-LENGTH
- CITY-NAME)
+ CITY-NAME
+
+ DESTS-PER
+ RAILS-PER
+ CARDS-PER)
 
 ;; -----------------------------------------------------------------------------
 (define COLORS '[red blue green white])
@@ -53,6 +57,10 @@
 
 (define (height? x)
   (and (natural? x) (<= MIN-HEIGHT x MAX-HEIGHT)))
+
+(define RAILS-PER 45)
+(define CARDS-PER  4)
+(define DESTS-PER  2)
 
 ;; -----------------------------------------------------------------------------
 (module+ test
