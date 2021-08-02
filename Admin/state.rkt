@@ -3,6 +3,7 @@
 ;; representation of a referee's knowledge about the game
 
 (provide
+ rstate->pstate
  (struct-out rstate))
 
 ;                                                                                                  

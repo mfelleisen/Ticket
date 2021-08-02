@@ -21,6 +21,7 @@
  CITY-NAME
 
  DESTS-PER
+ PICKS-PER
  RAILS-PER
  CARDS-PER)
 
@@ -61,6 +62,7 @@
 (define RAILS-PER 45)
 (define CARDS-PER  4)
 (define DESTS-PER  2)
+(define PICKS-PER  5)
 
 ;; -----------------------------------------------------------------------------
 (module+ test

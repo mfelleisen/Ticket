@@ -11,7 +11,9 @@
  all-available-connections
 
  (struct-out pstate)
- (struct-out ii))
+ (struct-out ii)
+
+ destination?)
 
 ;                                                                                                  
 ;                                                                                                  
@@ -31,6 +33,7 @@
 ;                   ;                                                                              
 ;                                                                                                  
 
+(require Trains/Common/basic-constants)
 (require Trains/Common/map)
 
 (module+ examples
@@ -75,7 +78,9 @@
 
 #; {type Player       = [Setof Connection]}
 
-#; {type Destination  = [List City City]} 
+#; {type Destination  = [List City City]}
+(module+ test (check-true (destination? "Washington, D.C." "Seattle")))
+(define (destination? x y) (and (city? x) (city? y)))
 ;; a destination card specifies two cities; there is guaranteed to be a path between them
 
 (module+ examples
