@@ -90,14 +90,15 @@
      [destination2 #false])
 
     #; {type Destination = [List City City] : symbol<? holds for the 2 cities}
-    #; {Graph [List Destination Destination Destination Destination Destination]
+    #; {Graph [Set Destination Destination Destination Destination Destination]
               ->
-              [List Destination Destination]}
+              [Set Destination Destination Destination]}
     ;; lexicographic ordering, by symbol<?, of destinations: take 2 
-    (define/public (pick-destinations five-destinations)
+    (define/public (pick-destinations five-destinations0)
+      (define five-destinations (apply set five-destinations0))
       (define chosen (take (sort five-destinations lexi<?) 2))
       (set!-values (destination1 destination2) (apply values chosen))
-      (remove* chosen five-destinations))
+      (apply set (remove* chosen five-destinations)))
 
     #; {type Action = (U MORE Connection)}
     #; {PlayerState -> Action}

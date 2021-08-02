@@ -48,6 +48,9 @@
          [(? failed?) (loop others Cs Ds good (cons xplayer drop-outs))]
          [_ (define pick-from (take Ds PICKS-PER))
             (match (xsend xplayer pick pick-from)
+              [(? failed?) (loop others Cs Ds good (cons xplayer drop-outs))]
+              [rejected
+               (define-values (chosen remaining) (legal-destination-choice pick-from rejected Ds))
 
               ;; I need a is-legal-destinations function:
               ;; the 3 destinations returned must be (a) distinct and (b) a subset of the given ones
@@ -58,11 +61,24 @@
               ;; the player's pick signature should be about sets not lists
               
               
-              [(and !picked (list (? destination? -d1) (? destination? -d2) (? destination? -d3)))
-               (match-define (list destination-1 destination-2) (remove !picked pick-from))
+              
+               (match-define (list destination-1 destination-2) chosen)
                (define iplayer (ii destination-1 destination-2 RAILS-PER cards (set) xplayer))
-               (loop others (drop Cs CARDS-PER) (remove* !picked Ds) (cons iplayer good) drop-outs)]
+               (loop others (drop Cs CARDS-PER) remaining (cons iplayer good) drop-outs)]
               [(or (? failed?) _) (loop others Cs Ds good (cons xplayer drop-outs))])])])))
+
+#; {[Setof Destination] [Setof Destination] [Listof Destination]
+                        ->
+                        (values (U False [Listof Destination]) (U False [Listof Destination]))}
+;; determine whether the rejection is legitimate, compute the chosen ones and the remaining ones 
+(define (legal-destination-choice choose-from rejected all)
+  (cond
+    [(not (subset? rejected choose-from)) (values #false #false)]
+    [(not (= (set-count rejected) (- PICKS-PER DESTS-PER))) (values #false #false)]
+    [else
+     (define chosen-ones (set->list (set-subtract choose-from rejected)))
+     (define remaining   (remove* chosen-ones all))
+     (values chosen-ones remaining)]))
 
 #; {RefereeState -> (va,ues RefereeState [Listof XPlayer])}
 ;; play turns until the game is over

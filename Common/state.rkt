@@ -79,8 +79,14 @@
 #; {type Player       = [Setof Connection]}
 
 #; {type Destination  = [List City City]}
-(module+ test (check-true (destination? "Washington, D.C." "Seattle")))
-(define (destination? x y) (and (city? x) (city? y)))
+(module+ test (check-true (destination? (list "Seattle" "Washington, D.C."))))
+(define (destination? d)
+  (match d
+    [(list x y)
+     (and (city? x) (city? y)
+          (or (and (symbol? x) (symbol<? x y))
+              (and (string? x) (string<? x y))))]
+    [_ #false]))
 ;; a destination card specifies two cities; there is guaranteed to be a path between them
 
 (module+ examples
