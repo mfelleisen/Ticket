@@ -25,10 +25,11 @@
   [simple-strategy%
    (class/c
     (init-field (the-game-map game-map?) (rails# natural?))
-    (pick-destinations
-     (->m (list/c any/c any/c any/c any/c any/c) (list/c any/c any/c any/c)))
-    (choose-action
-     (->m pstate? (or/c string? action?))))]))
+    (pick-destinations (->m (set/c any/c) (set/c any/c)))
+    (choose-action     (->m pstate? (or/c string? action?))))]))
+
+(module+ examples
+  (provide destinations destinations-list))
 
 (module+ homework
   (provide MORE))
@@ -59,6 +60,7 @@
 
 (module+ test
   (require (submod ".."))
+  (require (submod ".." examples))
   (require (submod Trains/Common/map examples))
   (require (submod Trains/Common/state examples))
   (require rackunit))
@@ -95,8 +97,8 @@
               [Set Destination Destination Destination]}
     ;; lexicographic ordering, by symbol<?, of destinations: take 2 
     (define/public (pick-destinations five-destinations0)
-      (define five-destinations (apply set five-destinations0))
-      (define chosen (take (sort five-destinations lexi<?) 2))
+      (define five-destinations (set->list five-destinations0))
+      (define chosen (take (sort five-destinations lexi<?) DESTS-PER))
       (set!-values (destination1 destination2) (apply values chosen))
       (apply set (remove* chosen five-destinations)))
 
@@ -165,19 +167,23 @@
 ;                                          
 ;                                          
 
+(module+ examples
+  (define destinations-list
+    '[(Orlando Seattle)
+      (Boston Seattle)
+      (Boston SanDiego)
+      (Boston Chicago)
+      (Boston Orlando)])
+  (define destinations
+    (apply set destinations-list)))
+
 (module+ test
   (define strat-tri (new simple-strategy% [the-game-map vtriangle] [rails# 45]))
   (define strat-rec (new simple-strategy% [the-game-map vrectangle][rails# 45]))
 
-  (check-equal?
-   (send strat-tri pick-destinations '[(Boston Seattle)
-                                       (Boston Seattle)
-                                       (Boston Orlando)
-                                       (Boston Orlando)
-                                       (Orlando Seattle)])
-   '[(Boston Seattle) (Boston Seattle) (Orlando Seattle)])
+  (check-equal? (send strat-tri pick-destinations destinations) (apply set (take destinations-list 3)))
   
-  (check-equal? (get-field destination1 strat-tri) '(Boston Orlando))
+  (check-equal? (get-field destination1 strat-tri) '(Boston Chicago))
   (check-equal? (get-field destination2 strat-tri) '(Boston Orlando))
 
   (check-equal? (send strat-tri choose-action pstate1) MORE)

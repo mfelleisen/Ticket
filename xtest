@@ -9,11 +9,11 @@ time raco make */*.rkt
 echo "testing"
 echo "start" > errors.txt
 time raco test Common/*.rkt 2>> errors.txt
-time raco test Player/*.rkt 2>> errors.txt
-time raco test Admin/*.rkt  2>> errors.txt
-# time raco test Remote/*.rkt  2>> errors.txt
-
 time raco test Editor/map-editor.rkt
+time raco test Admin/*.rkt  2>> errors.txt
+time raco test Player/*.rkt 2>> errors.txt
+
+# time raco test Remote/*.rkt  2>> errors.txt
 
 echo "end" >> errors.txt
  
