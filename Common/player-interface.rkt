@@ -74,7 +74,7 @@
   (class/c
    [init-field [strategy% strategy%/c]]
    [setup (->m game-map? natural? (listof color?) any/c)]
-   [pick  (->m (set/c destination?) (set/c destination?))]
+   [pick  (->m (set/c destination/c) (set/c destination/c))]
    [play  (->m pstate? (or/c MORE action?))]
    [more  (->m color? color? any/c)]
    [win   (->m boolean? any/c)]))

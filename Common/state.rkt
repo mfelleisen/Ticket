@@ -11,9 +11,13 @@
  all-available-connections
 
  (struct-out pstate)
- (struct-out ii)
+ (struct-out ii))
 
- destination?)
+(module+ examples
+  (provide pstate1 pstate2
+           #; {Color N -> PlayerState : like pstate2, different color count for c}
+           like-pstate2 
+           c0 c1))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -35,12 +39,6 @@
 
 (require Trains/Common/basic-constants)
 (require Trains/Common/map)
-
-(module+ examples
-  (provide pstate1 pstate2
-           #; {Color N -> PlayerState : like pstate2, different color count for c}
-           like-pstate2 
-           c0 c1))
 
 (module+ test
   (require (submod ".." examples))
@@ -77,17 +75,6 @@
 ;; the two destination cards, the rails left, the colored cards, and this player's possessions
 
 #; {type Player       = [Setof Connection]}
-
-#; {type Destination  = [List City City]}
-(module+ test (check-true (destination? (list "Seattle" "Washington, D.C."))))
-(define (destination? d)
-  (match d
-    [(list x y)
-     (and (city? x) (city? y)
-          (or (and (symbol? x) (symbol<? x y))
-              (and (string? x) (string<? x y))))]
-    [_ #false]))
-;; a destination card specifies two cities; there is guaranteed to be a path between them
 
 (module+ examples
   (define cards1  (hash 'green 5))

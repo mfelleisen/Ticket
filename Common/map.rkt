@@ -21,14 +21,17 @@
 
 (require Trains/Common/basic-constants)
 
-(define connection  (and/c [list/c symbol? symbol? color? seg#?]
-                           (λ (x) (symbol<? (first x) (second x)))))
-(define connection* [listof connection])
+;; ---------------------------------------------------------------------------------------------------
+(define lexi-cities/c (λ (x) (symbol<? (first x) (second x))))
+
+(define destination/c (and/c (list/c symbol? symbol?) lexi-cities/c))
+
+(define connection/c  (and/c [list/c symbol? symbol? color? seg#?] lexi-cities/c))
+(define connection*/c [listof connection/c])
 (define connection-from  first)
 (define connection-to    second)
 (define connection-color third)
 (define connection-seg#  fourth)
-
 
 (define (in-cities? nodes)
   (define cities (map first nodes))
@@ -43,9 +46,15 @@
   (define cities (map node-name (game-map-city-places a-game-map)))
   (λ (c) (member c cities)))
 
+;; ---------------------------------------------------------------------------------------------------
 (provide
 
  game-map?
+
+ #; {type Destination  = [List City City]}
+ ;; a destination card specifies two cities; there is guaranteed to be a path between them
+ #; (destinaion? (list city1 city2)) #; impllies #; (symbol<? city1 city2)
+ destination/c
 
  connection-from
  connection-to 
@@ -57,7 +66,7 @@
    (->i ([w width?]
          [h height?]
          [cities-and-places [listof [list/c symbol? [list/c natural? natural?]]]]
-         [connections       [cities-and-places] (and/c connection* (in-cities? cities-and-places))])
+         [connections       [cities-and-places] (and/c connection*/c (in-cities? cities-and-places))])
         (r game-map?))]
 
   [game-map-width     (-> game-map? width?)]
@@ -68,15 +77,19 @@
   [game-map-all-connections (-> game-map? (set/c (list/c symbol? symbol? color? seg#?)))]
   [game-map-connections     (-> game-map? symbol? (listof (list/c symbol? color? seg#?)))]
   
+  [all-destinations
+   ;; produces all destinations for the given graph (in lexicographically directed form)
+   (-> game-map? (listof destination/c))]
+
   (all-paths
    ;; produces a list of all paths from `A` to `B` in the given `vgraph`
    ;; GUARANTEE start from the symbol<? of the two cities, reach the other one (paths are 2-dir)
-   (->i ([g game-map?] [from (g) (is-city? g)] [to (g) (is-city? g)]) (r (listof connection*))))
+   (->i ([g game-map?] [from (g) (is-city? g)] [to (g) (is-city? g)]) (r (listof connection*/c))))
   
   [all-possible-paths
    ;; produces a list of all paths in the given graph
    ;; GUARANTEE every path connects `A` and `B` such that `(symbol<? A B)` holds
-   (-> game-map? (listof connection*))]))
+   (-> game-map? (listof connection*/c))]))
 
 (module+ examples
   (provide vrectangle)
@@ -214,6 +227,14 @@
 ;                                   ;                                      
 ;                                                                          
 
+#; {GameMap -> [Listof Destination]}
+(define (all-destinations vgraph)
+  (define graph  (game-map-graph vgraph))
+  (define cities (game-map-cities vgraph))
+  (for*/fold ([destinations '()]) ([from cities][to cities] #:when (symbol<? from to))
+    (define are-there-any-paths (all-paths vgraph from to))
+    (if are-there-any-paths (cons (list from to) destinations) destinations)))
+
 (define (all-possible-paths vgraph)
   (define graph  (game-map-graph vgraph))
   (define cities (game-map-cities vgraph))
@@ -334,4 +355,11 @@
   
   (check-equal? (game-map-all-connections vtriangle) symmetric "game-map-connection all")
 
-  (all-possible-paths vrectangle))
+  (check-equal? (apply set (all-destinations vrectangle))
+                (apply set '[[Boston |San Diego|]
+                             [Boston Seattle]
+                             [Boston Orlando]
+                             [Orlando |San Diego|]
+                             [Orlando Seattle]
+                             [|San Diego| Seattle]])))
+                  
