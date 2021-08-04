@@ -4,6 +4,16 @@
 
 (provide
 
+ #; {PlayerState Connection -> Player}
+ ;; ASSUME the action is legal
+ ii-acquire
+
+ #; {PlayerState [Listof Color] -> PlayerState}
+ ii+cards
+
+ #; {Player -> Boolean}
+ ii-final?
+
  #; {type Connection  = [list City City Color Length]}
  ;; a connection between two cities has a color and a length
 
@@ -17,7 +27,7 @@
   (provide pstate1 pstate2
            #; {Color N -> PlayerState : like pstate2, different color count for c}
            like-pstate2 
-           c0 c1))
+           conns0 conns1))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -45,70 +55,102 @@
   (require (submod ".."))
   (require (submod Trains/Common/map examples))
   (require rackunit))
-           
 
 ;                                                                          
 ;                                                                          
-;        ;                                                                 
-;        ;            ;                                                    
-;        ;            ;                                                    
-;    ;;; ;    ;;;   ;;;;;;    ;;;            ;;;;;   ;;;;   ; ;;;          
-;    ;  ;;   ;   ;    ;      ;   ;           ;;      ;  ;;  ;;  ;          
-;   ;    ;       ;    ;          ;           ;      ;    ;  ;    ;         
-;   ;    ;   ;;;;;    ;      ;;;;;           ;      ;;;;;;  ;    ;         
-;   ;    ;  ;    ;    ;     ;    ;           ;      ;       ;    ;         
-;   ;    ;  ;    ;    ;     ;    ;           ;      ;       ;    ;    ;;   
-;    ;  ;;  ;   ;;    ;     ;   ;;           ;       ;      ;;  ;     ;;   
-;    ;;; ;   ;;; ;     ;;;   ;;; ;           ;       ;;;;;  ; ;;;     ;;   
-;                                                           ;              
-;                                                           ;              
-;                                                           ;              
+;                                    ;;;                                   
+;                                      ;                                   
+;                                      ;                                   
+;   ;;;;;;   ;;;;           ; ;;;      ;      ;;;   ;    ;   ;;;;    ;;;;  
+;   ;  ;  ; ;    ;          ;;  ;;     ;     ;   ;   ;  ;;  ;    ;   ;;  ; 
+;   ;  ;  ; ;;;;;;          ;    ;     ;         ;   ;  ;   ;;;;;;   ;     
+;   ;  ;  ; ;               ;    ;     ;     ;;;;;   ;  ;   ;        ;     
+;   ;  ;  ; ;               ;    ;     ;    ;    ;    ; ;   ;        ;     
+;   ;  ;  ; ;;   ;          ;;  ;;     ;    ;   ;;    ;;    ;;   ;   ;     
+;   ;  ;  ;  ;;;;;          ; ;;;       ;;;  ;;; ;     ;     ;;;;;   ;     
+;                           ;                          ;                   
+;                           ;                         ;                    
+;                           ;                        ;;                    
 ;                                                                          
 
-(struct pstate [I others] #:transparent)
 (struct ii [destination1 destination2 rails cards connections {payload #:mutable}] #:transparent)
-
-#; {type PlayerState  = (pstate [MePlayer Any] [Listof Player])}
-;; what the player knows about itself and others 
-
 #; {type [MePlayer X] = (ii Desitination Destination Natural [Hash Color Natural] Player X)}
 ;; the two destination cards, the rails left, the colored cards, and this player's possessions
 
-#; {type Player       = [Setof Connection]}
+(define (ii-acquire ii-player c)
+  (define seg#  (connection-seg# c))
+  (define color (connection-color c))
+  (match-define (ii d-1 d-2 rails-left cards connections xplayer) ii-player)
+  (ii d-1 d-2 (- rails-left seg#) (-cards cards color seg#) (set-add connections c) xplayer))
+
+#; {[Hash Color N] Color N -> [Hash Color N]}
+(define (-cards cards0 color n)
+  (hash-update cards0 color (λ (old) (- old n))))
+
+(define (ii+cards ii-player new-cards)
+  (match-define (ii d-1 d-2 rails-left cards0 connections xplayer) ii-player)
+  (define cards1 (for/fold ([cards cards0]) ([c new-cards]) (hash-update cards c add1 0)))
+  (ii d-1 d-2 rails-left cards1 connections xplayer))
+
+(define (ii-final? ii-player)
+  (< (ii-rails ii-player) RAILS-MIN))
 
 (module+ examples
-  (define cards1  (hash 'green 5))
-  (define c0 (set [list 'Orlando 'Seattle 'blue 5]))
-  (define (ii- cards1) (ii (list 'Boston 'Seattle) (list 'Boston 'Orlando) 40 cards1 c0 #f))
-
-  (define c1 (set [list 'Boston 'Seattle 'red 3]))
-  (define pstate1 (pstate (ii- cards1) (list c1)))
-
-  (define cards2  (hash 'green 5 'blue 7 'red 6))
+  (provide ii- cards1 cards2 ii-final ii-play)
   
-  (define (like-pstate2 c n)
-    (pstate (ii- (hash-set cards2 c n)) (list c1)))
+  (define cards1 (hash 'green 5))
+  (define cards2 (hash 'green 5 'blue 7 'red 6))
 
-  (define pstate2 (like-pstate2 'green 5)))
+  (define conns0 (set [list 'Orlando 'Seattle 'blue 5]))
+  (define conns1 (set [list 'Boston 'Seattle 'red 3]))
+  
+  (define (ii- cards1) (ii '(Boston Seattle) '(Boston Orlando) 40 cards1 conns0 #f))
+  (define (ii-r r (cards2 cards2) (conns0 conns0))
+    (ii '(Boston Seattle) '(Boston Orlando) r cards2 conns0 #f))
+  
+  (define ii-final (ii-r (- RAILS-MIN 1) (-cards cards2 'red 3) (set-union conns0 conns1)))
+  (define ii-play  (ii-r (+ RAILS-MIN 2))))
 
+(module+ test
+  (check-true (ii-final? ii-final))
+  (check-false (ii-final? ii-play))
 
-;                                                                          
-;                                                                          
-;      ;;;                                     ;                           
-;     ;                               ;        ;                           
-;     ;                               ;                                    
-;   ;;;;;;  ;    ;  ; ;;;     ;;;   ;;;;;;   ;;;     ;;;;   ; ;;;    ;;;;  
-;     ;     ;    ;  ;;   ;   ;   ;    ;        ;    ;;  ;;  ;;   ;  ;    ; 
-;     ;     ;    ;  ;    ;  ;         ;        ;    ;    ;  ;    ;  ;      
-;     ;     ;    ;  ;    ;  ;         ;        ;    ;    ;  ;    ;  ;;;    
-;     ;     ;    ;  ;    ;  ;         ;        ;    ;    ;  ;    ;     ;;; 
-;     ;     ;    ;  ;    ;  ;         ;        ;    ;    ;  ;    ;       ; 
-;     ;     ;   ;;  ;    ;   ;   ;    ;        ;    ;;  ;;  ;    ;  ;    ; 
-;     ;      ;;; ;  ;    ;    ;;;      ;;;  ;;;;;;;  ;;;;   ;    ;   ;;;;  
-;                                                                          
-;                                                                          
-;                                                                          
-;
+  (define blues (make-list 7 'blue))
+  (check-equal? (ii+cards (ii+cards (ii- cards1) blues) (make-list 6 'red)) (ii- cards2))
+
+  (check-equal? (ii-acquire ii-play '[Boston Seattle red 3]) ii-final))
+
+;                                                  
+;                                                  
+;                                                  
+;                     ;               ;            
+;                     ;               ;            
+;   ; ;;;    ;;;;   ;;;;;;    ;;;   ;;;;;;   ;;;;  
+;   ;;  ;;  ;    ;    ;      ;   ;    ;     ;    ; 
+;   ;    ;  ;         ;          ;    ;     ;;;;;; 
+;   ;    ;   ;;;;     ;      ;;;;;    ;     ;      
+;   ;    ;       ;    ;     ;    ;    ;     ;      
+;   ;;  ;;  ;    ;    ;     ;   ;;    ;     ;;   ; 
+;   ; ;;;    ;;;;      ;;;   ;;; ;     ;;;   ;;;;; 
+;   ;                                              
+;   ;                                              
+;   ;                                              
+;                                                  
+
+(struct pstate [I others] #:transparent)
+#; {type PlayerState  = (pstate [MePlayer Any] [Listof Player])}
+#; {type Player       = [Setof Connection]}
+;; what the player knows about itself and others 
+
+(module+ examples
+  
+  (define pstate1 (pstate (ii- cards1) (list conns1)))
+  
+  (define (like-pstate2 c n) (pstate (ii- (hash-set cards2 c n)) (list conns1)))
+
+  (define pstate2 (like-pstate2 'green 5))
+  (define pstate3 (pstate ii-final (list conns1))))
+
 
 #; {Map PlayerState -> [Setof Connections]}
 ;; determine the connections the active player can still acquire 
@@ -157,4 +199,4 @@
  
   (check-equal? 
    (all-available-connections vtriangle pstate1)
-   (set-subtract (game-map-all-connections vtriangle) c0 c1)))
+   (set-subtract (game-map-all-connections vtriangle) conns0 conns1)))
