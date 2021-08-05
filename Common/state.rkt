@@ -14,6 +14,14 @@
  #; {Player -> Boolean}
  ii-final?
 
+ #; {MePlayer [Listof Connection] -> Boolean}
+ ii-path-covered?
+
+ #; {MePlayer -> N}
+ ii-conn-score
+
+ ii-destinations-connected 
+
  #; {type Connection  = [list City City Color Length]}
  ;; a connection between two cities has a color and a length
 
@@ -95,14 +103,57 @@
 (define (ii-final? ii-player)
   (< (ii-rails ii-player) RAILS-MIN))
 
+(define (ii-path-covered? ii-player path)
+  (match-define (ii d-1 d-2 rails-left cards0 connections xplayer) ii-player)
+  (covered? path connections))
+
+(define (ii-conn-score ii-player)
+  (match-define (ii d-1 d-2 rails-left cards0 connections xplayer) ii-player)
+  (for/sum ([c connections]) (connection-seg# c)))
+
+(define (ii-destinations-connected ii-player all-paths)
+  (match-define (ii d-1 d-2 rails-left cards0 connections xplayer) ii-player)
+  (define (plus-minus-points dest)
+    (define any-path-connection
+      (for/or ([p all-paths])
+        (and (member (first dest) (take (first p) 2)) (member (second dest) (take (last p) 2))
+             (covered? p connections))))
+    (if any-path-connection POINTS-PER (- POINTS-PER)))
+  (+ (plus-minus-points d-1) (plus-minus-points d-2)))
+
+#; [Path [Setof Connection] -> Boolean]
+(define (covered? path connections)
+  (for/and ([c path]) (set-member? connections c)))
+
+;                                          
+;                                          
+;                                          
+;     ;                       ;            
+;     ;                       ;            
+;   ;;;;;;   ;;;;    ;;;;   ;;;;;;   ;;;;  
+;     ;      ;  ;;  ;    ;    ;     ;    ; 
+;     ;     ;    ;  ;         ;     ;      
+;     ;     ;;;;;;  ;;;       ;     ;;;    
+;     ;     ;          ;;;    ;        ;;; 
+;     ;     ;            ;    ;          ; 
+;     ;      ;      ;    ;    ;     ;    ; 
+;      ;;;   ;;;;;   ;;;;      ;;;   ;;;;  
+;                                          
+;                                          
+;                                          
+;                                          
+
 (module+ examples
-  (provide ii- cards1 cards2 ii-final ii-play)
+  (provide ii- cards1 cards2 ii-final ii-play path01)
   
   (define cards1 (hash 'green 5))
   (define cards2 (hash 'green 5 'blue 7 'red 6))
 
-  (define conns0 (set [list 'Orlando 'Seattle 'blue 5]))
-  (define conns1 (set [list 'Boston 'Seattle 'red 3]))
+  (define orl-sea '[Orlando Seattle blue 5])
+  (define bos-sea '[Boston Seattle red 3])
+  (define conns0 (set orl-sea))
+  (define conns1 (set bos-sea))
+  (define path01 (list bos-sea orl-sea))
   
   (define (ii- cards1) (ii '(Boston Seattle) '(Boston Orlando) 40 cards1 conns0 #f))
   (define (ii-r r (cards2 cards2) (conns0 conns0))
@@ -112,13 +163,22 @@
   (define ii-play  (ii-r (+ RAILS-MIN 2))))
 
 (module+ test
+  
+  (check-equal? (ii-destinations-connected ii-final (all-possible-paths vtriangle)) (* 2 POINTS-PER))
+  (check-equal? (ii-destinations-connected ii-play (all-possible-paths vtriangle)) (* -2 POINTS-PER))
+
   (check-true (ii-final? ii-final))
   (check-false (ii-final? ii-play))
 
   (define blues (make-list 7 'blue))
   (check-equal? (ii+cards (ii+cards (ii- cards1) blues) (make-list 6 'red)) (ii- cards2))
 
-  (check-equal? (ii-acquire ii-play '[Boston Seattle red 3]) ii-final))
+  (check-equal? (ii-acquire ii-play '[Boston Seattle red 3]) ii-final)
+
+  (check-true (ii-path-covered? (ii-acquire ii-play '[Boston Seattle red 3]) path01))
+  (check-false (ii-path-covered? ii-play path01))
+
+  (check-equal? (ii-conn-score ii-play) 5))
 
 ;                                                  
 ;                                                  
