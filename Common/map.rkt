@@ -169,16 +169,45 @@
       [Boston Orlando green 5]])
   
   (define triangle
-    [hash 'Orlando `[,[to 'Seattle 'blue 5]]
+    [hash 'Orlando `[,[to 'Boston 'white 3]
+                     ,[to 'Boston 'green 5]
+                     ,[to 'Seattle 'blue 5]]          
+          'Seattle `[,[to 'Orlando 'blue 5]
+                     ,[to 'Boston 'red 3]
+                     ,[to 'Boston 'green 4]]
           'Boston  `[,[to 'Seattle 'red 3]
                      ,[to 'Seattle 'green 4]
                      ,[to 'Orlando 'white 3]
                      ,[to 'Orlando 'green 5]]])
+
+  (define simple-triangle
+    [hash 'Orlando `[,[to 'Boston  'blue 3]
+                     ,[to 'Seattle 'blue 3]]
+          'Boston  `[,[to 'Seattle 'blue 3]
+                     ,[to 'Orlando 'blue 3]]
+          'Seattle `[,[to 'Boston  'blue 3]
+                     ,[to 'Orlando 'blue 3]]])
+
+  (provide simple-triangle-paths)
+  (define simple-triangle-paths 
+    '{;; Boston <-> Seattle
+      ;; ------------------
+      [(Boston Seattle blue 3) (Orlando Seattle blue 3)] 
+      [(Boston Seattle blue 3)]
+      ;; Boston <-> Orlando
+      ;; ------------------
+      [(Boston Orlando blue 3) (Orlando Seattle blue 3)]
+      [(Boston Orlando blue 3)]
+      ;; Orlando <-> Seattle
+      ;; -------------------
+      [(Orlando Seattle blue 3)]
+      [(Boston Orlando blue 3) (Boston Seattle blue 3)]})
   
+    
   (define nod*
-    '[[Boston  [10 10]]
-      [Seattle [20 20]]
-      [Orlando [30 30]]]))
+    '[[Boston  [100 100]]
+      [Seattle [200 20]]
+      [Orlando [30 300]]]))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -206,7 +235,17 @@
 
 #; {[Listof [List Symbol Symvol ColorSymbol Seg#]] -> Graph}
 (define (connections->graph c*)
-  (define graph (hash))
+  (let* ([graph (hash)]
+         [graph (add-one-direction graph c*)]
+         [graph (add-one-direction graph (flip-from-to c*))])
+    graph))
+
+#; {[Listof Connection] -> [Listof Connection]}
+(define (flip-from-to c*)
+  (map (λ (x) (list* (second x) (first x) (cddr x))) c*))
+
+#; {[Hashof Symbol Slice] [Listof Connections] -> [Hashof Symbol Slice]}
+(define (add-one-direction graph c*)
   (for*/fold ([directed-graph graph]) ([c (group-by connection-from c*)][from (in-value (caar c))])
     (hash-update directed-graph from (curry append (map (λ (x) (apply to (rest x))) c)) '[])))
 
@@ -299,8 +338,11 @@
 ;                                          
 
 (module+ examples ;; more
-  
+
+  (provide striangle)
+
   (define vtriangle (game-map MAX-WIDTH MAX-WIDTH (list->node nod*) triangle))
+  (define striangle (game-map MAX-WIDTH MAX-WIDTH (list->node nod*) simple-triangle))
 
   (define vrectangle
     (game-map
@@ -339,7 +381,10 @@
                      `[[Boston Seattle red 3]]
                      `[[Boston Orlando green 5] [Orlando Seattle blue 5]]
                      `[[Boston Orlando white 3] [Orlando Seattle blue 5]]])
-  
+
+  (check-equal? (apply set (all-possible-paths striangle))
+                (apply set simple-triangle-paths))
+
   (check-equal? 
    (apply set (all-possible-paths vtriangle))
    (set-union
