@@ -93,7 +93,7 @@
 
 (module+ examples
   (provide vrectangle)
-  (provide vtriangle nod* triangle-source triangle))
+  (provide vtriangle triangle-nod* triangle-source triangle))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -204,7 +204,7 @@
       [(Boston Orlando blue 3) (Boston Seattle blue 3)]})
   
     
-  (define nod*
+  (define triangle-nod*
     '[[Boston  [100 100]]
       [Seattle [200 20]]
       [Orlando [30 300]]]))
@@ -341,8 +341,8 @@
 
   (provide striangle)
 
-  (define vtriangle (game-map MAX-WIDTH MAX-WIDTH (list->node nod*) triangle))
-  (define striangle (game-map MAX-WIDTH MAX-WIDTH (list->node nod*) simple-triangle))
+  (define vtriangle (game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) triangle))
+  (define striangle (game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) simple-triangle))
 
   (define vrectangle
     (game-map
@@ -360,7 +360,7 @@
 
 (module+ test
 
-  (check-equal? (construct-game-map MAX-WIDTH MAX-WIDTH nod* triangle-source) vtriangle)
+  (check-equal? (construct-game-map MAX-WIDTH MAX-WIDTH triangle-nod* triangle-source) vtriangle)
 
 
   ;; ------------------------------------------------------------------------------------------------

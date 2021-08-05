@@ -70,6 +70,9 @@
 (require Trains/Common/basic-constants)
 (require SwDev/Testing/communication)
 
+(module+ examples
+  (require (submod Trains/Common/map examples)))
+
 (module+ test
   (require (submod ".."))
   (require (submod ".." examples))
@@ -108,19 +111,16 @@
 ;; and those map to the number of segments. All connections are bi-directional.
 
 (module+ examples
-  (define triangle-serialized
-    (hash 'Boston  (hash 'Orlando (hash 'green 5
-                                        'white 3)
-                         'Seattle  (hash 'green 4
-                                         'red 3))
-          'Orlando (hash 'Seattle  (hash 'blue 5))
-          'Seattle (hash)))
-
+  
   (define vtriangle-serialized
-    (hash CITIES      `(("Boston"  (10 10))
-                        ("Seattle" (20 20))
-                        ("Orlando" (30 30)))
-          CONNECTIONS triangle-serialized
+    (hash CITIES      (map (λ (x) (cons (~a (first x)) (rest x))) triangle-nod*)
+          ;; can this manual conversion be eliminated? 
+          CONNECTIONS (hash 'Boston  (hash 'Orlando (hash 'green 5
+                                                          'white 3)
+                                           'Seattle  (hash 'green 4
+                                                           'red 3))
+                            'Orlando (hash 'Seattle  (hash 'blue 5))
+                            'Seattle (hash))
           HEIGHT      MAX-WIDTH
           WIDTH       MAX-WIDTH)))
 
