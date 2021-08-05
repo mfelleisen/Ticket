@@ -23,7 +23,12 @@
  DESTS-PER
  PICKS-PER
  RAILS-PER
- CARDS-PER)
+ RAILS-MIN 
+ CARD0-PER
+ CARDS-PER
+
+ POINTS-PER
+ LONG-PATH)
 
 ;; -----------------------------------------------------------------------------
 (define COLORS '[red blue green white])
@@ -59,10 +64,15 @@
 (define (height? x)
   (and (natural? x) (<= MIN-HEIGHT x MAX-HEIGHT)))
 
-(define RAILS-PER 45)
-(define CARDS-PER  4)
-(define DESTS-PER  2)
-(define PICKS-PER  5)
+(define RAILS-PER 45) ;; the number of rails a player receives during set-up 
+(define CARD0-PER  4) ;; the colored cards a player receives during set-up
+(define CARDS-PER  2) ;; the number of colored cards a player receives during a turn 
+(define DESTS-PER  2) ;; the destinations a player must pick during set-up from .. 
+(define PICKS-PER  5) ;; .. the number of cards it receives during set-up 
+(define RAILS-MIN  3) ;; the minimum number of rails a player must own to continue playing
+
+(define POINTS-PER 10)
+(define LONG-PATH  10)
 
 ;; -----------------------------------------------------------------------------
 (module+ test
