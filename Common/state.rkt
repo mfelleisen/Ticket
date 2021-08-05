@@ -14,12 +14,13 @@
  #; {Player -> Boolean}
  ii-final?
 
- #; {MePlayer [Listof Connection] -> Boolean}
+ #; {MePlayer Path -> Boolean}
  ii-path-covered?
 
  #; {MePlayer -> N}
  ii-conn-score
 
+ #; {PlayerState [Listof Path] -> Integer}
  ii-destinations-connected 
 
  #; {type Connection  = [list City City Color Length]}
