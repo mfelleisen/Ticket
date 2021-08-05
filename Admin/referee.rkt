@@ -47,7 +47,7 @@
 (require Trains/Common/state)
 (require Trains/Common/player-interface)
 (require Trains/Admin/state)
-(require Fish/Lib/xsend)
+(require Trains/Lib/xsend)
 
 ;                                                          
 ;                                                          
@@ -248,40 +248,65 @@
 ;; compute ranking from state, inform players of winning/losing 
 ;; separate drop-outs from  active to passive state
 (define (score-game game-map the-state)
-  (define players (rstate-players the-state))
-  (define score-connections (for/list ([p players]) (cons p (ii-conn-score p))))
-  (define the-paths (all-paths game-map))
-  (define score-destinations
-    (for/list ([p.s score-connections])
-      (match-define (cons p s) p.s)
-      (cons p (+ s ( ii-destinations-connected p the-paths)))))
-  (define sorted-paths (sort all-paths < #:key length))
-  (define score-longest-path
-    (for*/first ([sp sorted-paths] [f (in-value (a-player-covers sp score-destinations))] #:when f)
-      f))
-  ;; --- inform and revise ranking --- 
-  (define rankings (tie-break (sort score-longest-path < #:key cdr)))
-  (xinform rankings (rstate-drop-outs the-state)))
+  (define players  (rstate-players the-state))
+  (define paths    (all-paths game-map))
+  (define +conns   (score-connections players))
+  (define +dests   (score-destinations +conns paths))
+  (define +longest (score-longest-path +dests paths))
+  (define ranking  (rank +longest))
+  ;; --- rank and inform -- 
+  (xinform ranking (rstate-drop-outs the-state)))
 
-#; {Path [Listof [Cons PlayerState N]] -> (U False [Listof [Cons PlayerState N]])}
-;; do any of the `ii-players` cover the path `sp` with their connections 
-(define (a-player-covers sp players)
-  (define found? #false)
-  (let loop ([players players] [result '()])
-    (cond
-      [(empty? players) (and found? (reverse result))]
-      [else
-       (define p.s (first players))
-       (cond
-         [(not (ii-path-covered? (car p.s))) (loop (rest players) (cons p.s players))]
-         [else
-          (set! found? #true)
-          (loop (rest players) (cons (cons (car p.s) (+ (cdr p.s) LONG-PATH)) players))])])))
+#; {type Scored = [Listof (Cons PlayerState N)]}
+#; {Yype Rankings = [Listof [Listof XPlayer]]}
 
-#; {[Listof [Cons PlayerState N]] -> [Listof [Listof XPlayer]]}
-;; group by score then tie break among players with equal score if possible 
-(define (tie-break sorted-by-score) 0)
+#; {[Listof PlayerSyaye] -> Scored}
+(define (score-connections players)
+  (for/list ([p players])
+    (cons p (ii-conn-score p))))
 
-#; {[Listof [Listof XPlayer]] [Listof XPlayer] -> [List [Listof [Listof XPlayer]] [Listof XPlayer]]}
+#; {Scored [Listof Path] -> Scored}
+(define (score-destinations +conns paths)
+  (for/list ([p.s +conns])
+    (match-define (cons p s) p.s)
+    (cons p (+ s (ii-destinations-connected p paths)))))
+
+#; {Scored [Listof Path] -> Scored}
+(define (score-longest-path +dests paths)
+  (define sorted-paths (sort paths < #:key length))
+  #; {Path [Listof [Cons PlayerState N]] -> (U False Scored)}
+  ;; do any of the `ii-players` cover the path `sp` with their connections:
+  ;; -- grant all of them points
+  ;; -- leave everyone else alone 
+  (define (a-player-covers sp players)
+    (let loop ([players players] [result '()] [found? #false])
+      (match players
+        ['() (and found? (reverse result))]
+        [(cons (and p.s (cons p s)) others)
+         (if (not (ii-path-covered? p))
+             (loop others (cons p.s players) found?)
+             (loop others (cons (cons p (+ s LONG-PATH)) players) #true))])))
+  ;; --- now check whether it matters --- 
+  (for*/first ([sp sorted-paths] [f (in-value (a-player-covers sp +dests))] #:when f)
+    f))
+
+#; {Scored -> Ranking}
+(define (rank +longest)
+  (define sorted (sort +longest < #:key cdr))
+  (define grouped (group-by cdr sorted))
+  (for/list ([group grouped])
+    (for/list ([p.s group])
+      (ii-payload (car p.s)))))
+
+#; {Ranking [Listof XPlayer] -> [List Ranking [Listof XPlayer]]}
 (define (xinform rankings drop-outs)
-  1)
+  (match rankings
+    ['() (list rankings drop-outs)]
+    [(cons prelim-winners losers)
+     (define-values (goods bads) (xmap-send (λ (a) (xsend a win #true)) prelim-winners))
+     (let loop ([losers losers] [rankings (list (map first goods))] [drops (append bads drop-outs)])
+       (match losers
+         ['() (list (reverse rankings) drops)]
+         [(cons group others)
+          (define-values (goods bads) (xmap-send (λ (a) (xsend a win #false)) group))
+          (loop others (cons (map first goods) rankings) (append bads drops))]))]))
