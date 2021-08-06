@@ -276,6 +276,6 @@
    (set-subtract (game-map-all-connections vtriangle) conns0 conns1))
   
   (define total (game-map-all-connections vtriangle))
-
-  (check-false (legal-action? pstate1 total (list (set 'Boston 'Seattle) 'red  3)))
+  
+  (check-false (legal-action? pstate1 total (list 'Boston 'Seattle 'red  3)))
   (check-true (legal-action? pstate1 total (list 'Boston 'Orlando 'green  5))))
