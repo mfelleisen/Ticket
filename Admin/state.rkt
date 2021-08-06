@@ -10,8 +10,6 @@
  #; {RefereeState -> RefereeState}
  ;; ASSUME there is a first player 
  rstate-drop
-
- legal-action?
  rstate->pstate
  (struct-out rstate))
 
@@ -120,18 +118,6 @@
   (set-ii-payload! iplayer #false)
   iplayer)
 
-#; {Map RefereeState Connection -> Boolean}
-;; can this player acquire the specified connection 
-(define (legal-action? m rs c)
-  (define players (rstate-players rs))
-  (define total   (game-map-all-connections m))
-  (define active  (first players))
-  (define other   (apply set-union (map ii-connections players)))
-  (define avail   (set-subtract total other))
-  (cond
-    [(not (set-member? avail c)) #false]
-    [else (>= (hash-ref (ii-cards active) (connection-color c) 0) (connection-seg# c))]))
-
 ;                                          
 ;                                          
 ;                                          
@@ -155,7 +141,4 @@
   (check-equal? (rstate-drop rstate1) rstate1-d)
   (check-equal? (rstate-rotate rstate1) rstate1-r)
 
-  (check-equal? (rstate->pstate rstate1) (pstate ii1 (list (ii-connections ii2))))
-
-  (check-false (legal-action? vtriangle rstate1 (list (set 'Boston 'Seattle) 'red  3)))
-  (check-true (legal-action? vtriangle rstate1 (list 'Boston 'Orlando 'green  5))))
+  (check-equal? (rstate->pstate rstate1) (pstate ii1 (list (ii-connections ii2)))))

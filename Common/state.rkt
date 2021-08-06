@@ -26,14 +26,17 @@
  #; {type Connection  = [list City City Color Length]}
  ;; a connection between two cities has a color and a length
 
- #; {Map PlayerState -> [Setof Connections]}
+ #; {Map PlayerState -> [Setof Connection]}
  all-available-connections
+
+ #; {PlayerState Connection -> Boolean}
+ legal-action?
 
  (struct-out pstate)
  (struct-out ii))
 
 (module+ examples
-  (provide pstate1 pstate2
+  (provide pstate1 pstate2 
            #; {Color N -> PlayerState : like pstate2, different color count for c}
            like-pstate2 
            conns0 conns1))
@@ -232,6 +235,16 @@
 (define (rails-spent connections)
   (for/sum ([c connections]) (connection-seg# c)))
 
+#; {PlayerState [Setof Connections] Connection -> Boolean}
+;; can this player acquire the specified connection 
+(define (legal-action? ps total c)
+  (define active (pstate-I ps))
+  (define other  (apply set-union (ii-connections active) (pstate-others ps)))
+  (define avail  (set-subtract total other))
+  (cond
+    [(not (set-member? avail c)) #false]
+    [else (>= (hash-ref (ii-cards active) (connection-color c) 0) (connection-seg# c))]))
+
 ;                                          
 ;                                          
 ;                                          
@@ -260,4 +273,9 @@
  
   (check-equal? 
    (all-available-connections vtriangle pstate1)
-   (set-subtract (game-map-all-connections vtriangle) conns0 conns1)))
+   (set-subtract (game-map-all-connections vtriangle) conns0 conns1))
+  
+  (define total (game-map-all-connections vtriangle))
+
+  (check-false (legal-action? pstate1 total (list (set 'Boston 'Seattle) 'red  3)))
+  (check-true (legal-action? pstate1 total (list 'Boston 'Orlando 'green  5))))
