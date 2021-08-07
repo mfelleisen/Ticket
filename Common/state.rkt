@@ -29,8 +29,11 @@
  #; {Map PlayerState -> [Setof Connection]}
  all-available-connections
 
- #; {PlayerState Connection -> Boolean}
+ #; {PlayerState [Listof Connection] Connection -> Boolean}
  legal-action?
+
+ #; {MePlayer[False] X -> MePlayer[X]}
+ ii+payload
 
  (struct-out pstate)
  (struct-out ii))
@@ -85,7 +88,7 @@
 ;                           ;                        ;;                    
 ;                                                                          
 
-(struct ii [destination1 destination2 rails cards connections {payload #:mutable}] #:transparent)
+(struct ii [destination1 destination2 rails cards connections payload] #:transparent)
 #; {type [MePlayer X] = (ii Desitination Destination Natural [Hash Color Natural] Player X)}
 ;; the two destination cards, the rails left, the colored cards, and this player's possessions
 
@@ -97,7 +100,9 @@
 
 #; {[Hash Color N] Color N -> [Hash Color N]}
 (define (-cards cards0 color n)
-  (hash-update cards0 color (λ (old) (- old n))))
+  (if (= (hash-ref cards0 color 0) n)
+      (hash-remove cards0 color)
+      (hash-update cards0 color (λ (old) (- old n)))))
 
 (define (ii+cards ii-player new-cards)
   (match-define (ii d-1 d-2 rails-left cards0 connections xplayer) ii-player)
@@ -124,6 +129,11 @@
              (covered? p connections))))
     (if any-path-connection POINTS-PER (- POINTS-PER)))
   (+ (plus-minus-points d-1) (plus-minus-points d-2)))
+
+(define (ii+payload ii-player pl)
+  (when (ii-payload ii-player) (error 'ii+payload "payload already exists ~e" (ii-payload ii-player)))
+  (struct-copy ii ii-player [payload pl]))
+
 
 #; [Path [Setof Connection] -> Boolean]
 (define (covered? path connections)
@@ -243,7 +253,10 @@
   (define avail  (set-subtract total other))
   (cond
     [(not (set-member? avail c)) #false]
-    [else (>= (hash-ref (ii-cards active) (connection-color c) 0) (connection-seg# c))]))
+    [else
+     (define seg# (connection-seg# c))
+     (and (>= (ii-rails active) seg#)
+          (>= (hash-ref (ii-cards active) (connection-color c) 0) seg#))]))
 
 ;                                          
 ;                                          
