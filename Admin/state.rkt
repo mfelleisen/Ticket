@@ -3,6 +3,11 @@
 ;; representation of a referee's knowledge about the game
 
 (provide
+
+ #; {RefereeState (U False [List MePlayer Boolean] [List MePlayer [Listof Cards]])
+                  -> [Listf RefereeState Boolean]}
+ if-rstate-update
+
  #; {RefereeState -> RefereeState}
  ;; ASSUME there is a first player 
  rstate-rotate
@@ -109,14 +114,30 @@
   
 #; {RefereeState -> PlayerState}
 (define (rstate->pstate rs)
-  (define players (map nuke-external (rstate-players rs)))
+  (define players (map (λ (x) (struct-copy ii x [payload #f])) (rstate-players rs)))
   (pstate (first players) (map ii-connections (rest players))))
 
-#; {MePlayer -> MePlayer}
-;; EFFECT drop external player 
-(define (nuke-external iplayer)
-  (set-ii-payload! iplayer #false)
-  iplayer)
+(define (if-rstate-update the-state false-or-nup)
+  (match false-or-nup
+    [#false #false]
+    [(list nup (? boolean? final?)) (list (rstate-update the-state nup) final?)]
+    [(list nup cards) (list (rstate-update the-state nup cards) #false)]))
+
+#; {RefereeState MePlayer [ [Listof Card] ] -> RefereeState}
+;; HOW MANY CARDS should it take? 0 or CARDS-PER 
+(define (rstate-update rs nup (nu-cards '()))
+  (match-define (rstate players cards drops) rs)
+  (rstate (cons nup (rest players)) (rem2 cards nu-cards) drops))
+
+#; {[Listof Color] [Listof Color] -> [Listof Color]}
+(define (rem2 cards0 nu-cards0)
+  (let rem2 [(cards cards0) (nu-cards nu-cards0)]
+    (cond
+      [(empty? nu-cards) cards]
+      [(equal? (first cards) (first nu-cards)) (rem2 (rest cards) (rest nu-cards))]
+      [else (error 'rem2 "can't happen" cards0 nu-cards0)])))
+
+
 
 ;                                          
 ;                                          
