@@ -68,5 +68,5 @@ The repo consists of the following folders, with the links pointing to additinal
 | [Docs](Docs/README.md) | the source of the scribble documentation | 
 | [Editor](Editor/README.md) | editing maps: a plaything for now | 
 | [Lib](Lib/README.md) | functionality that should probably exist in Racket's libraries | 
-| [Player](Player/README.md) | the logical sample player, both human and automated strategies | 
+| [Player](Player/README.md) | the logical sample player | 
 | [Resources](Resources/README.md) | pictures | 
