@@ -10,10 +10,9 @@ action 1:
       |     more(cards[])              |                 | 
       | -----------------------------> |                 | 
       | <============================  |                 | 
-      |     more(False)                |                 | % no cards available 
-      | -----------------------------> |                 | 
-      | <============================  |                 | 
-
+      |                                |                 | 
+      |                                |                 | % no cards available     
+      .				       .		 .
 action 2:
       |     Connection                 |                 | % acquire connection 
   +-- | <============================  |                 | 
@@ -30,7 +29,10 @@ action 2:
       .                                .                 .
       .                                .                 . % repeat until a player
       .                                .                 . % has less than 3 rails
-      .                                .                 . 
+      .                                .                 . % or all remaining 
+      .                                .                 . % players have chosen 
+      .                                .                 . % to ask for more cards
+      .                                .                 . % when there are none
       .                                .                 .
       |                                |                 | % one last round 
       |   play(state)                  |                 |
