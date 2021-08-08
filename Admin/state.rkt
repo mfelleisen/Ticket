@@ -75,9 +75,9 @@
 
 (module+ examples
   (define cards1 (hash 'green 5))
-  (define dest1  (set 'Boston 'Seattle))
-  (define ii1 (ii dest1 '(oston Orlando) 40 cards1 (set) #f))
-  (define ii2 (ii dest1 '(Orlando Seattle) 5 cards1 (set '[(Boston Seattle) red 3]) #f))
+  (define dest1  (list 'Boston 'Seattle))
+  (define ii1 (ii dest1 '(Boston Orlando) 40 cards1 (set) #f))
+  (define ii2 (ii dest1 '(Orlando Seattle) 5 cards1 (set '[Boston Seattle red 3]) #f))
 
   (define rstate1 (rstate (list ii1 ii2) '[] '[]))
 
@@ -114,7 +114,7 @@
   
 #; {RefereeState -> PlayerState}
 (define (rstate->pstate rs)
-  (define players (map (λ (x) (struct-copy ii x [payload #f])) (rstate-players rs)))
+  (define players (map (λ (x) (ii+payload x #f)) (rstate-players rs)))
   (pstate (first players) (map ii-connections (rest players))))
 
 (define (if-rstate-update the-state false-or-nup)
