@@ -121,6 +121,6 @@
 
   (check-equal? (set-count (send p1 pick destinations)) 3)
   (check-equal? (send p1 play pstate1) MORE)
-  (check-true (void? (send p1 more 'green 'blue)))
+  (check-true (void? (send p1 more '[green blue])))
   (check-true (list? (send p1 play pstate2)))
   (check-true (void? (dev-null (send p1 win #false)))))
