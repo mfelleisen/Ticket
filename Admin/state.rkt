@@ -105,7 +105,7 @@
 
 (define (rstate-drop the-state)
   (match-define [rstate (cons first others) cards drop-outs] the-state)
-  (rstate others cards (cons first drop-outs)))
+  (rstate others cards (cons (ii-payload first) drop-outs)))
 
 #; {RefereeState -> RefereeState}
 (define (rstate-rotate the-state)
@@ -159,7 +159,7 @@
 
 (module+ test
 
-  (check-equal? (rstate-drop rstate1) rstate1-d)
+  (check-equal? (rstate-drop rstate1) (struct-copy rstate rstate1-d [drop-outs '(#false)]))
   (check-equal? (rstate-rotate rstate1) rstate1-r)
 
   (check-equal? (rstate->pstate rstate1) (pstate ii1 (list (ii-connections ii2)))))

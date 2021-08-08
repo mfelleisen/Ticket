@@ -93,6 +93,7 @@
 
 (module+ examples
   (provide vrectangle)
+  (provide vtriangle-paths vtriangle-dests vtriangle-conns vtriangle-boston-seattle)
   (provide vtriangle triangle-nod* triangle-source triangle))
 
 ;                                                                                                  
@@ -202,12 +203,24 @@
       ;; -------------------
       [(Orlando Seattle blue 3)]
       [(Boston Orlando blue 3) (Boston Seattle blue 3)]})
-  
     
   (define triangle-nod*
     '[[Boston  [100 100]]
       [Seattle [200 20]]
-      [Orlando [30 300]]]))
+      [Orlando [30 300]]])
+
+  (define vtriangle (game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) triangle))
+  (define striangle (game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) simple-triangle))
+  
+  (define vtriangle-boston-seattle (list 'Boston 'Seattle 'red 3))
+  (define vtriangle-paths (all-possible-paths vtriangle))
+  (define vtriangle-conns (set vtriangle-boston-seattle))
+  (define vtriangle-dests
+    (append (all-destinations vtriangle)
+            '[[Boston SanDiego]
+              [Orlando SanDiego]
+              [Chicago SanDiego]
+              [SanDiego Seattle]])))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -340,19 +353,18 @@
 (module+ examples ;; more
 
   (provide striangle)
-
-  (define vtriangle (game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) triangle))
-  (define striangle (game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) simple-triangle))
-
+  
   (define vrectangle
     (game-map
      1000
      800
      '(#s(node |San Diego| #s(cord 176 571))
-       #s(node Orlando     #s(cord 815 528))
-       #s(node Boston      #s(cord 893 201))
+       #s(node Orlando     #s(cord 715 528))
+       #s(node Boston      #s(cord 793 201))
+       #s(node NYC         #s(cord 693 301))
        #s(node Seattle     #s(cord 131 168)))
-     '#hash((Boston      . (#s(to Seattle white 3) #s(to Orlando white 5)))
+     '#hash((Boston      . (#s(to Seattle white 3) #s(to Orlando white 5) #s(to NYC white 3)))
+            (NYC         . (#s(to Boston white 3)))
             (Orlando     . (#s(to |San Diego| blue 5)
                             #s(to |San Diego| red 5)))
             (|San Diego| . (#s(to Seattle white 4)))
@@ -404,6 +416,11 @@
                 (apply set '[[Boston |San Diego|]
                              [Boston Seattle]
                              [Boston Orlando]
+                             [Boston NYC]
+                             ; [NYC Boston]
+                             [NYC |San Diego|]
+                             [NYC Orlando]
+                             [NYC Seattle]
                              [Orlando |San Diego|]
                              [Orlando Seattle]
                              [|San Diego| Seattle]])))
