@@ -101,12 +101,11 @@
         CONNECTIONS (for/list ([x (pstate-others ps)]) (acquired->jsexpr x))))
 
 (define (ii->jsexpr i)
-  (match-define [ii d1 d2 rails cards connections _payload] i)
-  (hash (DESTINATION 1) (destination->jsexpr d1)
-        (DESTINATION 2) (destination->jsexpr d2)
-        RAILS           rails
-        CARDS           cards
-        CONNECTIONS     (acquired->jsexpr connections)))
+  (hash (DESTINATION 1) (destination->jsexpr (ii-destination1 i))
+        (DESTINATION 2) (destination->jsexpr (ii-destination2 i))
+        RAILS           (ii-rails i)
+        CARDS           (ii-cards i)
+        CONNECTIONS     (acquired->jsexpr (ii-connections i))))
 
 (define (acquired->jsexpr c0)
   (for/list ([c (in-set c0)])
