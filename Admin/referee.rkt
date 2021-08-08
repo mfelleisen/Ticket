@@ -22,7 +22,23 @@
 ;                                                          
 
 (provide
+ ;; -- at most 8 players, at least 2 distinct players
+ ;; -- how to select enough destinations from the map
+ ;;    -- demans total tie breaking
+ ;;    -- selecting a map could make sure this works
+ ;;    -- assume the select map allows this
+ ;; -- need a systematic way to hand
+
+ #; {[[Listof XPlayer] Map
+                       ;; the next two optional parameters are for deterministic testing 
+                       #:cards [Listof Card]
+                       #:shuffle [[Listof Destination] -> [Listof Destination]]
+                       ->
+                       (List [Listof [Listof XPlayer]] [Listof XPlayer])]}
  referee)
+
+(module+ examples ;; examples for setup, turns, and scoring
+  (provide mock% mock-more-card ii-default make-an-ii cards lop))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -49,10 +65,56 @@
 (require Trains/Admin/state)
 (require Trains/Lib/xsend)
 
-(require SwDev/Debugging/spy) 
+(require SwDev/Debugging/spy)
+
+(module+ examples
+  (require (submod Trains/Common/map examples))
+  (require (submod Trains/Common/state examples)))
 
 (module+ test
+  (require (submod ".." examples))
+  (require (submod Trains/Common/map examples))
+  (require (submod Trains/Common/state examples))
   (require rackunit))
+
+;                                                                  
+;                                                                  
+;                                            ;;;                   
+;                                              ;                   
+;                                              ;                   
+;    ;;;;   ;   ;;    ;;;   ;;;;;;  ; ;;;      ;     ;;;;    ;;;;  
+;    ;  ;;   ;  ;    ;   ;  ;  ;  ; ;;  ;      ;     ;  ;;  ;    ; 
+;   ;    ;    ;;         ;  ;  ;  ; ;    ;     ;    ;    ;  ;      
+;   ;;;;;;    ;;     ;;;;;  ;  ;  ; ;    ;     ;    ;;;;;;  ;;;    
+;   ;         ;;    ;    ;  ;  ;  ; ;    ;     ;    ;          ;;; 
+;   ;         ;;    ;    ;  ;  ;  ; ;    ;     ;    ;            ; 
+;    ;       ;  ;   ;   ;;  ;  ;  ; ;;  ;      ;     ;      ;    ; 
+;    ;;;;;  ;    ;   ;;; ;  ;  ;  ; ; ;;;       ;;;  ;;;;;   ;;;;  
+;                                   ;                              
+;                                   ;                              
+;                                   ;                              
+;                                                                  
+
+(module+ examples ;; examples for referee, setup, turns, and scoring
+  (define (mock% #:setup (w void) #:pick (p values) #:play (y values) #:more (x void) #:win (z void))
+    (class object%
+      (define/public (setup . x) (w x))
+      (define/public (pick x) (p (apply set (take (set->list x) (- PICKS-PER DESTS-PER)))))
+      (define/public (more cards) (x cards))
+      (define/public (play . x) (y vtriangle-boston-seattle))
+      (define/public (win . x) (z x))
+      (super-new)))
+
+  (define mock-more-card (new [mock% #:play (λ _ MORE)]))
+
+  (define ([make-an-ii mock-inst] #:rails (rails 3) #:con (con '()) . cards)
+    (ii 'x 'y rails (apply hash cards) (apply set con) mock-inst))
+  (define ii-default  (make-an-ii (new (mock%))))
+  
+  (define (lop cards-p xternal (cards-f '[]))
+    (list (ii+payload (ii+cards ii-final cards-f) mock-more-card)
+          (ii+payload (ii+cards ii-play cards-p) xternal)))
+  (define cards '[red red]))
 
 ;                                                          
 ;                                                          
@@ -72,33 +134,28 @@
 ;                                                          
 ;                                                          
 
-(define colored-cards0 '[])
-
-;; -- at most 8 players, at least 2 distinct players
-;; -- how to select enough destinations from the map
-;;    -- demans total tie breaking
-;;    -- selecting a map could make sure this works
-;;    -- assume the select map allows this
-;; -- need a systematic way to hand
-
-;; the RefereeState temporarily assigns #false to internal players's destination fields 
-
-#; {[Map [Listof XPlayer] -> (List [Listof [Listof XPlayer]] [Listof XPlayer])]}
-(define (referee the-game-map the-external-players
-                 ;; the next two parameters are for deterministic testing 
+(define (referee the-external-players the-game-map
                  #; [Listof Card]
-                 #:cards   (cards #false)
+                 #:cards   (cards (make-list 100 'red))
                  #; [[Listof Destination] -> [Listof Destination]]
                  #:shuffle (shuffle values))
   
-  (define player#      (length the-external-players))
   (define destination* (shuffle (all-destinations the-game-map)))
   (define connections  (game-map-all-connections the-game-map))
-  
-  (let* ([the-state (setup-all-players the-external-players the-game-map player# RAILS-PER)]
+
+  ;; is this too expensive as a contract? 
+  (unless (>= (length destination*) (* PICKS-PER (length the-external-players)))
+    (error 'refree "not enough destinations"))
+
+  (let* ([the-state (setup-all-players the-external-players the-game-map cards destination*)]
          [the-state (play-turns the-state connections)]
-         [results   (score-game the-state)])
+         [results   (score-game the-state the-game-map)])
     results))
+
+(module+ test
+  (define-values (m1 m2) (values (new (mock%)) (new (mock%))))
+  (check-exn exn:fail? (λ () (referee [list m1 m2] vtriangle)))
+  (check-equal? (referee [list m1 m2] vrectangle) `[ () [,m2 ,m1]]))
 
 ;                                                  
 ;                                                  
@@ -124,7 +181,7 @@
 (define (setup-all-players externals0 game-map cards0 destinations0)
   (let loop ([externals externals0] [Cs cards0] [Ds destinations0] [good '()] [drop-outs '()])
     (match externals
-      ['() (rstate good Cs drop-outs)]
+      ['() (rstate (reverse good) Cs drop-outs)] ;; age! 
       [(cons xplayer others)
        (define cards (take Cs CARD0-PER))
        (match (xsend xplayer setup game-map RAILS-PER cards)
@@ -145,15 +202,65 @@
 ;; determine whether the rejection is legitimate, compute the chosen ones and the remaining ones 
 (define (legal-picks choose-from rejected all)
   (cond
-    [(not (subset? rejected choose-from)) #false]
+    [(not (subset? rejected choose-from))                   #false]
     [(not (= (set-count rejected) (- PICKS-PER DESTS-PER))) #false]
     [else
      (define chosen-ones (set->list (set-subtract choose-from rejected)))
      (define remaining   (remove* chosen-ones all))
      (list chosen-ones remaining)]))
 
+;                                          
+;                                          
+;                                          
+;     ;                       ;            
+;     ;                       ;            
+;   ;;;;;;   ;;;;    ;;;;   ;;;;;;   ;;;;  
+;     ;      ;  ;;  ;    ;    ;     ;    ; 
+;     ;     ;    ;  ;         ;     ;      
+;     ;     ;;;;;;  ;;;       ;     ;;;    
+;     ;     ;          ;;;    ;        ;;; 
+;     ;     ;            ;    ;          ; 
+;     ;      ;      ;    ;    ;     ;    ; 
+;      ;;;   ;;;;;   ;;;;      ;;;   ;;;;  
+;                                          
+;                                          
+;                                          
+;                                          
+
 (module+ test
+
+  ;; -------------------------------------------------------------------------------------------------
+  ;; set-up
+  (define mock-bad-set   (new (mock% #:setup (λ _ (raise 'bad)))))
+  (define vtriangle-apick (apply set (all-destinations vtriangle)))
+  (define mock-good-pick (new (mock% #:pick (λ _ vtriangle-apick))))
+  (define mock-bad-pick  (new (mock% #:pick (λ _ (raise 'bad)))))
+  (define mock-ill-pick  (new (mock% #:pick (λ _ (set)))))
   
+  (define setup-cards (make-list (* 2 #;players CARD0-PER) 'red))
+  (define (make-ii-set ds)
+    (ii (car ds) (cadr ds) RAILS-PER (make-list CARD0-PER 'red) (set) mock-good-pick))
+  (define-values (1dest 2dest)
+    (let* ([dests (reverse vtriangle-dests)]
+           [2dest (reverse (take dests DESTS-PER))]
+           [dests (drop dests DESTS-PER)]
+           [1dest (reverse (take dests DESTS-PER))])
+      (values 1dest 2dest)))
+
+  (check-equal? (setup-all-players (list mock-bad-set) vtriangle setup-cards vtriangle-dests)
+                (rstate '[] setup-cards (list mock-bad-set)))
+  (check-equal? (setup-all-players (list mock-ill-pick) vtriangle setup-cards vtriangle-dests)
+                (rstate '[] setup-cards (list mock-ill-pick)))
+  (check-equal? (setup-all-players (list mock-bad-pick) vtriangle setup-cards vtriangle-dests)
+                (rstate '[] setup-cards (list mock-bad-pick)))
+
+  (define 2goodies (list mock-good-pick mock-good-pick))
+  (check-equal? (setup-all-players 2goodies vtriangle setup-cards vtriangle-dests)
+                (rstate (list (make-ii-set 1dest) (make-ii-set 2dest)) '[] '[]))
+
+
+  ;; -------------------------------------------------------------------------------------------------
+  ;; legal-picks 
   (check-equal?
    (legal-picks
     (set '[Boston Chicago] '[Boston Orlando] '[Boston DC] '[Boston NYC] '[NYC DC])
@@ -191,29 +298,25 @@
 ;                                          
 ;                                          
 
-#; {RefereeState [Listof Connection] -> RefereeState}
+#; {RefereeState [Setof Connection] -> RefereeState}
 ;; play turns until the game is over
 ;; separate drop-outs from  active to passive state
 ;; ASSUME all players have >= RAILS-MIN rails 
 (define (play-turns the-state0 connections)
-  (let play ([the-state the-state0][more 0])
+  (let play ([the-state the-state0][turns-w/o-change 0])
     (define players (rstate-players the-state)) 
     (match players 
       ['() the-state]
-      [_
-       ;; the game may not end if all player keeps asking for more cards
-       ;; and there are no cards 
+      [_ (match (play-1-turn the-state connections)
+           [#false (play (rstate-drop the-state) 0)]
+           [(list nu-the-state game-over?)
+            (define no-change (if (equal? the-state nu-the-state) (add1 turns-w/o-change) 0))
+            (define next-state (rstate-rotate nu-the-state))
+            (if (or game-over? (= no-change (length players)))
+                (play-last-round next-state connections)
+                (play next-state no-change))])])))
 
-       (match (play-1-turn the-state connections)
-         [#false (play (rstate-drop the-state) 0)]
-         [(list nu-the-state game-over?)
-          (define more2 (if (equal? the-state nu-the-state) (add1 more) 0))
-          (define next-state (rstate-rotate nu-the-state))
-          (if (or game-over? (= more2 (length players)))
-              (play-last-round next-state connections)
-              (play next-state more2))])])))
-
-#; {RefereeState [Listof Connections] -> [List RefereeState Boolean]}
+#; {RefereeState [Setof Connections] -> [List RefereeState Boolean]}
 ;; allow each player to play one more turn, except the first one
 (define (play-last-round the-state0 connections)
   (for/fold ([the-state (rstate-rotate the-state0)]) ((_ (rest (rstate-players the-state0))))
@@ -221,9 +324,7 @@
       [#false       (rstate-drop the-state)]
       [(list nup _) (rstate-rotate nup)])))
 
-
-
-#; {RefereeState [Listof Connection] -> (U False [List RefereeState Boolean])}
+#; {RefereeState [Setof Connection] -> (U False [List RefereeState Boolean])}
 (define (play-1-turn the-state connections)
   (define next (first (rstate-players the-state)))
   (define the-player-state (rstate->pstate the-state))
@@ -268,74 +369,62 @@
 ;                                          
 ;                                          
 
-(module+ test
+(module+ test ;; tests for turns 
   
-  (require (submod Trains/Common/map examples))
-  (require (submod Trains/Common/state examples))
-
-  (define buy-bos-sea (list 'Boston 'Seattle 'red 3))
-
   ;; -------------------------------------------------------------------------------------------------
   ;; player-1-acquire 
-  (define total (game-map-all-connections vtriangle))
-  (check-equal? (player-1-acquire ii-play buy-bos-sea) (list ii-final #t))
+  (check-equal? (player-1-acquire ii-play vtriangle-boston-seattle) (list ii-final #t))
   
-  (define (mock-1% x (y values))
-    (class object%
-      (define/public (more cards) (x cards))
-      (define/public (play . x) (y buy-bos-sea))
-      (super-new)))
-
   ;; -------------------------------------------------------------------------------------------------
-  ;; player-1-more-cards 
-  (define ([next nup] #:rails (rails 3) #:con (con '()) . cards)
-    (ii 'x 'y rails (apply hash cards) (apply set con) nup))
-  (define nup1 (next (new (mock-1% void))))
-  (check-equal? (play-1-more-cards (nup1) (list 'red 'red)) (list (nup1 'red 2) '[red red]))
-  (check-equal? (play-1-more-cards (nup1) (list 'red)) (list (nup1) '[]))
-
-  (define nup2 (next (new [mock-1% (λ _ (raise 'bad))])))
-  (check-false (play-1-more-cards (nup2) (list 'red 'red)))
+  ;; player-1-more-cards
+  (define ii-bad-more (make-an-ii (new [mock% #:more (λ _ (raise 'bad))])))
+  (check-equal? (play-1-more-cards (ii-default) cards) (list (ii-default 'red 2) cards))
+  (check-equal? (play-1-more-cards (ii-default) (list 'red)) (list (ii-default) '[]))
+  (check-false  (play-1-more-cards (ii-bad-more) cards))
   
   ;; -------------------------------------------------------------------------------------------------
   ;; player-1-turn
-  (define active1 (nup1 'red 3))
+  (define active1 (ii-default 'red 3))
   (check-equal? 
-   (play-1-turn (rstate (list active1) '[] '[]) (set buy-bos-sea))
-   (list (rstate (list (nup1 #:rails 0 #:con `[,buy-bos-sea])) '[] '[]) #true))
-  (define active2 (nup1))
-  (check-false (play-1-turn (rstate (list active2) '[] '[]) (set buy-bos-sea)))
+   (play-1-turn (rstate (list active1) '[] '[]) vtriangle-conns)
+   (list (rstate (list (ii-default #:rails 0 #:con `[,vtriangle-boston-seattle])) '[] '[]) #true))
+  (define active2 (ii-default))
+  (check-false (play-1-turn (rstate (list active2) '[] '[]) vtriangle-conns))
 
-  (define active3 [(next (new [mock-1% void (λ _ (raise 'bad))]))])
-  (check-false (play-1-turn (rstate (list active3) '[] '[]) (set buy-bos-sea)))
+  (define active3 [(make-an-ii (new [mock% #:play (λ _ (raise 'bad))]))])
+  (check-false (play-1-turn (rstate (list active3) '[] '[]) vtriangle-conns))
 
-  (define active4 (next (new [mock-1% void (λ _ MORE)])))
+  (define active4 (make-an-ii (new [mock% #:play (λ _ MORE)])))
   (check-equal? 
-   (play-1-turn (rstate (list [active4]) '[red red] '[]) (set buy-bos-sea))
+   (play-1-turn (rstate (list [active4]) cards '[]) vtriangle-conns)
    (list (rstate (list (active4 'red 2)) '[] '[]) #false))
 
   ;; -------------------------------------------------------------------------------------------------
+  ;; play-last-round
+  (define mock-bad-play  (new [mock% #:play (λ _ (raise 'bad-o))]))
+  
+  (define lop-ask-more (lop '[] mock-more-card))
+  (define lop-got-more (lop cards mock-more-card))
+  (define lop-bad-play (lop '[] mock-bad-play))
+  
+  (check-equal? (play-last-round (rstate lop-ask-more cards '()) (set)) (rstate lop-got-more '[] '[]))
+  (check-equal? (play-last-round (rstate lop-bad-play '[] '()) (set))
+                (rstate (list (first lop-bad-play)) '[] `[,(ii-payload (second lop-bad-play))]))
+
+  ;; -------------------------------------------------------------------------------------------------
   ;; play-turns 
-  (define active5 (new [mock-1% void (λ _ MORE)]))
-  (define active6 (new [mock-1% void (λ _ (raise 'bad-o))]))
-  (define (lop c (xternal active5)) (list ii-final (ii+payload (ii+cards ii-play c) xternal)))
-  (define cards '[red red])
-  (check-equal? (play-last-round (rstate (lop '[]) cards '()) (set)) (rstate (lop cards) '[] '[]))
-  (check-equal? (play-last-round (rstate (lop '[] active6) '[] '()) (set))
-                (rstate (list ii-final) '[] `[,(ii+payload ii-play active6)]))
-
-  (check-equal? (play-turns (rstate (list (ii+payload ii-play active5)) cards '()) (set))
-                (rstate (list (ii+cards (ii+payload ii-play active5) cards)) '[] '()))
-
-  (define lop2 (list (ii+payload ii-final active5) (ii+payload ii-play active5)))
-  (define lop2-r (list (ii+payload ii-play active5) (ii+cards (ii+payload ii-final active5) cards)))
-  (check-equal? (play-turns (rstate lop2 cards '()) (set)) (rstate lop2-r '[] '[]))
-  (check-equal? (play-turns (rstate '[] cards '()) (set)) (rstate '[] cards '()))
-
-  (define lop3 (list (ii+payload ii-final active6)))
-  (check-equal? (play-turns (rstate lop3 cards '()) (set)) (rstate '[] cards lop3)))
-                
-
+  (check-equal? (play-turns (rstate (list (ii+payload ii-play mock-more-card)) cards '()) (set))
+                (rstate (list (ii+cards (ii+payload ii-play mock-more-card) cards)) '[] '()))
+  
+  (define lop-turn-got-more (reverse (lop '[] mock-more-card cards)))
+  (define lop-turn-bad-play (list (ii+payload ii-final mock-bad-play)))
+  
+  (check-equal? (play-turns (rstate lop-ask-more cards '()) (set))
+                (rstate lop-turn-got-more '[] '[]))
+  (check-equal? (play-turns (rstate '[]  cards '()) (set))
+                (rstate '[] cards '()))
+  (check-equal? (play-turns (rstate lop-turn-bad-play cards '()) (set))
+                (rstate '[] cards (map ii-payload lop-turn-bad-play))))
 
 ;                                                          
 ;                                                          
@@ -353,23 +442,28 @@
 ;                                                    ;  ;; 
 ;                                                     ;;;  
 ;                                                          
-  
-;; compute ranking from state, inform players of winning/losing 
-;; separate drop-outs from  active to passive state
-(define (score-game game-map the-state)
-  (define players  (rstate-players the-state))
-  (define paths    (all-paths game-map))
-  (define +conns   (score-connections players))
-  (define +dests   (score-destinations +conns paths))
-  (define +longest (score-longest-path +dests paths))
-  (define ranking  (rank +longest))
-  ;; --- rank and inform -- 
-  (xinform ranking (rstate-drop-outs the-state)))
 
-#; {type Scored = [Listof (Cons PlayerState N)]}
+
 #; {Yype Rankings = [Listof [Listof XPlayer]]}
 
-#; {[Listof PlayerSyaye] -> Scored}
+#; {RefereeState Map -> [List Ranking [Listof XPlayer]]}
+;; compute ranking from state, inform players of winning/losing 
+;; separate drop-outs from  active to passive state
+(define (score-game the-state game-map)
+  (match (rstate-players the-state)
+    ['() (list '[] (rstate-drop-outs the-state))]
+    [players
+     (define paths    (all-possible-paths game-map))
+     (define +conns   (score-connections players))
+     (define +dests   (score-destinations +conns paths))
+     (define +longest (score-longest-path +dests paths))
+     (define ranking  (rank +longest))
+     ;; --- rank and inform -- 
+     (xinform ranking (rstate-drop-outs the-state))]))
+
+#; {type Scored = [Listof (Cons PlayerState N)]}
+
+#; {[Listof PlayerState] -> Scored}
 (define (score-connections players)
   (for/list ([p players])
     (cons p (ii-conn-score p))))
@@ -392,12 +486,11 @@
       (match players
         ['() (and found? (reverse result))]
         [(cons (and p.s (cons p s)) others)
-         (if (not (ii-path-covered? p))
-             (loop others (cons p.s players) found?)
-             (loop others (cons (cons p (+ s LONG-PATH)) players) #true))])))
+         (if (not (ii-path-covered? p sp))
+             (loop others (cons p.s result) found?)
+             (loop others (cons (cons p (+ s LONG-PATH))result) #true))])))
   ;; --- now check whether it matters --- 
-  (for*/first ([sp sorted-paths] [f (in-value (a-player-covers sp +dests))] #:when f)
-    f))
+  (for*/first ([sp sorted-paths] [f (in-value (a-player-covers sp +dests))] #:when f) f))
 
 #; {Scored -> Ranking}
 (define (rank +longest)
@@ -408,14 +501,79 @@
       (ii-payload (car p.s)))))
 
 #; {Ranking [Listof XPlayer] -> [List Ranking [Listof XPlayer]]}
-(define (xinform rankings drop-outs)
+(define (xinform rankings drops)
+  (define (if-cons a d) (if (empty? a) d (cons a d)))
   (match rankings
-    ['() (list rankings drop-outs)]
+    ['() (list rankings drops)]
     [(cons prelim-winners losers)
      (define-values (goods bads) (xmap-send (λ (a) (xsend a win #true)) prelim-winners))
-     (let loop ([losers losers] [rankings (list (map first goods))] [drops (append bads drop-outs)])
+     (let loop ([losers losers] [ranks (if-cons (map first goods) '[])] [drops (append bads drops)])
        (match losers
-         ['() (list (reverse rankings) drops)]
+         ['() (list (reverse ranks) drops)]
          [(cons group others)
           (define-values (goods bads) (xmap-send (λ (a) (xsend a win #false)) group))
-          (loop others (cons (map first goods) rankings) (append bads drops))]))]))
+          (loop others (if-cons (map first goods) ranks) (append bads drops))]))]))
+
+;                                          
+;                                          
+;                                          
+;     ;                       ;            
+;     ;                       ;            
+;   ;;;;;;   ;;;;    ;;;;   ;;;;;;   ;;;;  
+;     ;      ;  ;;  ;    ;    ;     ;    ; 
+;     ;     ;    ;  ;         ;     ;      
+;     ;     ;;;;;;  ;;;       ;     ;;;    
+;     ;     ;          ;;;    ;        ;;; 
+;     ;     ;            ;    ;          ; 
+;     ;      ;      ;    ;    ;     ;    ; 
+;      ;;;   ;;;;;   ;;;;      ;;;   ;;;;  
+;                                          
+;                                          
+;                                          
+;                                          
+
+(module+ test
+  
+  (define lop2+score
+    (list (cons (first lop-ask-more) 8)
+          (cons (second lop-ask-more) 5)))
+  (define lop3+score
+    (list (cons (first lop-ask-more) (+ 8 (* 2 POINTS-PER)))
+          (cons (second lop-ask-more) (- 5 (* 2 POINTS-PER)))))
+  (define lop4+score
+    (list (cons (first lop-ask-more) (+ 8 LONG-PATH (* 2 POINTS-PER)))
+          (cons (second lop-ask-more) (- 5 (* 2 POINTS-PER)))))
+  (define lop4-ranked
+    [list (list (ii-payload (car (first lop4+score))))
+          (list (ii-payload (car (second lop4+score))))])
+
+  ;; -------------------------------------------------------------------------------------------------
+  ;; score connections owned by players 
+  (check-equal? (score-connections lop-ask-more) lop2+score)
+
+  ;; -------------------------------------------------------------------------------------------------
+  ;; score destinations of players 
+  
+  (check-equal? (score-destinations lop2+score (all-possible-paths vtriangle)) lop3+score)
+
+  ;; -------------------------------------------------------------------------------------------------
+  ;; score longest path
+  (check-equal? (score-longest-path lop3+score vtriangle-paths) lop4+score)
+
+  ;; -------------------------------------------------------------------------------------------------
+  ;; rank players 
+  (define (ranked-ii i) (cons (ii 'x 'y 0 (hash) (set) (~a i)) (- 3 i)))
+  (check-equal? (rank (cons (ranked-ii 2) (build-list 3 ranked-ii))) '[ ["2" "2"] ["1"] ["0"] ])
+  (check-equal? (rank lop4+score) lop4-ranked)
+
+  ;; -------------------------------------------------------------------------------------------------
+  ;; inform winners, eliminate silly losers
+  (check-equal? (xinform lop4-ranked '[]) [list lop4-ranked '()])
+  (check-equal? (xinform '() '[]) [list '() '()])
+
+  (define fail-on-win (new (mock% #:play values #:win (λ _ (raise 'bad)))))
+  (check-equal? (xinform (cons (list fail-on-win) lop4-ranked) '[]) `[,lop4-ranked (,fail-on-win)])
+
+  ;; -------------------------------------------------------------------------------------------------
+  ;; `score-game`
+  (check-equal? (score-game (rstate lop-ask-more '() '()) vtriangle) [list lop4-ranked '[]]))
