@@ -76,7 +76,7 @@
    [setup (->m game-map? natural? (listof color?) any/c)]
    [pick  (->m (set/c destination/c) (set/c destination/c))]
    [play  (->m pstate? (or/c MORE action?))]
-   [more  (->m color? color? any/c)]
+   [more  (->m (listof color?) any/c)]
    [win   (->m boolean? any/c)]))
 
 (define manager-player%/c

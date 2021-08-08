@@ -85,7 +85,7 @@
     [define/public (play s)
       (send strategy choose-action s)]
 
-    [define/public (more card-1 card-2)
+    [define/public (more cards)
       (void)]
 
     [define/public (win did-i-win?)

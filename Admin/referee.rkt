@@ -192,8 +192,8 @@
               [rejects
                (match (legal-picks pick-from rejects Ds)
                  [#false (loop others Cs Ds good (cons xplayer drop-outs))]
-                 [(list (list destination-1 destination-2) remaining)
-                  (define iplayer (ii destination-1 destination-2 RAILS-PER cards (set) xplayer))
+                 [(list (list d-1 d-2) remaining)
+                  (define iplayer (ii d-1 d-2 RAILS-PER (->hash cards) (set) xplayer))
                   (loop others (drop Cs CARD0-PER) remaining (cons iplayer good) drop-outs)])])])])))
 
 #; {[Setof Destination] [Setof Destination] [Listof Destination]
@@ -208,6 +208,11 @@
      (define chosen-ones (set->list (set-subtract choose-from rejected)))
      (define remaining   (remove* chosen-ones all))
      (list chosen-ones remaining)]))
+
+(define (->hash loc)
+  (for/fold ([h (hash)]) ([c loc])
+    (hash-update h c add1 0)))
+
 
 ;                                          
 ;                                          
@@ -239,7 +244,7 @@
   
   (define setup-cards (make-list (* 2 #;players CARD0-PER) 'red))
   (define (make-ii-set ds)
-    (ii (car ds) (cadr ds) RAILS-PER (make-list CARD0-PER 'red) (set) mock-good-pick))
+    (ii (car ds) (cadr ds) RAILS-PER (->hash (make-list CARD0-PER 'red)) (set) mock-good-pick))
   (define-values (1dest 2dest)
     (let* ([dests (reverse vtriangle-dests)]
            [2dest (reverse (take dests DESTS-PER))]
