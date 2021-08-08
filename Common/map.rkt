@@ -56,6 +56,7 @@
  #; (destinaion? (list city1 city2)) #; impllies #; (symbol<? city1 city2)
  destination/c
 
+ connection/c
  connection-from
  connection-to 
  connection-color

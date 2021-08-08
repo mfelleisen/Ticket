@@ -114,7 +114,7 @@
   
 #; {RefereeState -> PlayerState}
 (define (rstate->pstate rs)
-  (define players (map (λ (x) (ii+payload x #f)) (rstate-players rs)))
+  (define players (map ii-payload-- (rstate-players rs)))
   (pstate (first players) (map ii-connections (rest players))))
 
 (define (if-rstate-update the-state false-or-nup)

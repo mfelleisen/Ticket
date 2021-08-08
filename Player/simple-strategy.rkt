@@ -105,7 +105,8 @@
     #; {type Action = (U MORE Connection)}
     #; {PlayerState -> Action}
     (define/public (choose-action ps)
-      (match-define [pstate I others] ps)
+      (define I (pstate-I ps))
+      (define others (pstate-others ps))
       (define cards  (ii-cards I))
       (define rails# (ii-rails I))
       (cond

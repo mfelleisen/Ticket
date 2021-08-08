@@ -108,7 +108,7 @@
   (define mock-more-card (new [mock% #:play (λ _ MORE)]))
 
   (define ([make-an-ii mock-inst] #:rails (rails 3) #:con (con '()) . cards)
-    (ii 'x 'y rails (apply hash cards) (apply set con) mock-inst))
+    (ii '[x z] '[y z] rails (apply hash cards) (apply set con) mock-inst))
   (define ii-default  (make-an-ii (new (mock%))))
   
   (define (lop cards-p xternal (cards-f '[]))
@@ -567,7 +567,7 @@
 
   ;; -------------------------------------------------------------------------------------------------
   ;; rank players 
-  (define (ranked-ii i) (cons (ii 'x 'y 0 (hash) (set) (~a i)) (- 3 i)))
+  (define (ranked-ii i) (cons (ii '[x z] '[y z] 0 (hash) (set) (~a i)) (- 3 i)))
   (check-equal? (rank (cons (ranked-ii 2) (build-list 3 ranked-ii))) '[ ["2" "2"] ["1"] ["0"] ])
   (check-equal? (rank lop4+score) lop4-ranked)
 

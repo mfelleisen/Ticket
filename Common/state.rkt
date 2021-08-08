@@ -2,6 +2,8 @@
 
 ;; representation of a player's knowledge about the game
 
+(require Trains/Common/map)
+
 (provide
 
  #; {PlayerState Connection -> Player}
@@ -36,15 +38,20 @@
  ii+payload
  
  ii? 
- ii
+ (contract-out
+  [ii (-> destination/c destination/c natural? hash? [set/c connection/c] any/c ii?)])
+
  ii-destination1
  ii-destination2
  ii-rails
  ii-cards
  ii-connections
- ii-payload 
+ ii-payload
+ ii-payload--
+ 
  pstate?
- pstate
+ (contract-out
+  (pstate (-> ii? [listof [set/c connection/c]] pstate?)))
  pstate-I
  pstate-others)
 
@@ -101,6 +108,9 @@
 (struct ii [destination1 destination2 rails cards connections payload] #:transparent)
 #; {type [MePlayer X] = (ii Desitination Destination Natural [Hash Color Natural] Player X)}
 ;; the two destination cards, the rails left, the colored cards, and this player's possessions
+
+(define (ii-payload-- ii-player)
+  (struct-copy ii ii-player [payload #false]))
 
 (define (ii-acquire ii-player c)
   (define seg#  (connection-seg# c))
