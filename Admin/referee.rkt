@@ -24,10 +24,10 @@
 (provide
  ;; -- at most 8 players, at least 2 distinct players
  ;; -- how to select enough destinations from the map
- ;;    -- demans total tie breaking
+ ;;    -- demands total tie breaking
  ;;    -- selecting a map could make sure this works
  ;;    -- assume the select map allows this
- ;; -- need a systematic way to hand
+ ;; -- need a systematic way to hand cards to players 
 
  #; {[[Listof XPlayer] Map
                        ;; the next two optional parameters are for deterministic testing 
