@@ -34,9 +34,19 @@
 
  #; {MePlayer[False] X -> MePlayer[X]}
  ii+payload
-
- (struct-out pstate)
- (struct-out ii))
+ 
+ ii? 
+ ii
+ ii-destination1
+ ii-destination2
+ ii-rails
+ ii-cards
+ ii-connections
+ ii-payload 
+ pstate?
+ pstate
+ pstate-I
+ pstate-others)
 
 (module+ examples
   (provide pstate1 pstate2 

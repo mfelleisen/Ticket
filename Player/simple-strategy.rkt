@@ -106,7 +106,8 @@
     #; {PlayerState -> Action}
     (define/public (choose-action ps)
       (match-define [pstate I others] ps)
-      (match-define [ii _d1 _d2 rails# cards _acquired _payload] I)
+      (define cards  (ii-cards I))
+      (define rails# (ii-rails I))
       (cond
         [(< (total-number-of-cards cards) 10) MORE]
         [else
