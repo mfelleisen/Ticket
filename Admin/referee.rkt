@@ -97,7 +97,7 @@
 
 (module+ examples ;; examples for referee, setup, turns, and scoring
   (define (mock% #:setup (w void) #:pick (p values) #:play (y values) #:more (x void) #:win (z void))
-    (class object%
+    (class object% (init-field [strategy% 0] [rails# 1])
       (define/public (setup . x) (w x))
       (define/public (pick x) (p (apply set (take (set->list x) (- PICKS-PER DESTS-PER)))))
       (define/public (more cards) (x cards))

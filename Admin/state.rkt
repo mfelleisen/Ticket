@@ -2,6 +2,9 @@
 
 ;; representation of a referee's knowledge about the game
 
+(require Trains/Common/player-interface)
+(require Trains/Common/basic-constants)
+
 (provide
 
  #; {RefereeState (U False [List MePlayer Boolean] [List MePlayer [Listof Cards]])
@@ -16,7 +19,13 @@
  ;; ASSUME there is a first player 
  rstate-drop
  rstate->pstate
- (struct-out rstate))
+
+ (contract-out
+  (rstate (-> [listof ii?] [listof color?] [listof (instanceof/c referee-player%/c)] rstate?)))
+
+ rstate-players
+ rstate-cards
+ rstate-drop-outs)
 
 ;                                                                                                  
 ;                                                                                                  
@@ -80,6 +89,8 @@
   (define ii2 (ii dest1 '(Orlando Seattle) 5 cards1 (set '[Boston Seattle red 3]) #f))
 
   (define rstate1 (rstate (list ii1 ii2) '[] '[]))
+  (provide rstate1-drop)
+  (define rstate1-drop (rstate (list ii2) '[] `[#f]))
 
   (provide rstate1-r rstate1-d)
   (define rstate1-r (rstate (list ii2 ii1) '[] '[]))
@@ -159,7 +170,7 @@
 
 (module+ test
 
-  (check-equal? (rstate-drop rstate1) (struct-copy rstate rstate1-d [drop-outs '(#false)]))
+  (check-equal? (rstate-drop rstate1) rstate1-drop)
   (check-equal? (rstate-rotate rstate1) rstate1-r)
 
   (check-equal? (rstate->pstate rstate1) (pstate ii1 (list (ii-connections ii2)))))
