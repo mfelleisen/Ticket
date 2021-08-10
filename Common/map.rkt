@@ -136,7 +136,7 @@
 ;                                                           ;              
 ;                                                                          
 
-;; THE VISUAL ELEMENTS 
+;; INCLUDING THE VISUAL ELEMENTS 
 (struct game-map [width height city-places graph] #:transparent)
 
 (define (game-map-locations g)

@@ -73,7 +73,7 @@
 ;                                                  
 
 (define player%
-  (class object% [init-field strategy%]
+  (class object% [init-field strategy% [name (gensym 'player)]]
     (field [strategy #false])
 
     [define/public (setup gm rails cards)
@@ -89,7 +89,7 @@
       (void)]
 
     [define/public (win did-i-win?)
-      (displayln `[me ,did-i-win?])]
+      (displayln `[,name did ,(if did-i-win? 'WIN 'LOSE)])]
     
     (super-new)))
 

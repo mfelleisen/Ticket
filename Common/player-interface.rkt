@@ -72,7 +72,7 @@
 
 (define referee-player%/c
   (class/c
-   [init-field [strategy% strategy%/c]]
+   [init-field [strategy% strategy%/c] [name city?]]
    [setup (->m game-map? natural? (listof color?) any/c)]
    [pick  (->m (set/c destination/c) (set/c destination/c))]
    [play  (->m pstate? (or/c MORE action?))]
