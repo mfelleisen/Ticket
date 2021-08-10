@@ -137,7 +137,13 @@
 ;                                                                          
 
 ;; INCLUDING THE VISUAL ELEMENTS 
-(struct game-map [width height city-places graph] #:transparent)
+(struct game-map [width height city-places graph
+                        ;; these three fields are about memoization 
+                        destinations paths paths-between]
+  #:transparent #:mutable)
+
+(define (plain-game-map width height city-places graph)
+  (game-map width height city-places graph #false #false #false))
 
 (define (game-map-locations g)
   (for/list ([n (game-map-city-places g)])
@@ -210,8 +216,8 @@
       [Seattle [200 20]]
       [Orlando [30 300]]])
 
-  (define vtriangle (game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) triangle))
-  (define striangle (game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) simple-triangle))
+  (define vtriangle (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) triangle))
+  (define striangle (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) simple-triangle))
   
   (define vtriangle-boston-seattle (list 'Boston 'Seattle 'red 3))
   (define vtriangle-paths (all-possible-paths vtriangle))
@@ -241,7 +247,7 @@
 ;                                                                                                  
 
 (define (construct-game-map width height nod* c*)
-  (game-map width height (list->node nod*) (connections->graph c*)))
+  (plain-game-map width height (list->node nod*) (connections->graph c*)))
 
 #; {[Listof [List Symbol [List N N]]] -> [Listof Node]}
 (define (list->node nod*)
@@ -263,6 +269,70 @@
   (for*/fold ([directed-graph graph]) ([c (group-by connection-from c*)][from (in-value (caar c))])
     (hash-update directed-graph from (curry append (map (λ (x) (apply to (rest x))) c)) '[])))
 
+;; ---------------------------------------------------------------------------------------------------
+(provide construct-random-map)
+(define (construct-random-map city-names m-connections width height)
+  (define nodes (random-nodes city-names width height))
+  (define conns (random-connections city-names m-connections))
+  (plain-game-map width height nodes (connections->graph conns)))
+
+(define RANDOM 10)
+(define (random-nodes city-names width height)
+  #; {[Listof [List N N]] -> [List N N]}
+  #;
+  (define random-1-node
+    (make-random 'random-1-node
+                 (λ () (list (random width) (random height)))
+                 (λ (x-y) (not (member x-y so-far)))))
+  
+  (define (random-1-node so-far [tries RANDOM])
+    (when (zero? tries)
+      (displayln `[cities so far ,so-far] (current-error-port))
+      (error 'random-nodes "unable to generate more city locations in [~a x ~a]" width height))
+    (define x-y (list (random width) (random height)))
+    (if (not (member x-y so-far)) x-y (random-nodes city-names width height)))
+
+  #; {[Listof [List City [List N N]]]}
+  (define-values (so-far _)
+    (for/fold ([so-far '()] [coordinates '[]]) ([c city-names])
+      (define x-y (random-1-node coordinates))
+      (values (cons (list c x-y) so-far) (cons x-y coordinates))))
+
+  (list->node so-far))
+
+(define (make-random tag make-candidate test-candidate)
+  (define (try [tries RANDOM])
+    (when (zero? tries)
+      (error tag "unable to generate more candidates"))
+    (define x-y (make-candidate))
+    (if (not (test-candidate x-y)) x-y (try)))
+  try)
+
+(define (random-connections city-names m-connections)
+  (let loop ([i m-connections] [connections '()])
+    (cond
+      [(zero? i) connections]
+      [else
+       (define from-to (pick-2-cities city-names))
+       (define so-far (filter (λ (c) (equal? (take c 2) from-to)) connections))
+       (cond
+         [(= (length so-far) (length COLORS)) (loop i connections)]
+         [else (loop (- i 1) (cons (add-1-connection from-to so-far) connections))])])))
+
+(define (add-1-connection from-to so-far)
+  (append (apply list-cities from-to) `[,(random-pick COLORS) 3]))
+
+(define (pick-2-cities city-names)
+  (define candidate (list (random-pick city-names) (random-pick city-names)))
+  (if (apply equal? candidate) (pick-2-cities city-names) candidate))
+
+(define (random-pick lox)
+  (list-ref lox (random (length lox))))
+
+(module+ test
+  (construct-random-map (build-list 6 (compose string->symbol ~a)) 20 200 800))
+
+
 ;                                                                          
 ;                                                                          
 ;            ;;;     ;;;                                    ;              
@@ -280,7 +350,6 @@
 ;                                   ;                                      
 ;                                                                          
 
-#; {GameMap -> [Listof Destination]}
 (define (all-destinations vgraph)
   (define graph  (game-map-graph vgraph))
   (define cities (game-map-cities vgraph))
@@ -356,7 +425,7 @@
   (provide striangle)
   
   (define vrectangle
-    (game-map
+    (plain-game-map
      1000
      800
      '(#s(node |San Diego| #s(cord 176 571))
