@@ -136,14 +136,28 @@
 ;                                                           ;              
 ;                                                                          
 
+(define (game-map-equal? one two ek)
+  (equal?
+   (drop (reverse (vector->list (struct->vector one))) 3)
+   (drop (reverse (vector->list (struct->vector two))) 3)))
+
+(define (game-map-hash-code . x) 100)
+
+(define (game-map-secondary-hash-code . x) 10000)
+
 ;; INCLUDING THE VISUAL ELEMENTS 
 (struct game-map [width height city-places graph
                         ;; these three fields are about memoization 
                         destinations paths paths-between]
-  #:transparent #:mutable)
+  #:transparent
+  #:mutable
+  #:methods gen:equal+hash
+  [(define equal-proc game-map-equal?)
+   (define hash-proc  game-map-hash-code)
+   (define hash2-proc game-map-secondary-hash-code)])
 
 (define (plain-game-map width height city-places graph)
-  (game-map width height city-places graph #false #false #false))
+  (game-map width height city-places graph #false #false (hash)))
 
 (define (game-map-locations g)
   (for/list ([n (game-map-city-places g)])
@@ -351,19 +365,50 @@
 ;                                                                          
 
 (define (all-destinations vgraph)
+  (define ?destinations (game-map-destinations vgraph))
+  (cond
+    [?destinations => values]
+    [else
+     (define dests (all-destinations/proper vgraph))
+     (set-game-map-destinations! vgraph dests)
+     dests]))
+
+(define (all-destinations/proper vgraph)
   (define graph  (game-map-graph vgraph))
   (define cities (game-map-cities vgraph))
   (for*/fold ([destinations '()]) ([from cities][to cities] #:when (symbol<? from to))
     (define are-there-any-paths (all-paths vgraph from to))
     (if are-there-any-paths (cons (list from to) destinations) destinations)))
 
+;; ---------------------------------------------------------------------------------------------------
 (define (all-possible-paths vgraph)
+  (define ?paths (game-map-paths vgraph))
+  (cond
+    [?paths => values]
+    [else
+     (define paths (all-possible-paths/proper vgraph))
+     (set-game-map-paths! vgraph paths)
+     paths]))
+
+(define (all-possible-paths/proper vgraph)
   (define graph  (game-map-graph vgraph))
   (define cities (game-map-cities vgraph))
   (for*/fold ([paths '()]) ([from cities][to cities] #:when (symbol<? from to))
     (append paths (all-paths vgraph from to))))
 
+;; ---------------------------------------------------------------------------------------------------
 (define (all-paths vgraph start end)
+  (define paths-field (game-map-paths-between vgraph))
+  (define start-end   (hash-ref paths-field (list start end) #false))
+  (cond
+    [start-end => values]
+    [else
+     (define paths (all-paths/proper vgraph start end))
+     (set-game-map-paths-between! vgraph (hash-set paths-field (list start end) paths))
+     paths]))
+
+
+(define (all-paths/proper vgraph start end)
   (define graph (game-map-graph vgraph))
       
   #; {City [Listof City] -> [Listof Path]}
@@ -390,10 +435,12 @@
   (match-define (list the-start the-end) (list-cities start end))
   (all-paths the-start '[]))
 
+;; ---------------------------------------------------------------------------------------------------
 (define (game-map-connections gm city)
   (define connections (hash-ref (game-map-graph gm) city '[]))
   (map (λ (x) (rest (vector->list (struct->vector x)))) connections))
 
+;; ---------------------------------------------------------------------------------------------------
 (define (game-map-all-connections graph)
   (for/fold ([s (set)]) ([from (game-map-cities graph)])
     (set-union
@@ -401,6 +448,7 @@
      (for/set ([c (game-map-connections graph from)])
        (append (list-cities from (first c)) (rest c))))))
 
+;; ---------------------------------------------------------------------------------------------------
 (define (game-map-cities graph) (map node-name (game-map-city-places graph)))
 
 ;                                          
