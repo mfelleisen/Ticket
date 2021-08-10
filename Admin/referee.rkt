@@ -2,6 +2,19 @@
 
 ;; a referee for supervising one game of Trains
 
+;; TODO:
+;; -- at most 8 players, at least 2 distinct players
+
+;; The referee kicks out
+;; -- cheating players
+;; -- players that violate the (logical) contract in `Common/` (exn:fail:contract)
+;; -- players that raise an exception (exn:fail)
+;; -- players that take "too long" (accidental infinite loops)
+
+
+;; The referee is abstract over two pieces to facilitate testing:
+;; -- in what order to select (enough) destinations from the map for players to pick from;
+;; -- in what order need a systematic way to hand cards to players.
 
 ;                                                          
 ;                                                          
@@ -22,13 +35,6 @@
 ;                                                          
 
 (provide
- ;; -- at most 8 players, at least 2 distinct players
- ;; -- how to select enough destinations from the map
- ;;    -- demands total tie breaking
- ;;    -- selecting a map could make sure this works
- ;;    -- assume the select map allows this
- ;; -- need a systematic way to hand cards to players 
-
  #; {[[Listof XPlayer] Map
                        ;; the next two optional parameters are for deterministic testing 
                        #:cards [Listof Card]
