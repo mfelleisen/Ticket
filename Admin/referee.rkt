@@ -103,7 +103,7 @@
 
 (module+ examples ;; examples for referee, setup, turns, and scoring
   (define (mock% #:setup (w void) #:pick (p values) #:play (y values) #:more (x void) #:win (z void))
-    (class object% (init-field [strategy% 0] [rails# 1])
+    (class object% (init-field [strategy% 0] [name (gensym 'player)])
       (define/public (setup . x) (w x))
       (define/public (pick x) (p (apply set (take (set->list x) (- PICKS-PER DESTS-PER)))))
       (define/public (more cards) (x cards))
@@ -148,7 +148,7 @@
   
   (define destination* (shuffle (all-destinations the-game-map)))
   (define connections  (game-map-all-connections the-game-map))
-
+  
   ;; is this too expensive as a contract? 
   (unless (>= (length destination*) (* PICKS-PER (length the-external-players)))
     (error 'refree "not enough destinations"))
@@ -315,7 +315,7 @@
 ;; ASSUME all players have >= RAILS-MIN rails 
 (define (play-turns the-state0 connections)
   (let play ([the-state the-state0][turns-w/o-change 0])
-    (define players (rstate-players the-state)) 
+    (define players (rstate-players the-state))
     (match players 
       ['() the-state]
       [_ (match (play-1-turn the-state connections)
