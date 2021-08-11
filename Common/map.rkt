@@ -364,14 +364,26 @@
 ;                                   ;                                      
 ;                                                                          
 
-(define (all-destinations vgraph)
-  (define ?destinations (game-map-destinations vgraph))
-  (cond
-    [?destinations => values]
-    [else
-     (define dests (all-destinations/proper vgraph))
-     (set-game-map-destinations! vgraph dests)
-     dests]))
+(require (for-syntax syntax/parse))
+(require (for-syntax racket/syntax))
+
+(define-syntax (define/memoize stx)
+  (syntax-parse stx 
+    [(define/memoize (name:id vgraph:id x:id ...) retrieve setter)
+     #:with proper (format-id stx "~a/proper" (syntax-e #'name))
+     #'(define (name vgraph x ...)
+         (define ?destinations (retrieve vgraph x ...))
+         (cond
+           [?destinations => values]
+           [else
+            (define dests (proper vgraph x ...))
+            (setter vgraph dests x ...)
+            dests]))]))
+
+;; ---------------------------------------------------------------------------------------------------
+(define/memoize (all-destinations vgraph)
+  game-map-destinations
+  set-game-map-destinations!)
 
 (define (all-destinations/proper vgraph)
   (define graph  (game-map-graph vgraph))
@@ -381,14 +393,9 @@
     (if are-there-any-paths (cons (list from to) destinations) destinations)))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define (all-possible-paths vgraph)
-  (define ?paths (game-map-paths vgraph))
-  (cond
-    [?paths => values]
-    [else
-     (define paths (all-possible-paths/proper vgraph))
-     (set-game-map-paths! vgraph paths)
-     paths]))
+(define/memoize (all-possible-paths vgraph)
+  game-map-paths
+  set-game-map-paths!)
 
 (define (all-possible-paths/proper vgraph)
   (define graph  (game-map-graph vgraph))
@@ -397,16 +404,13 @@
     (append paths (all-paths vgraph from to))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define (all-paths vgraph start end)
-  (define paths-field (game-map-paths-between vgraph))
-  (define start-end   (hash-ref paths-field (list start end) #false))
-  (cond
-    [start-end => values]
-    [else
-     (define paths (all-paths/proper vgraph start end))
-     (set-game-map-paths-between! vgraph (hash-set paths-field (list start end) paths))
-     paths]))
-
+(define/memoize (all-paths vgraph start end)
+  (λ (vgraph start end)
+    (define paths-field (game-map-paths-between vgraph))
+    (hash-ref paths-field (list start end) #false))
+  (λ (vgraph paths start end)
+    (define paths-field (game-map-paths-between vgraph))
+    (set-game-map-paths-between! vgraph (hash-set paths-field (list start end) paths))))
 
 (define (all-paths/proper vgraph start end)
   (define graph (game-map-graph vgraph))
