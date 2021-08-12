@@ -486,8 +486,11 @@
 
 #; {Scored Map -> Scored}
 (define (score-longest-path +dests game-map)
+  (define max-no-conns (apply max (map (compose set-count ii-connections car) +dests)))
   (define paths        (all-possible-paths game-map))
-  (define sorted-paths (sort paths < #:key length))
+  (define filter-paths (filter (λ (p) (<= (length p) max-no-conns)) paths))
+  (define sorted-paths (sort filter-paths > #:key length))
+  
   #; {Path [Listof [Cons PlayerState N]] -> (U False Scored)}
   ;; do any of the `ii-players` cover the path `sp` with their connections:
   ;; -- grant all of them points
@@ -570,6 +573,12 @@
   ;; -------------------------------------------------------------------------------------------------
   ;; score longest path
   (check-equal? (score-longest-path lop3+score vtriangle) lop4+score)
+  
+  (define better (set '[Boston Seattle red 3] '[Orlando Seattle blue 5]))
+  (define p1 (ii '[Boston Seattle] '[Boston Orlando] 32 (hash) better 'x))
+  (define p2 (ii '[Boston Seattle] '[Boston Orlando] 32 (hash) (set '[Boston Seattle green 4]) 'y))
+  (define p1-beats-p2 `[(,p2 . 0) (,p1 . ,LONG-PATH)])
+  (check-equal? (score-longest-path `[(,p2 . 0) (,p1 . 0)] vtriangle) p1-beats-p2)
 
   ;; -------------------------------------------------------------------------------------------------
   ;; rank players 
