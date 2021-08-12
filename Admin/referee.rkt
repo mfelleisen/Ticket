@@ -508,7 +508,7 @@
 
 #; {Scored -> Ranking}
 (define (rank +longest)
-  (define sorted (sort +longest < #:key cdr))
+  (define sorted (sort +longest > #:key cdr))
   (define grouped (group-by cdr sorted))
   (for/list ([group grouped])
     (for/list ([p.s group])
@@ -583,8 +583,10 @@
   ;; -------------------------------------------------------------------------------------------------
   ;; rank players 
   (define (ranked-ii i) (cons (ii '[x z] '[y z] 0 (hash) (set) (~a i)) (- 3 i)))
-  (check-equal? (rank (cons (ranked-ii 2) (build-list 3 ranked-ii))) '[ ["2" "2"] ["1"] ["0"] ])
+  (check-equal? (rank (cons (ranked-ii 2) (build-list 3 ranked-ii))) '[ ["0"] ["1"] ["2" "2"] ])
   (check-equal? (rank lop4+score) lop4-ranked)
+
+  (check-equal? (rank p1-beats-p2) '[[x] [y]])
 
   ;; -------------------------------------------------------------------------------------------------
   ;; inform winners, eliminate silly losers
