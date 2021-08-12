@@ -26,6 +26,7 @@
   (require Trains/Player/player)
   (require Trains/Player/simple-strategy)
   (require Trains/Common/map)
+  (require Trains/Admin/cards)
 
   #; {Ranking -> Void}
   (define (display-results results)
@@ -47,7 +48,7 @@
     (build-list i (λ (i) (new player% [strategy% simple-strategy%] [name (~a "player" i)]))))
 
   (define (run-test the-map)
-    (define results (referee (make-players 8) the-map))
+    (define results (referee (make-players 8) the-map #:cards cards-handed-out))
     (display-results results))
 
   (for ([test-case tests]) (run-test test-case)))
