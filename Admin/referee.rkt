@@ -464,10 +464,9 @@
   (match (rstate-players the-state)
     ['() (list '[] (rstate-drop-outs the-state))]
     [players
-     (define paths    (all-possible-paths game-map))
      (define +conns   (score-connections players))
-     (define +dests   (score-destinations +conns paths))
-     (define +longest (score-longest-path +dests paths))
+     (define +dests   (score-destinations +conns game-map))
+     (define +longest (score-longest-path +dests game-map))
      (define ranking  (rank +longest))
      ;; --- rank and inform -- 
      (xinform ranking (rstate-drop-outs the-state))]))
@@ -479,14 +478,15 @@
   (for/list ([p players])
     (cons p (ii-conn-score p))))
 
-#; {Scored [Listof Path] -> Scored}
-(define (score-destinations +conns paths)
+#; {Scored Map -> Scored}
+(define (score-destinations +conns game-map)
   (for/list ([p.s +conns])
     (match-define (cons p s) p.s)
-    (cons p (+ s (ii-destinations-connected p paths)))))
+    (cons p (+ s (ii-destinations-connected p game-map)))))
 
-#; {Scored [Listof Path] -> Scored}
-(define (score-longest-path +dests paths)
+#; {Scored Map -> Scored}
+(define (score-longest-path +dests game-map)
+  (define paths        (all-possible-paths game-map))
   (define sorted-paths (sort paths < #:key length))
   #; {Path [Listof [Cons PlayerState N]] -> (U False Scored)}
   ;; do any of the `ii-players` cover the path `sp` with their connections:
@@ -565,11 +565,11 @@
   ;; -------------------------------------------------------------------------------------------------
   ;; score destinations of players 
   
-  (check-equal? (score-destinations lop2+score (all-possible-paths vtriangle)) lop3+score)
+  (check-equal? (score-destinations lop2+score vtriangle) lop3+score)
 
   ;; -------------------------------------------------------------------------------------------------
   ;; score longest path
-  (check-equal? (score-longest-path lop3+score vtriangle-paths) lop4+score)
+  (check-equal? (score-longest-path lop3+score vtriangle) lop4+score)
 
   ;; -------------------------------------------------------------------------------------------------
   ;; rank players 

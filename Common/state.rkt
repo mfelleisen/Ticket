@@ -140,20 +140,23 @@
   (match-define (ii d-1 d-2 rails-left cards0 connections xplayer) ii-player)
   (for/sum ([c connections]) (connection-seg# c)))
 
-(define (ii-destinations-connected ii-player all-paths)
+(define (ii-destinations-connected ii-player map)
   (match-define (ii d-1 d-2 rails-left cards0 connections xplayer) ii-player)
   (define (plus-minus-points dest)
+    (define from (first dest))
+    (define to   (second dest))
     (define any-path-connection
-      (for/or ([p all-paths])
-        (and (member (first dest) (take (first p) 2)) (member (second dest) (take (last p) 2))
-             (covered? p connections))))
+      (for/or ([p (all-paths map from to)])
+        ;; MF: this is suspicious: it should be symmetric but switching the next two kills a test case
+        (define originations (take (first p) 2))
+        (define destinations (take (last p) 2))
+        (and (member from originations) (member to destinations) (covered? p connections))))
     (if any-path-connection POINTS-PER (- POINTS-PER)))
   (+ (plus-minus-points d-1) (plus-minus-points d-2)))
 
 (define (ii+payload ii-player pl)
   (when (ii-payload ii-player) (error 'ii+payload "payload already exists ~e" (ii-payload ii-player)))
   (struct-copy ii ii-player [payload pl]))
-
 
 #; [Path [Setof Connection] -> Boolean]
 (define (covered? path connections)
@@ -198,8 +201,8 @@
 
 (module+ test
   
-  (check-equal? (ii-destinations-connected ii-final (all-possible-paths vtriangle)) (* 2 POINTS-PER))
-  (check-equal? (ii-destinations-connected ii-play (all-possible-paths vtriangle)) (* -2 POINTS-PER))
+  (check-equal? (ii-destinations-connected ii-final vtriangle) (* 2 POINTS-PER))
+  (check-equal? (ii-destinations-connected ii-play vtriangle) (* -2 POINTS-PER))
 
   (check-true (ii-final? ii-final))
   (check-false (ii-final? ii-play))
