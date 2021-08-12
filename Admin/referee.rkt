@@ -486,11 +486,6 @@
 
 #; {Scored Map -> Scored}
 (define (score-longest-path +dests game-map)
-  (define max-no-conns (apply max (map (compose set-count ii-connections car) +dests)))
-  (define paths        (all-possible-paths game-map))
-  (define filter-paths (filter (λ (p) (<= (length p) max-no-conns)) paths))
-  (define sorted-paths (sort filter-paths > #:key length))
-  
   #; {Path [Listof [Cons PlayerState N]] -> (U False Scored)}
   ;; do any of the `ii-players` cover the path `sp` with their connections:
   ;; -- grant all of them points
@@ -502,8 +497,12 @@
         [(cons (and p.s (cons p s)) others)
          (if (not (ii-path-covered? p sp))
              (loop others (cons p.s result) found?)
-             (loop others (cons (cons p (+ s LONG-PATH))result) #true))])))
-  ;; --- now check whether it matters --- 
+             (loop others (cons (cons p (+ s LONG-PATH)) result) #true))])))
+  
+  (define max-no-conns (apply max (map (compose set-count ii-connections car) +dests)))
+  (define paths        (all-possible-paths game-map))
+  (define filter-paths (filter (λ (p) (<= (length p) max-no-conns)) paths))
+  (define sorted-paths (sort filter-paths > #:key length))
   (for*/first ([sp sorted-paths] [f (in-value (a-player-covers sp +dests))] #:when f) f))
 
 #; {Scored -> Ranking}
