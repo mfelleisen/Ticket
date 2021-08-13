@@ -1,0 +1,9 @@
+#!/bin/bash 
+
+echo "gc-ing" 
+rm -rf *~ */*~ ; rm -rf errors.txt 
+
+echo "making"
+time raco make */*.rkt
+
+gtime raco test -s test Admin/test-ref-on-players.rkt
