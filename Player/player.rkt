@@ -48,7 +48,7 @@
 (require Trains/Common/player-interface)
 (module+ test
   (require (submod ".."))
-  (require (submod Trains/Player/simple-strategy examples))
+  (require (submod Trains/Player/astrategy examples))
   (require (submod Trains/Common/map examples))
   (require (submod Trains/Common/state examples))
   (require Trains/Player/simple-strategy)
