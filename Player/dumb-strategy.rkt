@@ -93,6 +93,20 @@
 
     (super-new)))
 
+(define cheats-strategy%
+  (class dumb-strategy%
+
+    (super-new)
+
+    (inherit-field the-game-map rails# cards destination1 destination2)
+
+    (define/override (stop-here cards rails#)
+      (values #true (make-bad-connection the-game-map)))))
+
+(define (make-bad-connection the-game-map)
+  `[A B red 3])
+
+
 ;                                          
 ;                                          
 ;                                          

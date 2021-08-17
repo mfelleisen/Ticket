@@ -1,0 +1,52 @@
+
+    referee                              player (p_1) . . . player (p_n)                        
+      |                                     |                 |                                 
+      |   play(state)                       |                 | % player receives:              
+      | -------------------------- ~~~ ---> |                 | % - current state               
+				                                                                
+action 1:			                                                                
+      |     more_cards                      |                 |                                 
+      | <========================= ~~~ ===  |                 | % request cards                 
+      |     more(cards[])                   |                 |                                 
+      | -------------------------- ~~~ ---> |                 | % if there are cards
+      | <========================= ~~~ ===  |                 |                                 
+      |                                     |                 |                                 
+      |                                     |                 | % no cards available            
+      .				            .                 .                                 
+action 2:			                                                                
+      |     Connection                      |                 | % acquire connection            
+  +-- | <========================= ~~~ ===  |                 |                                 
+  |   .                                     .                 . % if legal:                     
+  |   .                                     .                 . % referee modifies game state   
+  +-> .                                     .                 . % otherwise:                    
+      .                                     .                 . % kick player out               
+      .                                     .                 .                                 
+      |   play(state)                       |                 |                                 
+      | -------------------------- ~~~ ---------------------> |                                 
+      |     action                          |                 |                                 
+      | <========================= ~~~ ====================== |                                 
+      |                                     |                 |                                 
+      .                                     .                 .                                 
+      .                                     .                 . % repeat until a player         
+      .                                     .                 . % has less than 3 rails         
+      .                                     .                 . % or all remaining              
+      .                                     .                 . % players have chosen           
+      .                                     .                 . % to ask for more cards         
+      .                                     .                 . % when there are none           
+      .                                     .                 .                                 
+      |                                     |                 | % one last round                
+      |   play(state)                       |                 |                                 
+      | -------------------------- ~~~ ---> |                 |                                 
+      |     action                          |                 |                                 
+      | <========================= ~~~ ===  |                 |                                 
+      .                                     .                 .                                 
+      .                                     .                 .                                 
+      .                                     .                 .                                 
+      .                                     .                 .                                 
+      |   play(state)                       |                 |                                 
+      | -------------------------- ~~~ ---------------------> |                                 
+      |     action                          |                 |                                 
+      | <========================= ~~~ ====================== |                                 
+      |                                     |                 |                                 
+      .                                     .                 .                                 
+      .                                     .                 .                                 

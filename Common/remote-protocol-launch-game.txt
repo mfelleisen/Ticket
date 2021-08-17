@@ -1,0 +1,28 @@
+
+referee                                player (p_1) . . . player (p_n)                         
+  |                                       |                 |                                  
+  |                                       |                 |                                  
+  |     setup(map,r,cards)                |                 | % the map for this game          
+  | --------------------------  ~~~~ ---> |                 | % the number of rails            
+  | <=========================  ~~~~ ===  |                 | % colored cards                  
+  |                                       |                 |                                  
+  |     pick(destinations[])              |                 | % given these 5 destinations,    
+  | --------------------------  ~~~~ ---> |                 | % where does the player          
+  |     destinations[]                    |                 | % want to go (return 3)          
+  | <=========================  ~~~~ ==== |                 |                                  
+  |                                       |                 |                                  
+  .                                       .                 .                                  
+  .                                       .                 . % repeat down age                
+  .                                       .                 .                                  
+  |                                       |                 |                                  
+  |     setup(map,n,r)                    |                 |                                  
+  | --------------------------  ~~~~ ---------------------> |                                  
+  | <=========================  ~~~~ ====================== |                                  
+  |                                       |                 |                                  
+  |     pick(destinations[])              |                 |                                  
+  | --------------------------  ~~~~ ---> |                 |                                  
+  |     destinations[]                    |                 |                                  
+  | <=========================  ~~~~ ====================== |                                  
+  |                                       |                 |                                  
+
+
