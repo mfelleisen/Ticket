@@ -35,6 +35,7 @@
 (require (only-in json jsexpr?))
 
 (provide
+  URL
  CITIES
  WIDTH 
  HEIGHT
@@ -97,8 +98,10 @@
 ;                                   ;                                       ;              
 ;                                                                                          
 
+(define URL    'url)
+
 (define CITIES 'cities)
-(define WIDTH 'width)
+(define WIDTH  'width)
 (define HEIGHT 'height)
 (define CONNECTIONS 'connections)
 

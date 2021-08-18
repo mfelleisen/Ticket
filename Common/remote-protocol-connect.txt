@@ -34,7 +34,7 @@ server                           client (c_1) ... client (c_n)
   |
   |
   |
-  | new(map, rpp_1,..., rpp_n)        manager
+  | new(map::Map+, rpp_1,..., rpp_n)   manager
   |-------------------------------------+ 
   |                                     |
   |                                     |
