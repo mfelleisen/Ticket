@@ -6,7 +6,7 @@ server                           client (c_1) ... client (c_n)
   |                                |                 |
   |   name as JSON string          |                 | *
   |< ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ |                 | no reply 
-  |   Map+ :: JSON                 |                 | *
+  |   Map+ :: JSON                 |                 | ^
   |< ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ |                 | no reply 
   |                                |                 |
   |                                |                 |
@@ -21,7 +21,7 @@ server                           client (c_1) ... client (c_n)
   |        |                       |                 |
   |   name as JSON string          |                 | *
   |< ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ | no reply 
-  |   Map+ :: JSON                 |                 | *
+  |   Map+ :: JSON                 |                 | ^
   |< ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ | no reply 
   |        |                       |                 |
   |        |                       |                 |
@@ -40,5 +40,9 @@ server                           client (c_1) ... client (c_n)
   |                                     |
   |                                     |
 
-* The name consist of at least one and at most 12 alphabetical ASCII characters.
-  The server expects to receive a name within 10s after the connection is established. 
+* The name consist of at least one and at most 12 alphabetical ASCII
+  characters. The server expects to receive a name within 10s after 
+  the connection is established. 
+
+^ The map specification must not contain more than 20 cities and 40
+  connections. 
