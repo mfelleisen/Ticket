@@ -4,7 +4,7 @@ server                           client (c_1) ... client (c_n)
   |                                |                 | 
   |< ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ |                 | tcp connect 
   |                                |                 |
-  |   name as JSON string          |                 | *
+  |   PlayerName           	   |                 | *
   |< ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ |                 | no reply 
   |   Map+ :: JSON                 |                 | ^
   |< ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ |                 | no reply 
@@ -19,7 +19,7 @@ server                           client (c_1) ... client (c_n)
   .        |                       .                 .
   |< ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ | tcp connect
   |        |                       |                 |
-  |   name as JSON string          |                 | *
+  |   PlayerName                   |                 | *
   |< ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ | no reply 
   |   Map+ :: JSON                 |                 | ^
   |< ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ | no reply 
@@ -40,8 +40,8 @@ server                           client (c_1) ... client (c_n)
   |                                     |
   |                                     |
 
-* The name consist of at least one and at most 12 alphabetical ASCII
-  characters. The server expects to receive a name within 10s after 
+* The PlayerName consist of at least one and at most 12 alphabetical ASCII
+  characters. The server expects to receive a name within 3s after 
   the connection is established. 
 
 ^ The map specification must not contain more than 20 cities and 40
