@@ -73,6 +73,10 @@
         (#:map [map any/c])
         (r game-map?))]
 
+  [project-game-map
+   ;; project this game-map to the set of given connections
+   (-> game-map? [set/c connection/c] game-map?)]
+
   
   #; {[Listof Symbol] N Width Height -> GameMap}
   ;; all symbols are pairwise distinct 
@@ -219,7 +223,7 @@
                      ,[to 'Seattle 'green 4]
                      ,[to 'Orlando 'white 3]
                      ,[to 'Orlando 'green 5]]])
-
+  
   (define simple-triangle
     [hash 'Orlando `[,[to 'Boston  'blue 3]
                      ,[to 'Seattle 'blue 3]]
@@ -245,9 +249,9 @@
     
   (define triangle-nod*
     '[[Boston  [100 100]]
-      [Seattle [200 20]]
-      [Orlando [30 300]]])
-
+      [Orlando [30 300]]
+      [Seattle [200 20]]])
+  
   (define (vtriangle-with-height h) (plain-game-map MAX-WIDTH h (list->node triangle-nod*) triangle))
 
   (define vtriangle (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) triangle))
@@ -262,6 +266,56 @@
               [Orlando SanDiego]
               [Chicago SanDiego]
               [SanDiego Seattle]])))
+
+;                                                                                  
+;                                                                                  
+;                              ;                               ;                   
+;                              ;                      ;        ;                   
+;                                                     ;                            
+;   ; ;;;    ;;;;;   ;;;;    ;;;     ;;;;     ;;;   ;;;;;;   ;;;     ;;;;   ; ;;;  
+;   ;;  ;    ;;     ;;  ;;     ;     ;  ;;   ;   ;    ;        ;    ;;  ;;  ;;   ; 
+;   ;    ;   ;      ;    ;     ;    ;    ;  ;         ;        ;    ;    ;  ;    ; 
+;   ;    ;   ;      ;    ;     ;    ;;;;;;  ;         ;        ;    ;    ;  ;    ; 
+;   ;    ;   ;      ;    ;     ;    ;       ;         ;        ;    ;    ;  ;    ; 
+;   ;    ;   ;      ;    ;     ;    ;       ;         ;        ;    ;    ;  ;    ; 
+;   ;;  ;    ;      ;;  ;;     ;     ;       ;   ;    ;        ;    ;;  ;;  ;    ; 
+;   ; ;;;    ;       ;;;;      ;     ;;;;;    ;;;      ;;;  ;;;;;;;  ;;;;   ;    ; 
+;   ;                          ;                                                   
+;   ;                          ;                                                   
+;   ;                       ;;;                                                    
+;                                                                                  
+
+(module+ examples
+  (provide project-triangle-to projected-vtriangle)
+
+  (define project-triangle-to [set '[Boston Seattle red 3] '[Orlando Seattle blue 5]])
+  (define projected-triangle
+    [hash 'Orlando `[,[to 'Seattle 'blue 5]]          
+          'Seattle `[,[to 'Orlando 'blue 5]
+                     ,[to 'Boston 'red 3]]
+          'Boston  `[,[to 'Seattle 'red 3]]])
+  (define projected-vtriangle
+    (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) projected-triangle)))
+
+#; {GameMap [Setof Connections] -> GameMap}
+
+(module+ test
+  (check-equal? (project-game-map vtriangle project-triangle-to) projected-vtriangle))
+
+(define (project-game-map gm connections)
+  (define cities (game-map-city-places gm))
+  (define projected-cities
+    (sort 
+     (set->list 
+      (for/fold ([s (set)]) ([c (in-set connections)])
+        (define c1 (first c))
+        (define c1-in-cities (first (memf (λ (x) (eq? (node-name x) c1)) cities)))
+        (define c2 (second c))
+        (define c2-in-cities (first (memf (λ (x) (eq? (node-name x) c2)) cities)))
+        (set-add (set-add s c1-in-cities) c2-in-cities))) symbol<? #:key node-name))
+  (define width (game-map-width gm))
+  (define height (game-map-height gm))
+  (plain-game-map width height projected-cities (connections->graph (set->list connections))))
 
 ;                                                                                                  
 ;                                                                                                  
