@@ -4,5 +4,8 @@ the logical sample player
 
 | file | purpose |
 |--------------------- | ------- |
+| [astrategy.rkt](astrategy.rkt) | an abstract module for strategies, contains the common elements | 
+| [dumb-strategy.rkt](dumb-strategy.rkt) | a silly strategy of choosing destinations and connections by name | 
+| [istrategy.rkt](istrategy.rkt) | an interface for strategies | 
 | [player.rkt](player.rkt) | the mechanical part of the player (simplistic) | 
 | [simple-strategy.rkt](simple-strategy.rkt) | a silly strategy of choosing destinations and connections by name | 
