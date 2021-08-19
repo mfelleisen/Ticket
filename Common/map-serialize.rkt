@@ -35,7 +35,7 @@
 (require (only-in json jsexpr?))
 
 (provide
-  URL
+ URL
  CITIES
  WIDTH 
  HEIGHT
@@ -67,9 +67,13 @@
 ;                   ;                                                                              
 ;                                                                                                  
 
-(require Trains/Common/map)
 (require Trains/Common/basic-constants)
+(require Trains/Common/map)
+(require Trains/Lib/get-data-url)
+(require Trains/Lib/get-image-from-url)
 (require SwDev/Testing/communication)
+(require (prefix-in htdp: 2htdp/image))
+(require net/url)
 
 (module+ examples
   (require (submod Trains/Common/map examples)))
@@ -104,6 +108,7 @@
 (define WIDTH  'width)
 (define HEIGHT 'height)
 (define CONNECTIONS 'connections)
+(define URI    'URI)
 
 #; {type Graph  = [Hash [WIDTH M] [HEIGHT N] [CITIES Cities] [CONNECTIONS JGraph]]}
 #; {type Cities = [Listof [List String [List N N]]]}
@@ -146,10 +151,18 @@
 
 #; {Nod* Connection* Image -> MAP}
 (define (game-map->jsexpr g)
-  (hash WIDTH  (game-map-width g)
-        HEIGHT (game-map-height g)
-        CITIES (map (lambda (x) (cons (~a (first x)) (rest x))) (game-map-locations g))
-        CONNECTIONS (graph->jsexpr g)))
+  (cond
+    [(game-map-png g)
+     =>
+     (λ (img)
+       (hash URI (bytes->string/utf-8 (image->data-url img))
+             CITIES (map (lambda (x) (cons (~a (first x)) (rest x))) (game-map-locations g))
+             CONNECTIONS (graph->jsexpr g)))]
+    [else 
+     (hash WIDTH  (game-map-width g)
+           HEIGHT (game-map-height g)
+           CITIES (map (lambda (x) (cons (~a (first x)) (rest x))) (game-map-locations g))
+           CONNECTIONS (graph->jsexpr g))]))
 
 #; {Graph -> JGraph}
 (define (graph->jsexpr graph)
@@ -214,6 +227,29 @@
          (return "two cities with identical location"))
        (define connections (parse-connections s city-names return))
        (construct-game-map w h cities connections)]
+      [(hash-table ((? (curry eq? URI))         (? string? uri))
+                   ((? (curry eq? CITIES))      c)
+                   ((? (curry eq? CONNECTIONS)) s))
+
+       (define the-map
+         (with-handlers ([exn:fail? (λ (xn) (return (exn-message xn)))])
+           (define uri-as-bytes (string->bytes/utf-8 uri))
+           (cond
+             [(is-data-url? uri-as-bytes) (extract-image uri-as-bytes)]
+             [else (png-from-url uri)])))
+
+       (define w (htdp:image-width the-map))
+       (define h (htdp:image-height the-map))
+
+       (define cities (map (parse-city w h return) c))
+       (define city-names (map first cities))
+       (unless (= (set-count (apply set city-names)) (length city-names))
+         (return "duplicate city name"))
+       (define city-locs  (map second cities))
+       (unless (= (set-count (apply set city-locs)) (length city-locs))
+         (return "two cities with identical location"))
+       (define connections (parse-connections s city-names return))
+       (construct-game-map w h cities connections #:map the-map)]
       [_ (return "not a map object (with the four required fields)")])))
 
 #; {N N [Boolean -> Empty] -> JSexpr -> Node}
@@ -331,3 +367,13 @@
   (check-false (with-input-from-file "map-serialize.rkt" parse-game-map) "bad file format")
   
   (check-false (with-input-from-string "" parse-game-map) "eof"))
+
+(module+ test
+  (require Trains/Lib/get-image-from-url)
+  (require (prefix-in htdp: 2htdp/image))
+  (define uri-for-standadrd-map "/Users/matthias/Courses/21SwDev/Source/Images/map.png")
+  (define png (htdp:scale .8 (png-from-url uri-for-standadrd-map)))
+  (define png-width (htdp:image-width png))
+  (define png-height (htdp:image-height png))
+  (define graph2 [construct-game-map png-width png-height  example1 connect1 #:map png])
+  (check-equal? (->vgraph graph2) graph2 "parse"))

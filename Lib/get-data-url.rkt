@@ -1,6 +1,6 @@
 #lang racket/gui
 
-;; retrieve image via a relative file path, a file URL, or a net URL
+;; encode PNG files as data-urls, extract PNG images from data urls
 
 ;                                                          
 ;                                                          
@@ -20,12 +20,16 @@
 ;                   ;                                      
 ;                                                          
 
-
 (require 2htdp/image)
 
 (provide
+
+ is-data-url?
+ 
  (contract-out
-  [png-from-url (-> string? image?)]))
+  [image->data-url (-> image? is-data-url?)]
+  [extract-image   (-> is-data-url? image?)]
+  [create-data-url (-> (or/c string? path?) bytes?)]))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -45,8 +49,7 @@
 ;                   ;                                                                              
 ;                                                                                                  
 
-(require net/url)
-
+(require net/base64)
 (module+ picts
   (require (submod "..")))
 
@@ -68,19 +71,41 @@
 ;                                                                          
 ;                                                                          
 
-#; {String -> Image}
-(define (png-from-url url-as-string)
-  (define url (string->url url-as-string))
-  (cond
-    [(boolean? (url-scheme url))
-     (unless (file-exists? url-as-string) (error 'png-from-url "expected path to file, given ~e" url))
-     (define bm (make-object bitmap% url-as-string 'png #false #true 1.0 #true))
-     (unless (send bm ok?) (error 'png-from-url "something went wrong with the bitmap creation"))
-     bm]
-    [else 
-     (call/input-url url
-                     (λ (url) (get-pure-port url #:redirections 20))
-                     (λ (port) (make-object bitmap% port 'unknown #f)))]))
+(define data-url-header  #"data:image/png;base64,")
+(define data-url-pattern (byte-pregexp (bytes-append data-url-header #"(.+)")))
+
+(define (is-data-url? x)
+  (and (bytes? x) (regexp-match data-url-pattern x) #true))
+
+#; {DatURL -> Image}
+(define (extract-image url)
+  (define is-data-url (regexp-match data-url-pattern url))
+  (unless is-data-url
+    (error 'extract-image "expected data url, given ~e" url))
+  (define png-bytes (base64-decode (second is-data-url)))
+  (define obj
+    (with-input-from-bytes png-bytes
+      (λ () (make-object bitmap% (current-input-port) 'png #f))))
+  (unless (send obj ok?)
+    (error 'extract-image "expected PNG bytes, given ~e" png-bytes))
+  obj)
+
+#; {FilePath -> DataUrl}
+(define (create-data-url fp)
+  (unless (file-exists? fp) (error 'create-data-url "expected path to file, given ~e" fp))
+  (define bm (make-object bitmap% fp 'png #false #true 1.0 #true))
+  (unless (send bm ok?) (error 'create-data-url "something went wrong with the bitmap creation"))
+  (define by (send bm get-data-from-file))
+  (unless by (error 'create-data-url "expected bytes from ~a, something went wrong" fp))
+  (define b3 (vector-ref by 2))
+  (bytes-append data-url-header (base64-encode b3)))
+
+(define (image->data-url image)
+  (define filename (make-temporary-file))
+  (save-image image filename)
+  (create-data-url filename))
+
+
 
 ;                                          
 ;                                          
@@ -102,12 +127,7 @@
 
 (module+ picts
 
-  (define net-url  "https://www.felleisen.org/Images/christopher.png")
-  (define file-url "file:/Users/matthias/Courses/21SwDev/Source/Images/map.png")
-  (define rel-path "../../../Courses/21SwDev/Source/Images/map.png")
+  (define file-path "../../../Courses/21SwDev/Source/Images/map.png")
+  (define bar-obj (extract-image (create-data-url file-path)))
 
-  (define net-pict  (png-from-url net-url))
-  (define file-pict (png-from-url file-url))
-  (define rel-pict  (png-from-url rel-path))
-
-  rel-pict)
+  (define stuff (image->data-url bar-obj)))

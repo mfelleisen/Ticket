@@ -21,6 +21,7 @@
 
 (require (only-in Trains/Common/basic-constants width? height? color? seg#?))
 (require SwDev/Contracts/unique)
+(require (prefix-in htdp: 2htdp/image))
 
 ;; ---------------------------------------------------------------------------------------------------
 (define lexi-cities/c (λ (x) (symbol<? (first x) (second x))))
@@ -81,6 +82,7 @@
 
   [game-map-width     (-> game-map? width?)]
   [game-map-height    (-> game-map? height?)]
+  [game-map-png       (-> game-map? (or/c #false htdp:image?))]
   [game-map-cities    (-> game-map? [listof symbol?])]
   [game-map-locations (-> game-map? [listof [list/c symbol? (list/c natural? natural?)]])]
 
@@ -631,9 +633,8 @@
                              [|San Diego| Seattle]])))
                   
 (module+ test
-  (define url-for-standard-map "file:/Users/matthias/Courses/21SwDev/Source/Images/map.png")
-
-  (define the-map    (png-from-url url-for-standard-map))
+  (define file-path "../../../Courses/21SwDev/Source/Images/map.png")
+  (define the-map    (png-from-url file-path))
   (define scaled-map (htdp:scale .8 the-map))
   (define scaled-height (htdp:image-height scaled-map))
   (check-equal?
