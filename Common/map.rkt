@@ -19,7 +19,7 @@
 ;                   ;                                      
 ;                                                          
 
-(require Trains/Common/basic-constants)
+(require (only-in Trains/Common/basic-constants width? height? color? seg#?))
 (require SwDev/Contracts/unique)
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -69,6 +69,7 @@
          [h height?]
          [cities-and-places [listof [list/c symbol? [list/c natural? natural?]]]]
          [connections       [cities-and-places] (and/c connection*/c (in-cities? cities-and-places))])
+        (#:map [map any/c])
         (r game-map?))]
 
   
@@ -122,9 +123,14 @@
 ;                   ;                                                                              
 ;                                                                                                  
 
+
+(require (except-in Trains/Common/basic-constants width? height? color? seg#?))
+(require (prefix-in htdp: 2htdp/image))
+
 (module+ test
   (require (submod ".."))
   (require (submod ".." examples))
+  (require Trains/Lib/get-image-from-url)
   (require rackunit))
 
 ;                                                                          
@@ -146,8 +152,8 @@
 
 (define (game-map-equal? one two ek)
   (equal?
-   (drop (reverse (vector->list (struct->vector one))) 3)
-   (drop (reverse (vector->list (struct->vector two))) 3)))
+   (drop (reverse (vector->list (struct->vector one))) 4)
+   (drop (reverse (vector->list (struct->vector two))) 4)))
 
 (define (game-map-hash-code . x) 100)
 
@@ -156,7 +162,9 @@
 ;; INCLUDING THE VISUAL ELEMENTS 
 (struct game-map [width height city-places graph
                         ;; these three fields are about memoization 
-                        destinations paths paths-between]
+                        destinations paths paths-between
+                        ;; this one is for background visualization 
+                        png]
   #:transparent
   #:mutable
   #:methods gen:equal+hash
@@ -165,7 +173,7 @@
    (define hash2-proc game-map-secondary-hash-code)])
 
 (define (plain-game-map width height city-places graph)
-  (game-map width height city-places graph #false #false (hash)))
+  (game-map width height city-places graph #false #false (hash) #false))
 
 (define (game-map-locations g)
   (for/list ([n (game-map-city-places g)])
@@ -238,6 +246,8 @@
       [Seattle [200 20]]
       [Orlando [30 300]]])
 
+  (define (vtriangle-with-height h) (plain-game-map MAX-WIDTH h (list->node triangle-nod*) triangle))
+
   (define vtriangle (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) triangle))
   (define striangle (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) simple-triangle))
   
@@ -268,8 +278,18 @@
 ;                                                                                                  
 ;                                                                                                  
 
-(define (construct-game-map width height nod* c*)
-  (plain-game-map width height (list->node nod*) (connections->graph c*)))
+(define (construct-game-map width height nod* c* #:map (a-png-map #false))
+  (define gm (plain-game-map width height (list->node nod*) (connections->graph c*)))
+  (when a-png-map
+    (define w (htdp:image-width a-png-map))
+    (define h (htdp:image-height a-png-map))
+    (unless (and (= width w) (= height h))
+      (error 'construct-game-map
+             "the given Image has dimensions different from those specified: ~e vs ~e, ~e vs ~e"
+             w width
+             h height))
+    (set-game-map-png! gm a-png-map))
+  gm)
 
 #; {[Listof [List Symbol [List N N]]] -> [Listof Node]}
 (define (list->node nod*)
@@ -537,7 +557,7 @@
 
 (module+ examples ;; more
 
-  (provide striangle)
+  (provide striangle vtriangle-with-height)
   
   (define vrectangle
     (plain-game-map
@@ -610,3 +630,16 @@
                              [Orlando Seattle]
                              [|San Diego| Seattle]])))
                   
+(module+ test
+  (define url-for-standard-map "file:/Users/matthias/Courses/21SwDev/Source/Images/map.png")
+
+  (define the-map    (png-from-url url-for-standard-map))
+  (define scaled-map (htdp:scale .8 the-map))
+  (define scaled-height (htdp:image-height scaled-map))
+  (check-equal?
+   (construct-game-map MAX-WIDTH scaled-height triangle-nod* triangle-source #:map scaled-map)
+   (vtriangle-with-height scaled-height))
+
+  (check-exn exn:fail?
+             (λ ()
+               (construct-game-map MAX-WIDTH MAX-WIDTH triangle-nod* triangle-source #:map the-map))))
