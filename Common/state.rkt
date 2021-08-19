@@ -107,6 +107,7 @@
 
 (struct ii [destination1 destination2 rails cards connections payload] #:transparent)
 #; {type [MePlayer X] = (ii Desitination Destination Natural [Hash Color Natural] Player X)}
+#; {type Player       = [Setof Connection]}
 ;; the two destination cards, the rails left, the colored cards, and this player's possessions
 
 (define (ii-payload-- ii-player)
@@ -236,7 +237,6 @@
 
 (struct pstate [I others] #:transparent)
 #; {type PlayerState  = (pstate [MePlayer Any] [Listof Player])}
-#; {type Player       = [Setof Connection]}
 ;; what the player knows about itself and others 
 
 (module+ examples
