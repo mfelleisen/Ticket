@@ -20,6 +20,7 @@
 ;                                                          
 
 (require Trains/Common/basic-constants)
+(require SwDev/Contracts/unique)
 
 ;; ---------------------------------------------------------------------------------------------------
 (define lexi-cities/c (λ (x) (symbol<? (first x) (second x))))
@@ -69,6 +70,13 @@
          [cities-and-places [listof [list/c symbol? [list/c natural? natural?]]]]
          [connections       [cities-and-places] (and/c connection*/c (in-cities? cities-and-places))])
         (r game-map?))]
+
+  
+  #; {[Listof Symbol] N Width Height -> GameMap}
+  ;; all symbols are pairwise distinct 
+  #; (construct-random-map city-names m width height)
+  ;; creates a map of size `width` x `height` with the named cities and `m` connections between them 
+  (construct-random-map (-> width? height? (and/c (listof symbol?) unique/c) natural? game-map?))
 
   [game-map-width     (-> game-map? width?)]
   [game-map-height    (-> game-map? height?)]
@@ -283,68 +291,123 @@
   (for*/fold ([directed-graph graph]) ([c (group-by connection-from c*)][from (in-value (caar c))])
     (hash-update directed-graph from (curry append (map (λ (x) (apply to (rest x))) c)) '[])))
 
-;; ---------------------------------------------------------------------------------------------------
-(provide construct-random-map)
-(define (construct-random-map city-names m-connections width height)
-  (define nodes (random-nodes city-names width height))
-  (define conns (random-connections city-names m-connections))
-  (plain-game-map width height nodes (connections->graph conns)))
+;                                                                                                  
+;                                                                                                  
+;                                ;                                                                 
+;                                ;                                                                 
+;                                ;                                                                 
+;    ;;;;;    ;;;   ; ;;;    ;;; ;   ;;;;   ;;;;;;            ;;;    ;;;;   ; ;;;    ;;;;          
+;    ;;      ;   ;  ;;   ;   ;  ;;  ;;  ;;  ;  ;  ;          ;   ;  ;;  ;;  ;;   ;  ;    ;         
+;    ;           ;  ;    ;  ;    ;  ;    ;  ;  ;  ;         ;       ;    ;  ;    ;  ;              
+;    ;       ;;;;;  ;    ;  ;    ;  ;    ;  ;  ;  ;         ;       ;    ;  ;    ;  ;;;            
+;    ;      ;    ;  ;    ;  ;    ;  ;    ;  ;  ;  ;         ;       ;    ;  ;    ;     ;;;         
+;    ;      ;    ;  ;    ;  ;    ;  ;    ;  ;  ;  ;         ;       ;    ;  ;    ;       ;    ;;   
+;    ;      ;   ;;  ;    ;   ;  ;;  ;;  ;;  ;  ;  ;          ;   ;  ;;  ;;  ;    ;  ;    ;    ;;   
+;    ;       ;;; ;  ;    ;   ;;; ;   ;;;;   ;  ;  ;           ;;;    ;;;;   ;    ;   ;;;;     ;;   
+;                                                                                                  
+;                                                                                                  
+;                                                                                                  
+;                                                                                                  
+
+(define (construct-random-map width height city-names m-connections)
+  (define nodes (send (new random-nodes% [over city-names] [width width] [height height]) main))
+  (define conns (send (new random-connections% [city-names city-names] [over m-connections]) main))
+  (plain-game-map width height (list->node nodes) (connections->graph conns)))
 
 (define RANDOM 10)
-(define (random-nodes city-names width height)
-  #; {[Listof [List N N]] -> [List N N]}
-  #;
-  (define random-1-node
-    (make-random 'random-1-node
-                 (λ () (list (random width) (random height)))
-                 (λ (x-y) (not (member x-y so-far)))))
-  
-  (define (random-1-node so-far [tries RANDOM])
-    (when (zero? tries)
-      (displayln `[cities so far ,so-far] (current-error-port))
+
+(define random%
+  (class object% (init-field over [tries RANDOM])
+    (super-new)
+    
+    (define/public (main)
+      (for/fold ([so-far '()]) ([i over])
+        (define next (random-1-node (good? so-far)))
+        (cons (make-next i next) so-far)))
+    
+    (define/public (random-1-node good?)
+      (let random-1-node ([tries tries])
+        (when (zero? tries) (err))
+        (define candidate (generate))
+        (if (good? candidate) candidate (random-1-node (- tries 1)))))
+
+    (define/public (generate) 'error)
+    (define/public (err) 'error)
+    (define/pubment ((good? so-far) x) (not (inner #false good? so-far x)))
+    (define/public (make-next i next) 'error)))
+
+(define random-nodes%
+  #; (new random-nodes% [over [Listof CityName]] [width N] [height N])
+  ;; generates
+  #; [Listof [List CityName [List N N]]]
+  ;; disttinct positions for every city name in width x height 
+  (class random% (init-field width height)
+    (super-new)
+    
+    (define/override (generate) (list (random width) (random height)))
+    
+    (define/override (err)
       (error 'random-nodes "unable to generate more city locations in [~a x ~a]" width height))
-    (define x-y (list (random width) (random height)))
-    (if (not (member x-y so-far)) x-y (random-nodes city-names width height)))
+    
+    (define/augment (good? so-far x-y) (memf (λ (x) (equal? x-y (second x))) so-far))
+    
+    (define/override (make-next c x) (list c x))))
 
-  #; {[Listof [List City [List N N]]]}
-  (define-values (so-far _)
-    (for/fold ([so-far '()] [coordinates '[]]) ([c city-names])
-      (define x-y (random-1-node coordinates))
-      (values (cons (list c x-y) so-far) (cons x-y coordinates))))
-
-  (list->node so-far))
-
-(define (make-random tag make-candidate test-candidate)
-  (define (try [tries RANDOM])
-    (when (zero? tries)
-      (error tag "unable to generate more candidates"))
-    (define x-y (make-candidate))
-    (if (not (test-candidate x-y)) x-y (try)))
-  try)
-
-(define (random-connections city-names m-connections)
-  (let loop ([i m-connections] [connections '()])
-    (cond
-      [(zero? i) connections]
-      [else
-       (define from-to (pick-2-cities city-names))
-       (define so-far (filter (λ (c) (equal? (take c 2) from-to)) connections))
-       (cond
-         [(= (length so-far) (length COLORS)) (loop i connections)]
-         [else (loop (- i 1) (cons (add-1-connection from-to so-far) connections))])])))
-
-(define (add-1-connection from-to so-far)
-  (append (apply list-cities from-to) `[,(random-pick COLORS) 3]))
-
-(define (pick-2-cities city-names)
-  (define candidate (list (random-pick city-names) (random-pick city-names)))
-  (if (apply equal? candidate) (pick-2-cities city-names) candidate))
+(define random-connections%
+  #; (new random-connections% [city-names [Listof CityName]] [over N])
+  ;; generates
+  #; [Listof [List CityName CityName Color Seg#]]
+  ;; `over` distinct connections between the specified cities 
+  (class random% (init-field city-names)
+    (super-new)
+    
+    (define/override (generate)
+      (define candidate1 (random-pick city-names))
+      (define candidate2 (random-pick city-names))
+      (if (equal? candidate1 candidate2) (generate)
+          (append (list-cities candidate1 candidate2) `[,(random-pick COLORS) ,(random-pick SEG#)])))
+    
+    (define/override (err)
+      (error 'random-connections "unable to generate more connections for ~a" city-names))
+    
+    (define/augment (good? so-far a-b) (member a-b so-far))
+    
+    (define/override (make-next _ x) x)))
 
 (define (random-pick lox)
   (list-ref lox (random (length lox))))
 
 (module+ test
-  (construct-random-map (build-list 6 (compose string->symbol ~a)) 20 200 800))
+
+  (define-syntax-rule (check-random width height cities# connections# msg)
+    (let* ([n->str  (compose string->symbol ~a)]
+           [random1 (construct-random-map  width height (build-list cities# n->str) connections#)])
+      (check-equal? (game-map-width random1) width (~a msg " width"))
+      (check-equal? (game-map-height random1) height (~a msg " height"))
+      (check-true (game-map-city-places-set? random1 cities#) (~a msg " location sets"))
+      (check-true (game-map-connections-set? random1 connections#) (~a msg " connection sets"))))
+
+  #; {GameMap N -> Boolean}
+  ;; .. plus there are n cities 
+  (define (game-map-city-places-set? gm n)
+    (define places (map node-posn (game-map-city-places gm)))
+    (= (set-count (apply set places)) (length places) n))
+
+  #; {GameMap N -> Boolean}
+  ;; every set of connections from one city to another is a set
+  ;; the total size of these sets is 2n, because the graph is undirected
+  (define (game-map-connections-set? gm n)
+    (define g (game-map-graph gm))
+
+    (define sizes 
+      (for/list ([(from slice) (in-hash g)])
+        (define L (length slice))
+        (and (= (set-count (apply set slice)) L) L)))
+    
+    (and (andmap values sizes) (= (apply + sizes) (* 2 n))))
+
+  (check-random 200 800 6 20 "random 1")
+  (check-random 200 100 12 20 "random 2"))
 
 
 ;                                                                          

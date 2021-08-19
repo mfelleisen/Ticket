@@ -1,5 +1,23 @@
 #lang racket
 
+;                                                                  
+;                                                                  
+;                                                                  
+;                                                     ;            
+;                                                     ;            
+;    ;;; ;   ;;;;   ; ;;;    ;;;;    ;;;;;    ;;;   ;;;;;;   ;;;;  
+;    ;  ;;   ;  ;;  ;;   ;   ;  ;;   ;;      ;   ;    ;      ;  ;; 
+;   ;    ;  ;    ;  ;    ;  ;    ;   ;           ;    ;     ;    ; 
+;   ;    ;  ;;;;;;  ;    ;  ;;;;;;   ;       ;;;;;    ;     ;;;;;; 
+;   ;    ;  ;       ;    ;  ;        ;      ;    ;    ;     ;      
+;   ;    ;  ;       ;    ;  ;        ;      ;    ;    ;     ;      
+;    ;  ;;   ;      ;    ;   ;       ;      ;   ;;    ;      ;     
+;    ;;; ;   ;;;;;  ;    ;   ;;;;;   ;       ;;; ;     ;;;   ;;;;; 
+;        ;                                                         
+;    ;  ;;                                                         
+;     ;;;                                                          
+;                                                                  
+
 (module generate racket
   (provide tests)
 
@@ -10,14 +28,32 @@
   (define (the-map file-name)
     (let* ([f (file-exists? file-name)]
            [f (and f (with-input-from-file file-name parse-game-map))]
-           [s (or f (construct-random-map (build-list 20 (compose string->symbol ~a)) 40 200 800))]
+           [s (or f (construct-random-map 200 800 (build-list 20 (compose string->symbol ~a)) 40))]
            [j (if f #false (game-map->jsexpr s))]
            [_ (and j (with-output-to-file file-name (λ () (write-json j)) #:exists 'replace))])
       s))
 
   (define tests
     (for/list ([i 5])
-      (the-map (~a "map-" i ".json")))))
+      (the-map (~a "map-" (+ i 22) ".json")))))
+
+;                                                                                          
+;                                                                                          
+;                                                                                          
+;             ;                                               ;                       ;    
+;             ;                                               ;                       ;    
+;    ;;;;   ;;;;;;   ;;;;;   ;;;;    ;;;;    ;;;;           ;;;;;;   ;;;;    ;;;;   ;;;;;; 
+;   ;    ;    ;      ;;      ;  ;;  ;    ;  ;    ;            ;      ;  ;;  ;    ;    ;    
+;   ;         ;      ;      ;    ;  ;       ;                 ;     ;    ;  ;         ;    
+;   ;;;       ;      ;      ;;;;;;  ;;;     ;;;               ;     ;;;;;;  ;;;       ;    
+;      ;;;    ;      ;      ;          ;;;     ;;;            ;     ;          ;;;    ;    
+;        ;    ;      ;      ;            ;       ;            ;     ;            ;    ;    
+;   ;    ;    ;      ;       ;      ;    ;  ;    ;            ;      ;      ;    ;    ;    
+;    ;;;;      ;;;   ;       ;;;;;   ;;;;    ;;;;              ;;;   ;;;;;   ;;;;      ;;; 
+;                                                                                          
+;                                                                                          
+;                                                                                          
+;                                                                                          
 
 (module test racket
 
