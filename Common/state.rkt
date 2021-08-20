@@ -19,7 +19,8 @@
  #; {MePlayer -> N}
  ii-conn-score
 
- #; {PlayerState [Listof Path] -> Integer}
+ #; {PlayerState GameMap -> Integer}
+ ;; the map is the projection of the game map to the player
  ii-destinations-connected 
 
  #; {type Connection  = [list City City Color Length]}
@@ -189,9 +190,11 @@
   (define ii-play  (ii-r (+ RAILS-MIN 2))))
 
 (module+ test
-  
-  (check-equal? (ii-destinations-connected ii-final (project-game-map vtriangle (set-union conns0 conns1))) (* 2 POINTS-PER))
-  (check-equal? (ii-destinations-connected ii-play  (project-game-map vtriangle conns0)) (* -2 POINTS-PER))
+
+  (define gm-ii-final (project-game-map vtriangle (set-union conns0 conns1)))
+  (define gm-ii-play  (project-game-map vtriangle conns0))
+  (check-equal? (ii-destinations-connected ii-final gm-ii-final) (* 2 POINTS-PER))
+  (check-equal? (ii-destinations-connected ii-play  gm-ii-play)  (* -2 POINTS-PER))
 
   (check-true (ii-final? ii-final))
   (check-false (ii-final? ii-play))

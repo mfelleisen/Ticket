@@ -477,36 +477,35 @@
 #; {type Scored = [Listof (List PlayerState N GameMap)]}
 
 #; {Scored -> Scored}
-(define (score-connections players)
-  (for/list ([p.s players])
+(define (score-connections +scored)
+  (for/list ([p.s +scored])
     (match-define (list p s gmp) p.s)
     (list p (ii-conn-score p) gmp)))
 
 #; {Scored -> Scored}
-(define (score-destinations +conns)
-  (for/list ([p.s +conns])
+(define (score-destinations +scored)
+  (for/list ([p.s +scored])
     (match-define (list p s gm) p.s)
     (list p (+ s (ii-destinations-connected p gm)) gm)))
 
 #; {Scored -> Scored}
-(define (score-longest-path +dests)
-  (define players+longest-path 
-    (for/list ([p.s +dests])
+(define (score-longest-path +scored)
+  (define players.longest-path 
+    (for/list ([p.s +scored])
       (match-define (list p s gm) p.s)
       (define paths   (all-possible-paths gm))
       (define lengths (map length paths))
       (cons p.s (apply max lengths))))
-  (define the-longest-path (apply max (map cdr players+longest-path)))
-  (reverse
-   (for/fold ([result '()]) ([p+s players+longest-path])
-     (match-define (cons (and p.s (list p s gm)) score) p+s)
-     (if (= score the-longest-path)
-         (cons (list p (+ s LONG-PATH) gm) result)
-         (cons p.s result)))))
+  (define the-longest (apply max (map cdr players.longest-path)))
+  (for/fold ([result '()]) ([p+s players.longest-path])
+    (match-define (cons (and p.s (list p s gm)) longest-for-p) p+s)
+    (if (= longest-for-p the-longest)
+        (cons (list p (+ s LONG-PATH) gm) result)
+        (cons p.s result))))
 
 #; {Scored -> Ranking}
-(define (rank +longest)
-  (define sorted (sort +longest > #:key second))
+(define (rank +scored)
+  (define sorted (sort +scored > #:key second))
   (define grouped (group-by second sorted))
   (for/list ([group grouped])
     (for/list ([p.s group])
@@ -574,7 +573,7 @@
 
   ;; -------------------------------------------------------------------------------------------------
   ;; score longest path
-  (check-equal? (score-longest-path lop3+score) lop4+score)
+  (check-equal? (score-longest-path lop3+score) (reverse lop4+score))
 
   (define basic  (set '[Boston Seattle green 4]))
   (define better (set '[Boston Seattle red 3] '[Orlando Seattle blue 5]))
@@ -584,7 +583,7 @@
   (define p2-p (project-game-map vtriangle basic))
   (define p1-beats-p2 `[(,p2 0 ,p2-p) (,p1 ,LONG-PATH ,p1-p)])
   
-  (check-equal? (score-longest-path `[(,p2 0 ,p2-p) (,p1 0 ,p1-p)]) p1-beats-p2)
+  (check-equal? (score-longest-path `[(,p2 0 ,p2-p) (,p1 0 ,p1-p)]) (reverse p1-beats-p2))
 
   ;; -------------------------------------------------------------------------------------------------
   ;; rank players 
