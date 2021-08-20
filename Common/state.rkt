@@ -15,10 +15,7 @@
 
  #; {Player -> Boolean}
  ii-final?
-
- #; {MePlayer Path -> Boolean}
- ii-path-covered?
-
+ 
  #; {MePlayer -> N}
  ii-conn-score
 
@@ -133,10 +130,6 @@
 (define (ii-final? ii-player)
   (< (ii-rails ii-player) RAILS-MIN))
 
-(define (ii-path-covered? ii-player path)
-  (match-define (ii d-1 d-2 rails-left cards0 connections xplayer) ii-player)
-  (covered? path connections))
-
 (define (ii-conn-score ii-player)
   (match-define (ii d-1 d-2 rails-left cards0 connections xplayer) ii-player)
   (for/sum ([c connections]) (connection-seg# c)))
@@ -150,22 +143,13 @@
     (define any-path-connection
       (and (member from cities)
            (member to   cities)
-           (for/or ([p (all-paths gm from to)])
-             ;; MF: this is suspicious: it should be symmetric
-             ;; but switching the next two kills a test case
-             (define originations (take (first p) 2))
-             (define destinations (take (last p) 2))
-             (and (member from originations) (member to destinations) (covered? p connections)))))
+           (connected? gm to from)))
     (if any-path-connection POINTS-PER (- POINTS-PER)))
   (+ (plus-minus-points d-1) (plus-minus-points d-2)))
 
 (define (ii+payload ii-player pl)
   (when (ii-payload ii-player) (error 'ii+payload "payload already exists ~e" (ii-payload ii-player)))
   (struct-copy ii ii-player [payload pl]))
-
-#; [Path [Setof Connection] -> Boolean]
-(define (covered? path connections)
-  (for/and ([c path]) (set-member? connections c)))
 
 ;                                          
 ;                                          
@@ -206,8 +190,8 @@
 
 (module+ test
   
-  (check-equal? (ii-destinations-connected ii-final vtriangle) (* 2 POINTS-PER))
-  (check-equal? (ii-destinations-connected ii-play vtriangle) (* -2 POINTS-PER))
+  (check-equal? (ii-destinations-connected ii-final (project-game-map vtriangle (set-union conns0 conns1))) (* 2 POINTS-PER))
+  (check-equal? (ii-destinations-connected ii-play  (project-game-map vtriangle conns0)) (* -2 POINTS-PER))
 
   (check-true (ii-final? ii-final))
   (check-false (ii-final? ii-play))
@@ -216,10 +200,6 @@
   (check-equal? (ii+cards (ii+cards (ii- cards1) blues) (make-list 6 'red)) (ii- cards2))
 
   (check-equal? (ii-acquire ii-play '[Boston Seattle red 3]) ii-final)
-
-  (check-true (ii-path-covered? (ii-acquire ii-play '[Boston Seattle red 3]) path01))
-  (check-false (ii-path-covered? ii-play path01))
-
   (check-equal? (ii-conn-score ii-play) 5))
 
 ;                                                  

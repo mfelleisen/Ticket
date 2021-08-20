@@ -97,10 +97,10 @@
    ;; produces all destinations for the given graph (in lexicographically directed form)
    (-> game-map? (listof destination/c))]
 
-  (all-paths
+  (connected?
    ;; produces a list of all paths from `A` to `B` in the given `vgraph`
    ;; GUARANTEE start from the symbol<? of the two cities, reach the other one (paths are 2-dir)
-   (->i ([g game-map?] [from (g) (is-city? g)] [to (g) (is-city? g)]) (r (listof connection*/c))))
+   (->i ([g game-map?] [from (g) (is-city? g)] [to (g) (is-city? g)]) (r boolean?)))
   
   [all-possible-paths
    ;; produces a list of all paths in the given graph
