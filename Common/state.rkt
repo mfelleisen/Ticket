@@ -141,17 +141,21 @@
   (match-define (ii d-1 d-2 rails-left cards0 connections xplayer) ii-player)
   (for/sum ([c connections]) (connection-seg# c)))
 
-(define (ii-destinations-connected ii-player map)
+(define (ii-destinations-connected ii-player gm)
+  (define cities (game-map-cities gm))
   (match-define (ii d-1 d-2 rails-left cards0 connections xplayer) ii-player)
   (define (plus-minus-points dest)
     (define from (first dest))
     (define to   (second dest))
     (define any-path-connection
-      (for/or ([p (all-paths map from to)])
-        ;; MF: this is suspicious: it should be symmetric but switching the next two kills a test case
-        (define originations (take (first p) 2))
-        (define destinations (take (last p) 2))
-        (and (member from originations) (member to destinations) (covered? p connections))))
+      (and (member from cities)
+           (member to   cities)
+           (for/or ([p (all-paths gm from to)])
+             ;; MF: this is suspicious: it should be symmetric
+             ;; but switching the next two kills a test case
+             (define originations (take (first p) 2))
+             (define destinations (take (last p) 2))
+             (and (member from originations) (member to destinations) (covered? p connections)))))
     (if any-path-connection POINTS-PER (- POINTS-PER)))
   (+ (plus-minus-points d-1) (plus-minus-points d-2)))
 
