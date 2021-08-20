@@ -102,6 +102,9 @@
    ;; GUARANTEE start from the symbol<? of the two cities, reach the other one (paths are 2-dir)
    (->i ([g game-map?] [from (g) (is-city? g)] [to (g) (is-city? g)]) (r boolean?)))
   
+  ;; the longest path in this game map
+  (game-map-longest-path (-> game-map? natural?))
+  
   [all-possible-paths
    ;; produces a list of all paths in the given graph
    ;; GUARANTEE every path connects `A` and `B` such that `(symbol<? A B)` holds
@@ -520,6 +523,13 @@
             dests]))]))
 
 ;; ---------------------------------------------------------------------------------------------------
+#; {GameMap -> N}
+;; the longest path in this game map 
+(define (game-map-longest-path gm)
+  (define paths   (all-possible-paths gm))
+  (define lengths (map length paths))
+  (apply max 0 lengths))
+
 (define/memoize (all-destinations vgraph)
   game-map-destinations
   set-game-map-destinations!)
@@ -644,6 +654,13 @@
             (Seattle     . ())))))
 
 (module+ test
+
+  
+  (check-equal? (game-map-longest-path (plain-game-map 100 100 '[] (hash))) 0)  
+  (check-equal? (game-map-longest-path vtriangle) 2)
+  
+  ;; -------------------------------------------------------------------------------------------------
+  ;; construction 
 
   (check-equal? (construct-game-map MAX-WIDTH MAX-WIDTH triangle-nod* triangle-source) vtriangle)
 

@@ -493,9 +493,7 @@
   (define players.longest-path 
     (for/list ([p.s +scored])
       (match-define (list p s gm) p.s)
-      (define paths   (all-possible-paths gm))
-      (define lengths (map length paths))
-      (cons p.s (apply max lengths))))
+      (cons p.s (game-map-longest-path gm))))
   (define the-longest (apply max (map cdr players.longest-path)))
   (for/fold ([result '()]) ([p+s players.longest-path])
     (match-define (cons (and p.s (list p s gm)) longest-for-p) p+s)
