@@ -395,20 +395,22 @@
 
 (define RANDOM 10)
 
+(require SwDev/Debugging/spy)
+
 (define random%
   (class object% (init-field over [tries RANDOM])
     (super-new)
     
     (define/public (main)
       (for/fold ([so-far '()]) ([i over])
-        (define next (random-1-node (good? so-far)))
+        (define next (random-1 (good? so-far)))
         (cons (make-next i next) so-far)))
     
-    (define/public (random-1-node good?)
-      (let random-1-node ([tries tries])
+    (define/public (random-1 good?)
+      (let random-1 ([tries tries])
         (when (zero? tries) (err))
         (define candidate (generate))
-        (if (good? candidate) candidate (random-1-node (- tries 1)))))
+        (if (good? candidate) candidate (random-1 (- tries 1)))))
 
     (define/public (generate) 'error)
     (define/public (err) 'error)
