@@ -143,7 +143,7 @@
     (define any-path-connection
       (and (member from cities)
            (member to   cities)
-           (connected? gm to from)))
+           (game-map-connected? gm to from)))
     (if any-path-connection POINTS-PER (- POINTS-PER)))
   (+ (plus-minus-points d-1) (plus-minus-points d-2)))
 

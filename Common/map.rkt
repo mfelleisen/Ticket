@@ -97,7 +97,7 @@
    ;; produces all destinations for the given graph (in lexicographically directed form)
    (-> game-map? (listof destination/c))]
 
-  (connected?
+  (game-map-connected?
    ;; produces a list of all paths from `A` to `B` in the given `vgraph`
    ;; GUARANTEE start from the symbol<? of the two cities, reach the other one (paths are 2-dir)
    (->i ([g game-map?] [from (g) (is-city? g)] [to (g) (is-city? g)]) (r boolean?)))
@@ -527,11 +527,11 @@
 (define (all-destinations/proper vgraph)
   (define cities (game-map-cities vgraph))
   (for*/fold ([destinations '()]) ([from cities][to cities] #:when (symbol<? from to))
-    (define are-there-any-paths (connected? vgraph from to))
+    (define are-there-any-paths (game-map-connected? vgraph from to))
     (if are-there-any-paths (cons (list from to) destinations) destinations)))
 
 #; {GameMap City City -> Boolean}
-(define (connected? vgraph from0 to0)
+(define (game-map-connected? vgraph from0 to0)
   (define graph  (game-map-graph vgraph))
   (let loop ([from from0] [seen '()])
     (cond
