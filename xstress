@@ -1,9 +1,17 @@
 #!/bin/bash 
 
+XSTRESS=xstress 
+XOUT=$XSTRESS.out 
+XOLD=$XSTRESS-old.out 
+
 echo "gc-ing" 
 rm -rf *~ */*~ ; rm -rf errors.txt 
 
 echo "making"
 time raco make */*.rkt
 
-gtime raco test -s test Admin/test-ref-on-players.rkt
+mv $XOUT $XOLD
+
+gtime raco test -s test Admin/test-ref-on-players.rkt > $XOUT
+
+diff $XOUT $XOLD
