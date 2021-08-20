@@ -464,11 +464,13 @@
   (match (rstate-players the-state)
     ['() (list '[] (rstate-drop-outs the-state))]
     [players
-     (define +players (map (λ (p) (list p 0 (project-game-map game-map (ii-connections p)))) players))
-     (define +conns   (score-connections +players))
-     (define +dests   (score-destinations +conns))
-     (define +longest (score-longest-path +dests))
-     (define ranking  (rank +longest))
+     (define +scored
+       (let* ([+scored (map (λ (p) `(,p 0 ,(project-game-map game-map (ii-connections p)))) players)]
+              [+scored (score-connections +scored)]
+              [+scored (score-longest-path +scored)]
+              [+scored (score-destinations +scored)])
+         +scored))
+     (define ranking (rank +scored))
      ;; --- rank and inform -- 
      (xinform ranking (rstate-drop-outs the-state))]))
 
