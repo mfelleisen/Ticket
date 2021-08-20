@@ -464,54 +464,51 @@
   (match (rstate-players the-state)
     ['() (list '[] (rstate-drop-outs the-state))]
     [players
-     (define +conns   (score-connections players))
-     (define +dests   (score-destinations +conns game-map))
-     (define +longest (score-longest-path +dests game-map))
+     (define +players (map (λ (p) (list p 0 (project-game-map game-map (ii-connections p)))) players))
+     (define +conns   (score-connections +players))
+     (define +dests   (score-destinations +conns))
+     (define +longest (score-longest-path +dests))
      (define ranking  (rank +longest))
      ;; --- rank and inform -- 
      (xinform ranking (rstate-drop-outs the-state))]))
 
-#; {type Scored = [Listof (Cons PlayerState N)]}
+#; {type Scored = [Listof (List PlayerState N GameMap)]}
 
-#; {[Listof PlayerState] -> Scored}
+#; {Scored -> Scored}
 (define (score-connections players)
-  (for/list ([p players])
-    (cons p (ii-conn-score p))))
+  (for/list ([p.s players])
+    (match-define (list p s gmp) p.s)
+    (list p (ii-conn-score p) gmp)))
 
-#; {Scored Map -> Scored}
-(define (score-destinations +conns game-map)
+#; {Scored -> Scored}
+(define (score-destinations +conns)
   (for/list ([p.s +conns])
-    (match-define (cons p s) p.s)
-    (cons p (+ s (ii-destinations-connected p game-map)))))
+    (match-define (list p s gm) p.s)
+    (list p (+ s (ii-destinations-connected p gm)) gm)))
 
-#; {Scored Map -> Scored}
-(define (score-longest-path +dests game-map)
-  #; {Path [Listof [Cons PlayerState N]] -> (U False Scored)}
-  ;; do any of the `ii-players` cover the path `sp` with their connections:
-  ;; -- grant all of them points
-  ;; -- leave everyone else alone 
-  (define (a-player-covers sp players)
-    (let loop ([players players] [result '()] [found? #false])
-      (match players
-        ['() (and found? (reverse result))]
-        [(cons (and p.s (cons p s)) others)
-         (if (not (ii-path-covered? p sp))
-             (loop others (cons p.s result) found?)
-             (loop others (cons (cons p (+ s LONG-PATH)) result) #true))])))
-  
-  (define max-no-conns (apply max (map (compose set-count ii-connections car) +dests)))
-  (define paths        (all-possible-paths game-map))
-  (define filter-paths (filter (λ (p) (<= (length p) max-no-conns)) paths))
-  (define sorted-paths (sort filter-paths > #:key length))
-  (for*/first ([sp sorted-paths] [f (in-value (a-player-covers sp +dests))] #:when f) f))
+#; {Scored -> Scored}
+(define (score-longest-path +dests)
+  (define players+longest-path 
+    (for/list ([p.s +dests])
+      (match-define (list p s gm) p.s)
+      (define paths   (all-possible-paths gm))
+      (define lengths (map length paths))
+      (cons p.s (apply max lengths))))
+  (define the-longest-path (apply max (map cdr players+longest-path)))
+  (reverse
+   (for/fold ([result '()]) ([p+s players+longest-path])
+     (match-define (cons (and p.s (list p s gm)) score) p+s)
+     (if (= score the-longest-path)
+         (cons (list p (+ s LONG-PATH) gm) result)
+         (cons p.s result)))))
 
 #; {Scored -> Ranking}
 (define (rank +longest)
-  (define sorted (sort +longest > #:key cdr))
-  (define grouped (group-by cdr sorted))
+  (define sorted (sort +longest > #:key second))
+  (define grouped (group-by second sorted))
   (for/list ([group grouped])
     (for/list ([p.s group])
-      (ii-payload (car p.s)))))
+      (ii-payload (first p.s)))))
 
 #; {Ranking [Listof XPlayer] -> [List Ranking [Listof XPlayer]]}
 (define (xinform rankings drops)
@@ -546,42 +543,50 @@
 ;                                          
 
 (module+ test
+
+  (define projected (map (λ (p) (project-game-map vtriangle (ii-connections p))) lop-ask-more))
   
   (define lop2+score
-    (list (cons (first lop-ask-more) 8)
-          (cons (second lop-ask-more) 5)))
+    (list (list (first lop-ask-more)  8 (first projected))
+          (list (second lop-ask-more) 5 (second projected))))
   (define lop3+score
-    (list (cons (first lop-ask-more) (+ 8 (* 2 POINTS-PER)))
-          (cons (second lop-ask-more) (- 5 (* 2 POINTS-PER)))))
+    (list (list (first lop-ask-more)  (+ 8 (* 2 POINTS-PER)) (first projected))
+          (list (second lop-ask-more) (- 5 (* 2 POINTS-PER)) (second projected))))
   (define lop4+score
-    (list (cons (first lop-ask-more) (+ 8 LONG-PATH (* 2 POINTS-PER)))
-          (cons (second lop-ask-more) (- 5 (* 2 POINTS-PER)))))
+    (list (list (first lop-ask-more)  (+ 8 LONG-PATH (* 2 POINTS-PER)) (first projected))
+          (list (second lop-ask-more) (- 5 (* 2 POINTS-PER))           (second projected))))
   (define lop4-ranked
-    [list (list (ii-payload (car (first lop4+score))))
-          (list (ii-payload (car (second lop4+score))))])
+    [list (list (ii-payload (first (first lop4+score))))
+          (list (ii-payload (first (second lop4+score))))])
 
+  (define projected+ (map (λ (p gm) (list p 0 gm)) lop-ask-more projected))
+  
   ;; -------------------------------------------------------------------------------------------------
   ;; score connections owned by players 
-  (check-equal? (score-connections lop-ask-more) lop2+score)
+  (check-equal? (score-connections projected+) lop2+score)
 
   ;; -------------------------------------------------------------------------------------------------
   ;; score destinations of players 
   
-  (check-equal? (score-destinations lop2+score vtriangle) lop3+score)
+  (check-equal? (score-destinations lop2+score) lop3+score)
 
   ;; -------------------------------------------------------------------------------------------------
   ;; score longest path
-  (check-equal? (score-longest-path lop3+score vtriangle) lop4+score)
-  
+  (check-equal? (score-longest-path lop3+score) lop4+score)
+
+  (define basic  (set '[Boston Seattle green 4]))
   (define better (set '[Boston Seattle red 3] '[Orlando Seattle blue 5]))
   (define p1 (ii '[Boston Seattle] '[Boston Orlando] 32 (hash) better 'x))
-  (define p2 (ii '[Boston Seattle] '[Boston Orlando] 32 (hash) (set '[Boston Seattle green 4]) 'y))
-  (define p1-beats-p2 `[(,p2 . 0) (,p1 . ,LONG-PATH)])
-  (check-equal? (score-longest-path `[(,p2 . 0) (,p1 . 0)] vtriangle) p1-beats-p2)
+  (define p2 (ii '[Boston Seattle] '[Boston Orlando] 32 (hash) basic  'y))
+  (define p1-p (project-game-map vtriangle better))
+  (define p2-p (project-game-map vtriangle basic))
+  (define p1-beats-p2 `[(,p2 0 ,p2-p) (,p1 ,LONG-PATH ,p1-p)])
+  
+  (check-equal? (score-longest-path `[(,p2 0 ,p2-p) (,p1 0 ,p1-p)]) p1-beats-p2)
 
   ;; -------------------------------------------------------------------------------------------------
   ;; rank players 
-  (define (ranked-ii i) (cons (ii '[x z] '[y z] 0 (hash) (set) (~a i)) (- 3 i)))
+  (define (ranked-ii i) (list (ii '[x z] '[y z] 0 (hash) (set) (~a i)) (- 3 i) '_))
   (check-equal? (rank (cons (ranked-ii 2) (build-list 3 ranked-ii))) '[ ["0"] ["1"] ["2" "2"] ])
   (check-equal? (rank lop4+score) lop4-ranked)
 
