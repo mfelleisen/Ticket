@@ -525,11 +525,23 @@
   set-game-map-destinations!)
 
 (define (all-destinations/proper vgraph)
-  (define graph  (game-map-graph vgraph))
   (define cities (game-map-cities vgraph))
   (for*/fold ([destinations '()]) ([from cities][to cities] #:when (symbol<? from to))
-    (define are-there-any-paths (all-paths vgraph from to))
+    (define are-there-any-paths (connected? vgraph from to))
     (if are-there-any-paths (cons (list from to) destinations) destinations)))
+
+#; {GameMap City City -> Boolean}
+(define (connected? vgraph from0 to0)
+  (define graph  (game-map-graph vgraph))
+  (let loop ([from from0] [seen '()])
+    (cond
+      [(member from seen) #false]
+      [else
+       (for/or ([1step (hash-ref graph from '[])])
+         (match-define [to city color seg#] 1step)
+         (cond
+           [(symbol=? city to0) #true]
+           [else (loop city (cons from seen))]))])))
 
 ;; ---------------------------------------------------------------------------------------------------
 (define/memoize (all-possible-paths vgraph)
