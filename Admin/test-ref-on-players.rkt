@@ -37,7 +37,7 @@
 
   (define tests
     (for/list ([i 5])
-      (the-map (~a "map-" (+ i 22) ".json")))))
+      (the-map (~a "map-" i ".json")))))
 
 ;                                                                                          
 ;                                                                                          
