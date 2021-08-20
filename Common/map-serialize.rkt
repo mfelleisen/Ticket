@@ -44,6 +44,7 @@
  (contract-out
   ;; extract VGraph from JSexpr on STDIN, #false otherwise
   [parse-game-map   (-> (or/c #false game-map?))]
+  [parse-map        (-> jsexpr? (or/c #false game-map?))]
   
   [game-map->jsexpr (-> game-map? (and/c jsexpr? guarantee))]))
 
