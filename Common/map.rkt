@@ -641,7 +641,7 @@
   
   (define vrectangle
     (plain-game-map
-     1000
+     800
      800
      '(#s(node |San Diego| #s(cord 176 571))
        #s(node Orlando     #s(cord 715 528))
