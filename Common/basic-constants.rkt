@@ -28,9 +28,15 @@
  CARDS-PER
 
  POINTS-PER
- LONG-PATH)
+ LONG-PATH
+
+ CITY#
+ CONN#)
 
 ;; -----------------------------------------------------------------------------
+(define CITY# 20)
+(define CONN# 40)
+
 (define COLORS '[red blue green white])
 
 (define (color? x) (member (if (string? x) (string->symbol x) x) COLORS))
