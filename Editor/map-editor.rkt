@@ -246,11 +246,11 @@
 (define (draw-connections edges cities background)
   (for/fold ([image background]) ([edge-set (group-by (λ (x) (take x 2)) edges)])
     (for/fold ([image image]) ([x edge-set][j (in-naturals)])
-      (define i (* 5 j))
+      (define i (* 10 j))
       (match-define [list from to c s] x)
       (match-define [list x1 y1] (lookup from cities))
       (match-define [list x2 y2] (lookup to cities))
-      (add-segments image s (+ x1 i) y1 (+ x2 i) y2 c BCOLOR))))
+      (add-segments image s (+ x1 i) (+ y1 i) (+ x2 i) (+ y2 i) c BCOLOR))))
 
 #; {String [Listof InternalCities] -> [List N N]}
 (define (lookup name cities)
