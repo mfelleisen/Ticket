@@ -21,7 +21,7 @@
 ;                                                          
                          
 (provide
- #; {-> VGraph}
+ #; { [GameMap] [#:edit Boolean] -> GameMap}
  ;; this simple map editor produces a visual graph (board) representation 
  ;; cities can be added but not deleted (yet)
  ;; connections are added via a separate selection-based window 
@@ -68,6 +68,7 @@
   (require rackunit))
 
 (module+ picts
+  (require (submod Trains/Common/map examples))
   (require (submod Trains/Common/map-serialize examples)))
 
 ;                                                          
@@ -89,27 +90,31 @@
 ;                                                          
 
 (define-runtime-path MAP "../Resources/map.png")
-(define BACKG  (scale .8 (bitmap/file MAP)))
-(define CITY   (circle 10 'solid 'red))
-(define BCOLOR 'black)
-(define FSIZE  22)
-(define FCOLOR 'white)
+(define BACKG   (scale .8 (bitmap/file MAP)))
+(define CITY    (circle 10 'solid 'red))
+(define BCOLOR  'black)
+(define FSIZE   22)
+(define FCOLOR  'white)
 (define CITY?   "Do you want a city here?")
 (define CANCEL? "Cancel")
 (define NAME    "Enter the city's name")
 
-#; {-> Map}
+#; {-> GameMap}
 ;; pop up map editor, wait for user to add cities to map & connections, construct map rep.
-(define (map-editor)
+(define (map-editor [g #false] #:edit [edit #false])
   (define-values (cities0 connections0 background)
-    (match (parse-game-map) 
-      [(? boolean?)  (values '[] '[] BACKG)]
-      [(? game-map? g)
-       (define cities (map (lambda (x) (cons (~a (first x)) (rest x))) (game-map-locations g)))
-       (define conns  (external->internal-connections (game-map-all-connections g)))         
-       (values cities conns (rectangle (game-map-width g) (game-map-height g) 'solid BCOLOR))]))
-  (match-define (list cities connections) (edit-graph cities0 connections0 background))
+    (match (or g (parse-game-map))
+      [(? boolean?)    (values '[] '[] BACKG)]
+      [(? game-map? g) (game-map-internal g)]))
+  (match-define (list cities connections) (edit-graph cities0 connections0 background edit))
   (construct-game-map (image-width background) (image-height background) cities connections))
+
+#; {GameMap -> (values InternalCities InternalConnections Image)}
+(define (game-map-internal g)
+  (define cities (map (lambda (x) (cons (~a (first x)) (rest x))) (game-map-locations g)))
+  (define conns  (external->internal-connections (game-map-all-connections g)))
+  (define backg  (rectangle (game-map-width g) (game-map-height g) 'solid BCOLOR))
+  (values cities conns backg))
 
 ;                                                                                          
 ;                                                                                          
@@ -146,20 +151,23 @@
 
 #; {[Listof InternalCities]
     [Listof InternalConnection]
-    Image -> [List [Listof InternalCities] [Listof InternalConnection]]}
-(define (edit-graph nod0 connections0 backg)
-  (define connection (new connection% [*connections connections0] [x0 (+ (image-width backg) 55)]))
-  (define cities (internal->external-cities (edit-with-big-bang nod0 connection backg)))
-  (define conns (internal->external-connections (send connection view)))
+    Image
+    Boolean
+    -> [List [Listof InternalCities] [Listof InternalConnection]]}
+(define (edit-graph nod0 c0 backg edit)
+  (define connection (new connection% [*connections c0] [x0 (+ (image-width backg) 55)] [edit edit]))
+  (unless edit (send connection stop))
+  (define cities (internal->external-cities (edit-with-big-bang nod0 connection backg edit)))
+  (define conns  (internal->external-connections (send connection view)))
   (send connection stop)
   (list cities conns))
 
 (define max-time (make-parameter 100000000)) ;; for testing
 #; {[Listof InternalCities] [Listof InteranlConnections] Image -> [Listof InternalCities]}
-(define (edit-with-big-bang nod0 connection backg)
+(define (edit-with-big-bang nod0 connection backg edit)
   (big-bang nod0
     [to-draw (draw-graph connection backg)]
-    [on-mouse (add-city connection)]
+    [on-mouse (if edit (add-city connection) (λ (s . _) s))]
     ;; this just triggers a regular update of the image w/ new connections 
     [on-tick values 1 (max-time)]
     [close-on-stop #true]))
@@ -178,7 +186,7 @@
        [else cities])]))
 
 (define connection% ;; manage InternalConnections via edior and for later use 
-  (class object% (init-field *connections) (init x0)
+  (class object% (init-field *connections) (init x0 [edit #true])
     (super-new)
 
     (define ct (make-custodian))
@@ -189,7 +197,7 @@
         (parameterize ([current-eventspace (make-eventspace)])
           (define frame (new frame% [label "edit connections"] [width 300] [height 300]))
           (manage-connections
-           #:frame frame
+           #:frame (and edit frame)
            #:connections0 *connections #:x x0
            (λ (+or- h)
              #; {(U '+ '-) [Hash FROM TO SEG# COLOR] -> Void}
@@ -277,5 +285,7 @@
 
 
 (module+ picts
+  (map-editor vtriangle)
+
   (with-input-from-string (with-output-to-string (λ () (send-message vtriangle-serialized)))
     map-editor))

@@ -18,7 +18,7 @@
    ;; the 2 strings specify one more panel with which a user can add a new connection 
    (->* (connector)
         (#:connections0 [listof [list/c string? string? color? natural?]]
-         #:frame (is-a?/c area-container<%>) #:x natural? #:y natural?)
+         #:frame (or/c #false (is-a?/c area-container<%>)) #:x natural? #:y natural?)
         (-> [listof [list/c string? string?]] any)))))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -41,9 +41,9 @@
 (define FRAME (new frame% [label "edit connections"] [width 300] [height 300]))
 
 (define (manage-connections edit #:connections0 (c0 '[]) #:frame [fr FRAME] #:x [x #f] #:y [y 0])
-  (when x (send fr move x y))
-  (send fr show #t)
-  (define cb (cb* fr (callback fr edit)))
+  (define the-frame (or fr FRAME))
+  (when x (send the-frame move x y))
+  (define cb (cb* the-frame (callback the-frame fr edit)))
   (cb c0)
   cb)
 
@@ -57,7 +57,7 @@
 (define S "segments: ")
 
 #; {Frame Connector -> [Symbol Symbol [Symbol Natural] -> Void]}
-(define ((callback fr edit-connection) a b (color #false) (seg# #false))
+(define ((callback fr do-show? edit-connection) a b (color #false) (seg# #false))
   (define attr
     (hash From  a
           To    b
@@ -82,7 +82,7 @@
     (send x set-label (~a next)))
   (new button% [parent pa] [label (~a next)] [callback swap])
   
-  (send fr show #t))
+  (send fr show do-show?))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ picts
