@@ -9,7 +9,6 @@ action 1:
       | <============================  |                 | % request cards 
       |     more(cards[])              |                 | 
       | -----------------------------> |                 | % if there are cards
-      | <============================  |                 | 
       |                                |                 | 
       |                                |                 | % no cards available     
       .				       .		 .
