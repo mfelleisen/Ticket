@@ -54,7 +54,7 @@
  pstate-others)
 
 (module+ examples
-  (provide pstate1 pstate2 
+  (provide pstate1 pstate2 pstate-play pstate-final pstate-play+
            #; {Color N -> PlayerState : like pstate2, different color count for c}
            like-pstate2 
            conns0 conns1))
@@ -187,7 +187,10 @@
     (ii '(Boston Seattle) '(Boston Orlando) r cards2 conns0 #f))
   
   (define ii-final (ii-r (- RAILS-MIN 1) (-cards cards2 'red 3) (set-union conns0 conns1)))
-  (define ii-play  (ii-r (+ RAILS-MIN 2))))
+  (define ii-play  (ii-r (+ RAILS-MIN 2)))
+  (define ii-play+ (let* ([i (ii-r (+ RAILS-MIN 2))]
+                          [i (struct-copy ii i [destination1 '[Boston |Kansas City|]])])
+                     i)))
 
 (module+ test
 
@@ -233,7 +236,10 @@
   (define (like-pstate2 c n) (pstate (ii- (hash-set cards2 c n)) (list conns1)))
 
   (define pstate2 (like-pstate2 'green 5))
-  (define pstate3 (pstate ii-final (list conns1))))
+
+  (define pstate-play+ (pstate ii-play+ (list conns0)))
+  (define pstate-play  (pstate ii-play (list conns0)))
+  (define pstate-final (pstate ii-final (list conns0 conns1))))
 
 
 #; {Map PlayerState -> [Setof Connections]}
