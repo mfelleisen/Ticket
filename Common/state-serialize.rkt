@@ -10,7 +10,8 @@
 
  pstate->jsexpr
  acquired->jsexpr
- parse-state)
+ parse-state
+ parse-proper)
  
 
 ;                                                                                                  
@@ -138,36 +139,44 @@
     [(and (string? j) (regexp-match #px"ERR" j)) #false]
     [else (parse-proper j vgraph)]))
 
-(define (parse-proper j vgraph)
-  (define cities (and vgraph (game-map-cities vgraph)))
-  (define conns  (and vgraph (game-map-all-connections vgraph)))
+(define (parse-proper j gm)
+  (define cities (and gm (game-map-cities gm)))
+  (define conns  (and gm (game-map-all-connections gm)))
   (let/ec k
     (define (return s)
       (writeln s (current-error-port))
       (k #false))
     (match j
       [(hash-table ((? (curry eq? THIS)) this) ((? (curry eq? CONNECTIONS)) (list c ...)))
-       (pstate (parse-this return this cities conns) (map (parse-acquired return cities conns) c))]
+       (pstate (parse-this return this gm cities conns) (map (parse-acquired return cities conns) c))]
       [_ (return "not a state object (with the two required fields)")])))
 
-(define (parse-this return j cities conns)
+(define (parse-this return j gm cities conns)
   (match j
     [(hash-table ((? (curry eq? (DESTINATION 1))) d1)
                  ((? (curry eq? (DESTINATION 2))) d2)
                  ((? (curry eq? RAILS)) (? natural? rails))
                  ((? (curry eq? CARDS)) cd)
                  ((? (curry eq? CONNECTIONS)) cs))
-     (ii (parse-destination return d1 cities)
-         (parse-destination return d2 cities)
+     (ii (parse-destination return d1 cities gm)
+         (parse-destination return d2 cities gm)
          rails
          (parse-cards return cd)
          ((parse-acquired return cities conns) cs)
          #false)]
     [_ (return "not a player object (with the six required fields)")]))
 
-(define (parse-destination return j cities)
+(define (parse-destination return j cities gm)
   (match j
-    [(list (? city? city1) (? city? city2)) (2cities city1 city2 return cities)]
+    [(list (? city? from-c) (? city? to-c))
+     (cond
+       [(boolean? cities) (2cities from-c to-c return cities)]
+       [else 
+     (define d-candidate (2cities from-c to-c return cities))
+     (define-values (from to) (apply values d-candidate))
+     (if (game-map-connected? gm from to)
+         d-candidate
+         (return "destinations aren't connected in the given map"))])]
     [_ (return "not a destination array")]))
 
 (define (parse-cards return j)
@@ -177,22 +186,26 @@
     (unless (natural? s) (return "not a count (in the domain of a card object)"))
     (values c s)))
 
+(provide parse-acquired1)
 (define ((parse-acquired return cities conns) j)
   (for/set ([x j])
-    (match x
-      [(list (? city? city1) (? city? city2) (? color? c) (? seg#? s))
-       (define candidate (append (2cities city1 city2 return cities) (list (string->symbol c) s)))
-       (if (or (boolean? conns) (set-member? conns candidate))
-           candidate
-           (return "non-existent connection"))]
-      [_ (return (~s "not a connection array (with 2 cities, a color, and a segment length " x))])))
+    (parse-acquired1 x return cities conns)))
+
+(define (parse-acquired1 x return cities conns)
+  (match x
+    [(list (? city? city1) (? city? city2) (? color? c) (? seg#? s))
+     (define candidate (append (2cities city1 city2 return cities) (list (string->symbol c) s)))
+     (if (or (boolean? conns) (set-member? conns candidate))
+         candidate
+         (return "non-existent connection"))]
+    [_ (return (~s "not a connection array (with 2 cities, a color, and a segment length " x))]))
 
 (define (2cities city1 city2 return cities)
   (define c1 (string->symbol city1))
   (define c2 (string->symbol city2))
   (if (or (boolean? cities) (and (member c1 cities) (member c2 cities)))
       (list c1 c2)
-      (return (~a "not cities: " city1 "::" cities))))
+      (return (~a "not cities: " city1 (member c1 cities) " & " city2 (member c2 cities) "::" cities ))))
 
 ;                                          
 ;                                          
@@ -212,12 +225,13 @@
 ;                                          
 
 (module+ test
+  (require SwDev/Lib/should-be-racket)
 
-  (define-syntax-rule (dev-null e) (parameterize ([current-error-port (open-output-string)]) e))
-  
   (define (->string g [vg #false])
-    (dev-null (with-input-from-string (jsexpr->string (pstate->jsexpr g)) (λ () (parse-state vg)))))
-  
+    (dev/null (with-input-from-string (jsexpr->string (pstate->jsexpr g)) (λ () (parse-state vg)))))
+
+  (check-false (->string pstate-play+ vtriangle++) "pstate's destination1 connects disjoint clique")
+
   (check-equal? (->string pstate1) pstate1)
   (check-equal? (->string pstate1 vtriangle) pstate1)
 
