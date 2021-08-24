@@ -113,7 +113,7 @@
 (module+ examples
   (provide vrectangle)
   (provide vtriangle-paths vtriangle-dests vtriangle-conns vtriangle-boston-seattle)
-  (provide vtriangle triangle-nod* triangle-source triangle))
+  (provide vtriangle++ kc-st vtriangle triangle-nod* triangle-source triangle))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -214,6 +214,11 @@
       [Boston Seattle green 4]
       [Boston Orlando white 3]
       [Boston Orlando green 5]])
+
+  (define kc-st '["Kansas City" "St. Louis" "green" 4])
+
+  (define triangle++-source
+    (append triangle-source `[[|Kansas City| |St. Louis| green 4]]))
   
   (define triangle
     [hash 'Orlando `[,[to 'Boston 'white 3]
@@ -254,6 +259,11 @@
     '[[Boston  [100 100]]
       [Orlando [30 300]]
       [Seattle [200 20]]])
+
+  (define triangle++-nod*
+    (append triangle-nod*
+            '[[|St. Louis| [150 150]]
+              [|Kansas City| [160 140]]]))
   
   (define (vtriangle-with-height h) (plain-game-map MAX-WIDTH h (list->node triangle-nod*) triangle))
 
@@ -729,3 +739,6 @@
   (check-exn exn:fail?
              (λ ()
                (construct-game-map MAX-WIDTH MAX-WIDTH triangle-nod* triangle-source #:map the-map))))
+
+(module+ examples
+  (define vtriangle++ (construct-game-map MAX-WIDTH MAX-WIDTH triangle++-nod* triangle++-source)))
