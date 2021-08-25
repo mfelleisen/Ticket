@@ -9,9 +9,10 @@
  CARDS
 
  pstate->jsexpr
- acquired->jsexpr
+ action->jsexpr
+ 
  parse-state
- parse-proper)
+ parse-acquired1)
  
 
 ;                                                                                                  
@@ -32,6 +33,7 @@
 ;                   ;                                                                              
 ;                                                                                                  
 
+(require Trains/Common/player-interface)
 (require Trains/Common/map)
 (require Trains/Common/state)
 (require Trains/Common/basic-constants)
@@ -110,10 +112,18 @@
 
 (define (acquired->jsexpr c0)
   (for/list ([c (in-set c0)])
-    (match-define [list city1 city2 color seg#] c)
-    (append (map ~a (list-cities city1 city2)) (list (~a color) seg#))))
+    (acquired1->jsexpr c)))
+
+(define (acquired1->jsexpr c)
+  (match-define [list city1 city2 color seg#] c)
+  (append (map ~a (list-cities city1 city2)) (list (~a color) seg#)))
 
 (define (destination->jsexpr d) (map ~a (apply list-cities d)))
+
+(define (action->jsexpr c0)
+  (match c0
+    [(? (curry equal? MORE)) c0]
+    [c (acquired1->jsexpr c)]))
 
 ;                                                                                          
 ;                                                                                          
@@ -132,14 +142,14 @@
 ;                                                                                          
 ;                                                                                          
 
-(define (parse-state [vgraph #false])
+(define (read-and-parse-state [vgraph #false])
   (define j (read-message))
   (cond
     [(eof-object? j) #false]
     [(and (string? j) (regexp-match #px"ERR" j)) #false]
-    [else (parse-proper j vgraph)]))
+    [else (parse-state j vgraph)]))
 
-(define (parse-proper j gm)
+(define (parse-state j gm)
   (define cities (and gm (game-map-cities gm)))
   (define conns  (and gm (game-map-all-connections gm)))
   (let/ec k
@@ -172,11 +182,11 @@
      (cond
        [(boolean? cities) (2cities from-c to-c return cities)]
        [else 
-     (define d-candidate (2cities from-c to-c return cities))
-     (define-values (from to) (apply values d-candidate))
-     (if (game-map-connected? gm from to)
-         d-candidate
-         (return "destinations aren't connected in the given map"))])]
+        (define d-candidate (2cities from-c to-c return cities))
+        (define-values (from to) (apply values d-candidate))
+        (if (game-map-connected? gm from to)
+            d-candidate
+            (return "destinations aren't connected in the given map"))])]
     [_ (return "not a destination array")]))
 
 (define (parse-cards return j)
@@ -186,7 +196,6 @@
     (unless (natural? s) (return "not a count (in the domain of a card object)"))
     (values c s)))
 
-(provide parse-acquired1)
 (define ((parse-acquired return cities conns) j)
   (for/set ([x j])
     (parse-acquired1 x return cities conns)))
@@ -228,16 +237,16 @@
   (require SwDev/Lib/should-be-racket)
 
   (define (->string g [vg #false])
-    (dev/null (with-input-from-string (jsexpr->string (pstate->jsexpr g)) (λ () (parse-state vg)))))
+    (dev/null (with-input-from-string (jsexpr->string (pstate->jsexpr g)) (λ () (read-and-parse-state vg)))))
 
   (check-false (->string pstate-play+ vtriangle++) "pstate's destination1 connects disjoint clique")
 
   (check-equal? (->string pstate1) pstate1)
   (check-equal? (->string pstate1 vtriangle) pstate1)
 
-  (check-false (with-input-from-file "state-serialize.rkt" parse-state) "bad file format")
+  (check-false (with-input-from-file "state-serialize.rkt" read-and-parse-state) "bad file format")
   
-  (check-false (with-input-from-string "" parse-state) "eof")
+  (check-false (with-input-from-string "" read-and-parse-state) "eof")
 
 
   (define A (acquired->jsexpr (all-available-connections vtriangle pstate1)))
