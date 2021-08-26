@@ -4,7 +4,7 @@
 
  DESTINATION
  THIS
- CONNECTIONS
+ ACQUIRED
  RAILS
  CARDS
 
@@ -64,7 +64,7 @@
 
 (define (DESTINATION i) (string->symbol (~a "destination" i)))
 (define THIS        'this)
-(define CONNECTIONS 'acquired)
+(define ACQUIRED    'acquired)
 (define RAILS       'rails)
 (define CARDS       'cards)
 
@@ -101,14 +101,14 @@
 
 (define (pstate->jsexpr ps)
   (hash THIS        (ii->jsexpr (pstate-I ps))
-        CONNECTIONS (for/list ([x (pstate-others ps)]) (acquired->jsexpr x))))
+        ACQUIRED (for/list ([x (pstate-others ps)]) (acquired->jsexpr x))))
 
 (define (ii->jsexpr i)
   (hash (DESTINATION 1) (destination->jsexpr (ii-destination1 i))
         (DESTINATION 2) (destination->jsexpr (ii-destination2 i))
         RAILS           (ii-rails i)
         CARDS           (ii-cards i)
-        CONNECTIONS     (acquired->jsexpr (ii-connections i))))
+        ACQUIRED     (acquired->jsexpr (ii-connections i))))
 
 (define (acquired->jsexpr c0)
   (for/list ([c (in-set c0)])
@@ -157,7 +157,7 @@
       (writeln s (current-error-port))
       (k #false))
     (match j
-      [(hash-table ((? (curry eq? THIS)) this) ((? (curry eq? CONNECTIONS)) (list c ...)))
+      [(hash-table ((? (curry eq? THIS)) this) ((? (curry eq? ACQUIRED)) (list c ...)))
        (pstate (parse-this return this gm cities conns) (map (parse-acquired return cities conns) c))]
       [_ (return "not a state object (with the two required fields)")])))
 
@@ -167,7 +167,7 @@
                  ((? (curry eq? (DESTINATION 2))) d2)
                  ((? (curry eq? RAILS)) (? natural? rails))
                  ((? (curry eq? CARDS)) cd)
-                 ((? (curry eq? CONNECTIONS)) cs))
+                 ((? (curry eq? ACQUIRED)) cs))
      (ii (parse-destination return d1 cities gm)
          (parse-destination return d2 cities gm)
          rails
