@@ -31,7 +31,14 @@
  LONG-PATH
 
  CITY#
- CONN#)
+ CONN#
+
+ MIN-PLAYER-PER-GAME 
+ MAX-PLAYER-PER-GAME 
+
+ CARDS-PER-GAME 
+ MAX-PLAYER-NAME 
+ PLAYER-NAME-PX)
 
 ;; -----------------------------------------------------------------------------
 (define CITY# 20)
@@ -79,6 +86,13 @@
 
 (define POINTS-PER 10)
 (define LONG-PATH  10)
+
+(define MIN-PLAYER-PER-GAME 2)
+(define MAX-PLAYER-PER-GAME 8)
+
+(define CARDS-PER-GAME 250)
+(define MAX-PLAYER-NAME 12)
+(define PLAYER-NAME-PX #px"[a-zA-Z]")
 
 ;; -----------------------------------------------------------------------------
 (module+ test
