@@ -470,13 +470,9 @@
     [players
      (define +scored
        (let* ([+scored (map (λ (p) `(,p 0 ,(project-game-map game-map (ii-connections p)))) players)]
-              [_ (pretty-print +scored (current-error-port))]
               [+scored (score-connections +scored)]
-              [_ (pretty-print +scored (current-error-port))]
               [+scored (score-longest-path +scored)]
-              [_ (pretty-print +scored (current-error-port))]
-              [+scored (score-destinations +scored)]
-              [_ (pretty-print +scored (current-error-port))])
+              [+scored (score-destinations +scored)])
          +scored))
      (define ranking (rank +scored))
      ;; --- rank and inform -- 
