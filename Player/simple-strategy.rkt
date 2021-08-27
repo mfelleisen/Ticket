@@ -22,7 +22,8 @@
 
 (require (only-in Trains/Player/astrategy strategy/c%))
 
-(provide (contract-out [simple-strategy% strategy/c%]))
+(provide (contract-out [simple-strategy% strategy/c%])
+         (rename-out [simple-strategy% strategy%]))
 
 ;                                                                                                  
 ;                                                                                                  
