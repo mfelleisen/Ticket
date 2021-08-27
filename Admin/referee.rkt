@@ -154,7 +154,8 @@
   
   ;; is this too expensive as a contract? 
   (cond
-    [(< (length destination*) (* PICKS-PER (length the-external-players))) ERR]
+    [(< (length destination*) (+ (- PICKS-PER DESTS-PER) (* DESTS-PER (length the-external-players))))
+     ERR]
     [else 
      (let* ([the-state (setup-all-players the-external-players the-game-map cards destination*)]
             [the-state (play-turns the-state connections)]
@@ -469,9 +470,13 @@
     [players
      (define +scored
        (let* ([+scored (map (λ (p) `(,p 0 ,(project-game-map game-map (ii-connections p)))) players)]
+              [_ (pretty-print +scored (current-error-port))]
               [+scored (score-connections +scored)]
+              [_ (pretty-print +scored (current-error-port))]
               [+scored (score-longest-path +scored)]
-              [+scored (score-destinations +scored)])
+              [_ (pretty-print +scored (current-error-port))]
+              [+scored (score-destinations +scored)]
+              [_ (pretty-print +scored (current-error-port))])
          +scored))
      (define ranking (rank +scored))
      ;; --- rank and inform -- 
@@ -496,13 +501,16 @@
   (define players.longest-path 
     (for/list ([p.s +scored])
       (match-define (list p s gm) p.s)
-      (cons p.s (game-map-longest-path gm))))
+      (cons p.s (if (set=? (ii-connections p) (set)) 0 (game-map-longest-path gm)))))
   (define the-longest (apply max (map cdr players.longest-path)))
-  (for/fold ([result '()]) ([p+s players.longest-path])
-    (match-define (cons (and p.s (list p s gm)) longest-for-p) p+s)
-    (if (= longest-for-p the-longest)
-        (cons (list p (+ s LONG-PATH) gm) result)
-        (cons p.s result))))
+  (cond
+    [(zero? the-longest) +scored]
+    [else 
+     (for/fold ([result '()]) ([p+s players.longest-path])
+       (match-define (cons (and p.s (list p s gm)) longest-for-p) p+s)
+       (if (= longest-for-p the-longest)
+           (cons (list p (+ s LONG-PATH) gm) result)
+           (cons p.s result)))]))
 
 #; {Scored -> Ranking}
 (define (rank +scored)
@@ -576,15 +584,29 @@
   ;; score longest path
   (check-equal? (score-longest-path lop3+score) (reverse lop4+score))
 
-  (define basic  (set '[Boston Seattle green 4]))
-  (define better (set '[Boston Seattle red 3] '[Orlando Seattle blue 5]))
-  (define p1 (ii '[Boston Seattle] '[Boston Orlando] 32 (hash) better 'x))
-  (define p2 (ii '[Boston Seattle] '[Boston Orlando] 32 (hash) basic  'y))
-  (define p1-p (project-game-map vtriangle better))
-  (define p2-p (project-game-map vtriangle basic))
-  (define p1-beats-p2 `[(,p2 0 ,p2-p) (,p1 ,LONG-PATH ,p1-p)])
+  (define p1-beats-p2 
+    (let ()
+      (define basic  (set '[Boston Seattle green 4]))
+      (define better (set '[Boston Seattle red 3] '[Orlando Seattle blue 5]))
+      (define p1 (ii '[Boston Seattle] '[Boston Orlando] 32 (hash) better 'x))
+      (define p2 (ii '[Boston Seattle] '[Boston Orlando] 32 (hash) basic  'y))
+      (define p1-p (project-game-map vtriangle better))
+      (define p2-p (project-game-map vtriangle basic))
+      (define p1-beats-p2 `[(,p2 0 ,p2-p) (,p1 ,LONG-PATH ,p1-p)])
   
-  (check-equal? (score-longest-path `[(,p2 0 ,p2-p) (,p1 0 ,p1-p)]) (reverse p1-beats-p2))
+      (check-equal? (score-longest-path `[(,p2 0 ,p2-p) (,p1 0 ,p1-p)]) (reverse p1-beats-p2))
+
+      p1-beats-p2))
+
+  (define _
+    (let ()
+      (define p1 (ii '[Boston Seattle] '[Boston Orlando] 32 (hash) (set) 'x))
+      (define p2 (ii '[Boston Seattle] '[Boston Orlando] 32 (hash) (set) 'y))
+      (define p1-p (project-game-map vtriangle (set)))
+      (define p2-p (project-game-map vtriangle (set)))
+      (define p1-p2 `[(,p2 0 ,p2-p) (,p1 0 ,p1-p)])
+  
+      (check-equal? (score-longest-path `[(,p2 0 ,p2-p) (,p1 0 ,p1-p)]) p1-p2 "no paths, no points")))
 
   ;; -------------------------------------------------------------------------------------------------
   ;; rank players 
