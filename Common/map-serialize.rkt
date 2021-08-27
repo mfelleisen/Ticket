@@ -378,3 +378,7 @@
   (define png-height (htdp:image-height png))
   (define graph2 [construct-game-map png-width png-height  example1 connect1 #:map png])
   (check-equal? (->vgraph graph2) graph2 "parse"))
+
+(module+ examples
+  (define vrectangle-serialized (game-map->jsexpr vrectangle))
+  (provide vrectangle-serialized))
