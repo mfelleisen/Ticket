@@ -89,6 +89,7 @@
       (take sorted-destinations0 DESTS-PER))
 
     #; {[Listof Cards] N -> (values Boolean Action)}
+    ;; buy if you have more than 10 cards, otherwise ask for MORE cards 
     (define/override (stop-here cards rails#)
       (values (< (total-number-of-cards cards) 10) MORE))
 

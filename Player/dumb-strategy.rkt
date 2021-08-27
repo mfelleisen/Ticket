@@ -90,6 +90,7 @@
       (take (reverse sorted-destinations) DESTS-PER))
 
     #; {[Listof Cards] N -> (values Boolean Action)}
+    ;; don't hold back if you can buy (#false), otherwise ask for MORE cards 
     (define/override (stop-here cards rails#)
       (values #false MORE))
 
