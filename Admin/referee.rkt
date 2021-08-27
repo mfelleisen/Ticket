@@ -35,12 +35,13 @@
 ;                                                          
 
 (provide
+ ERR 
  #; {[[Listof XPlayer] Map
                        ;; the next two optional parameters are for deterministic testing 
                        #:cards [Listof Card]
                        #:shuffle [[Listof Destination] -> [Listof Destination]]
                        ->
-                       (List [Listof [Listof XPlayer]] [Listof XPlayer])]}
+                       (U ERR (List [Listof [Listof XPlayer]] [Listof XPlayer]))]}
  referee)
 
 (module+ examples ;; examples for setup, turns, and scoring
@@ -140,6 +141,8 @@
 ;                                                          
 ;                                                          
 
+(define ERR "error: not enough destinations")
+
 (define (referee the-external-players the-game-map
                  #; [Listof Card]
                  #:cards   (cards (make-list 100 'red))
@@ -150,17 +153,17 @@
   (define connections  (game-map-all-connections the-game-map))
   
   ;; is this too expensive as a contract? 
-  (unless (>= (length destination*) (* PICKS-PER (length the-external-players)))
-    (error 'refree "not enough destinations"))
-
-  (let* ([the-state (setup-all-players the-external-players the-game-map cards destination*)]
-         [the-state (play-turns the-state connections)]
-         [results   (score-game the-state the-game-map)])
-    results))
+  (cond
+    [(< (length destination*) (* PICKS-PER (length the-external-players))) ERR]
+    [else 
+     (let* ([the-state (setup-all-players the-external-players the-game-map cards destination*)]
+            [the-state (play-turns the-state connections)]
+            [results   (score-game the-state the-game-map)])
+       results)]))
 
 (module+ test
   (define-values (m1 m2) (values (new (mock%)) (new (mock%))))
-  (check-exn exn:fail? (λ () (referee [list m1 m2] vtriangle)))
+  (check-equal? (referee [list m1 m2] vtriangle) ERR)
   (check-equal? (referee [list m1 m2] vrectangle) `[ () [,m2 ,m1]]))
 
 ;                                                  
