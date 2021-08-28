@@ -8,12 +8,6 @@ the common ontology between external players and the server.
 ### The APIs
 
 - `player-interface` describes how the service side interacts with players 
-- `rules` a data representation for both checking the legality of turns and planning them
-- `state` a data representation of game states: board, orderig of players, knowledge about players 
-- `internal` a representation of the knowledge about the players currently in the game 
-- `board` a representation of the game board
-- `fish` basic constants for the fish tiles
-- `penguin` basic constants for the players' avatars 
 
 ### The Protocols 
 
