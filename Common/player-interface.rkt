@@ -22,6 +22,8 @@
 (provide
  referee-player%/c
  manager-player%/c
+
+ manager-player/c
  action?
  MORE)
 
@@ -81,5 +83,7 @@
 
 (define manager-player%/c
   (class/c
-   [start (->m boolean? any)]
+   [start (->m boolean? game-map?)]
    [end   (->m boolean? any)]))
+
+(define manager-player/c (instanceof/c manager-player%/c))
