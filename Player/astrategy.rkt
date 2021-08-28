@@ -34,7 +34,7 @@
  #; {Connection Connection -> Boolean}
  lexi->length->color<?
 
- #; {City City -> Boolean}
+ #; {Destination Destionation -> Boolean}
  lexi<?)
 
 (module+ examples
