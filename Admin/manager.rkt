@@ -42,10 +42,6 @@
          #:cards   [c (listof color?)])
         (r (or/c ERR results/c)))]))
 
-(module+ examples
-  (provide mock%))
-
-
 ;                                                                                      
 ;       ;                                  ;                                           
 ;       ;                                  ;                          ;                
@@ -66,11 +62,9 @@
 (require Trains/Admin/prepare-games)
 (require Trains/Admin/referee)
 (require Trains/Lib/xsend)
-(require SwDev/Lib/should-be-racket)
 
 (module+ examples
   (require (submod Trains/Common/map examples))
-  (require (submod Trains/Common/state examples))
   (require (submod Trains/Admin/referee examples)))
 
 (module+ test
@@ -209,10 +203,12 @@
       (define/public (end . x) 'thanks))))
 
 (module+ test
-  (require SwDev/Debugging/spy)
+  (define (make-mock-players n gm)
+    (define mocked% (mock+% gm))
+    (build-list n (λ (_) (new mocked%))))
 
-  (define-values (m1 m2) (values (new (mock+% vtriangle)) (new (mock+% vtriangle))))
-  (check-equal? (manager [list m1 m2]) ERR)
+  (define m1-m2 (make-mock-players 2 vtriangle))
+  (check-equal? (manager m1-m2) ERR "the triangle problem")
 
-  (define-values (k1 k2) (values (new (mock+% vrectangle)) (new (mock+% vrectangle))))
-  (check-equal? (manager [list k1 k2]) `[ () [,k2 ,k1]]))
+  (define k1-k2 (make-mock-players 2 vrectangle))
+  (check-equal? (manager k1-k2) `[ () ,(reverse k1-k2)]))
