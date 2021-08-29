@@ -35,17 +35,39 @@
 ;                                                          
 
 (provide
- ERR 
- #; {[[Listof XPlayer] Map
+ ERR
+
+ #; {type [RefereeResult X] = (List [Listof [Listof X]] [Listof X]) }
+
+ #; {[[Listof XPlayer] GameMap
                        ;; the next two optional parameters are for deterministic testing 
                        #:cards [Listof Card]
                        #:shuffle [[Listof Destination] -> [Listof Destination]]
                        ->
-                       (U ERR (List [Listof [Listof XPlayer]] [Listof XPlayer]))]}
+                       (U ERR [RefereeResult XPlayer])]}
  referee)
 
+
+(module+ examples ;; from referee to manager 
+  (provide
+
+   #; RefereePlayerClass
+   mock%
+
+   #; {GameMap N N N -> [List [Listof XPlayer/Hold-10][Listof XPlayer/NuyNow][Listof XPlayer/Cheats]]}
+   make-players
+
+   #; {[Listof XPlayer] -> [Listof String]}
+   players->names
+
+   #; {GameMap from "map-1.json"}
+   big-map
+
+   #; {[Listof Destination] -> [Listof Destination]}
+   sorted-destinations))
+
 (module+ examples ;; examples for setup, turns, and scoring
-  (provide mock% mock-more-card ii-default make-an-ii cards lop))
+  (provide mock-more-card ii-default make-an-ii cards lop))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -76,7 +98,14 @@
 
 (module+ examples
   (require (submod Trains/Common/map examples))
-  (require (submod Trains/Common/state examples)))
+  (require (submod Trains/Common/state examples))
+  (require Trains/Common/map-serialize)
+  (require (prefix-in hold-10: Trains/Player/simple-strategy))
+  (require (prefix-in buy-now: Trains/Player/dumb-strategy))
+  (require (prefix-in cheat:   Trains/Player/cheat-strategy))
+  (require Trains/Player/astrategy)
+  (require Trains/Player/player)
+  (require racket/runtime-path))
 
 (module+ test
   (require (submod ".." examples))
@@ -623,3 +652,68 @@
   ;; -------------------------------------------------------------------------------------------------
   ;; `score-game`
   (check-equal? (score-game (rstate lop-ask-more '() '()) vtriangle) [list lop4-ranked '[]]))
+
+;                                                                                  
+;                                                                                  
+;      ;;;           ;;;     ;;;                                                   
+;     ;                ;       ;              ;                       ;            
+;     ;                ;       ;              ;                       ;            
+;   ;;;;;;  ;    ;     ;       ;            ;;;;;;   ;;;;    ;;;;   ;;;;;;   ;;;;  
+;     ;     ;    ;     ;       ;              ;      ;  ;;  ;    ;    ;     ;    ; 
+;     ;     ;    ;     ;       ;              ;     ;    ;  ;         ;     ;      
+;     ;     ;    ;     ;       ;              ;     ;;;;;;  ;;;       ;     ;;;    
+;     ;     ;    ;     ;       ;              ;     ;          ;;;    ;        ;;; 
+;     ;     ;    ;     ;       ;              ;     ;            ;    ;          ; 
+;     ;     ;   ;;     ;       ;              ;      ;      ;    ;    ;     ;    ; 
+;     ;      ;;; ;      ;;;     ;;;            ;;;   ;;;;;   ;;;;      ;;;   ;;;;  
+;                                                                                  
+;                                                                                  
+;                                                                                  
+;                                                                                  
+
+(module+ examples 
+
+  (define (make-players the-map hold-10# buy-now# cheat#)
+    (define (make-players n strat% prefix)
+      (build-list n
+                  (λ (i)
+                    (define name (~a prefix (integer->char (+ (char->integer #\a) i))))
+                    (new player% [strategy% strat%] [the-map the-map] [name name]))))
+    
+    (define hold-10-players (make-players hold-10# hold-10:strategy% "holdten"))
+    (define buy-now-players (make-players buy-now# buy-now:strategy% "buynow"))
+    (define cheater-players (make-players cheat#   cheat:strategy%   "cheater"))
+
+    `[,hold-10-players ,buy-now-players ,cheater-players])
+  
+  #; {[Listof XPlayer] -> [Listof String]}
+  (define (players->names players)
+    (sort (map (λ (p) (get-field name p)) players) string<?))
+
+  (define-runtime-path map1 "map-1.json")
+  (define big-map (with-input-from-file map1 parse-game-map))
+  
+  (define (sorted-destinations destinatuons) (sort destinatuons lexi<?)))
+
+(module+ test 
+
+  #; {[RefereeResult XPlayer]-> [RefereeResults String]}
+  (define (ref-results->names result)
+    (match-define [list rankings cheats] result)
+    `[,(map players->names rankings) ,(players->names cheats)])
+
+  ;; the numbers cannot be chosen freely
+  ;; assumes that hold-10s are stupid, all buy-nows win 
+  
+  (define (check-referee the-map hold-10# buy-now# cheat#)
+    (match-define [list hold-10s buy-nows cheaters] (make-players the-map hold-10# buy-now# cheat#))
+    (check-equal? (ref-results->names
+                   (referee (append hold-10s buy-nows cheaters)
+                            the-map
+                            #:shuffle sorted-destinations
+                            #:cards (make-list CARDS-PER-GAME 'white)))
+                  (ref-results->names `{[[,@buy-nows] [,@hold-10s]] ,cheaters})))
+  
+  (check-referee vrectangle 1 1 1)
+  (check-referee vrectangle 1 1 0)
+  (check-referee big-map 7 1 0))
