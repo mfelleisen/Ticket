@@ -54,6 +54,9 @@
    #; RefereePlayerClass
    mock%
 
+   #; {[RefereeResult XPlayer]-> [RefereeResults String]}
+   ref-results->names 
+
    #; {GameMap N N N -> [List [Listof XPlayer/Hold-10][Listof XPlayer/NuyNow][Listof XPlayer/Cheats]]}
    make-players
 
@@ -693,15 +696,15 @@
   (define-runtime-path map1 "map-1.json")
   (define big-map (with-input-from-file map1 parse-game-map))
   
-  (define (sorted-destinations destinatuons) (sort destinatuons lexi<?)))
-
-(module+ test 
+  (define (sorted-destinations destinatuons) (sort destinatuons lexi<?))
 
   #; {[RefereeResult XPlayer]-> [RefereeResults String]}
   (define (ref-results->names result)
     (match-define [list rankings cheats] result)
-    `[,(map players->names rankings) ,(players->names cheats)])
+    `[,(map players->names rankings) ,(players->names cheats)]))
 
+(module+ test 
+  
   ;; the numbers cannot be chosen freely
   ;; assumes that hold-10s are stupid, all buy-nows win 
   

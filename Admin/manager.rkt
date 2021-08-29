@@ -35,6 +35,9 @@
 (provide
  (contract-out
   (results/c contract?)
+
+  #; {type [ManagereResult X] = (List [Listof X] [Listof X])}
+
   [manager
    ;; produces a list consisting of the tournament winners and failures/cheaters 
    (->i ([lop (and/c player*/c cons? distinct?)])
