@@ -81,8 +81,11 @@
   (new player% [strategy% strat%] [name name]))
                                          
 (define player%
-  (class object% [init-field strategy% [name (gensym 'player)] [quiet #true]]
+  (class object% [init-field strategy% [name (gensym 'player)] [the-map #false] [quiet #true]]
     (field [strategy #false])
+
+    (define/public (start . x) the-map)
+    (define/public (end . x) 'thanks)
 
     [define/public (setup gm rails cards)
       (set! strategy (new strategy% [the-game-map gm] [rails# rails]))]
