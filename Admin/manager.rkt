@@ -71,6 +71,7 @@
   (require (submod ".." examples))
   (require (submod ".."))
   (require (submod Trains/Common/map examples))
+  (require (submod Trains/Admin/referee examples))
   (require rackunit))
 
 ;                                                   
@@ -137,7 +138,6 @@
     (cond
       ;; not enough for one game 
       [(< lop# MIN-PLAYER-PER-GAME)
-       ;; observer
        (values (list lop) cheats)]
       ;; just enough for one game 
       [(<= lop# MAX-PLAYER-PER-GAME)
@@ -193,8 +193,10 @@
 ;                                     
 ;                                     
 
-(module+ examples
+
+(module+ examples ;; manager mocks check some border cases in top-level functions that "real"s don't
   (provide mock+%)
+  
   (define true-mock% (mock%))
   (define (mock+% gm)
     (class true-mock%
@@ -202,7 +204,8 @@
       (define/public (start . x) gm)
       (define/public (end . x) 'thanks))))
 
-(module+ test
+(module+ test ;; mock players 
+ 
   (define (make-mock-players n gm)
     (define mocked% (mock+% gm))
     (build-list n (λ (_) (new mocked%))))
@@ -212,3 +215,28 @@
 
   (define k1-k2 (make-mock-players 2 vrectangle))
   (check-equal? (manager k1-k2) `[ () ,(reverse k1-k2)]))
+
+(module+ test ;; real players 
+  
+  #; {[Manageresult XPlayer]-> [ManagerResults String]}
+  (define (manager-results->names result)
+    (match-define [list winners cheats] result)
+    `[,(players->names winners) ,(players->names cheats)])
+
+  #; {GameMap N N N -> Test}
+  ;; the numbers cannot be chosen freely
+  ;; assumes that hold-10s are stupid, all buy-nows win 
+  (define (check-manager the-map hold-10# buy-now# cheat#)
+    (match-define [list hold-10s buy-nows cheaters] (make-players the-map hold-10# buy-now# cheat#))
+    (check-equal? (manager-results->names
+                   (manager (append hold-10s buy-nows cheaters)
+                            #:shuffle sorted-destinations
+                            #:cards (make-list CARDS-PER-GAME 'white)))
+                  (manager-results->names `{[,@buy-nows] ,cheaters})))
+
+  (check-manager vrectangle 1 1 1)
+  (check-manager vrectangle 1 1 0)
+  (check-manager vrectangle 0 1 0)
+  (check-manager big-map 17 1 10))
+
+
