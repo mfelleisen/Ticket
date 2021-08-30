@@ -62,7 +62,7 @@
   (require (submod ".." generate))
   (require Trains/Admin/referee)
   (require Trains/Player/player)
-  (require Trains/Player/simple-strategy)
+  (require Trains/Player/hold-10-strategy)
   (require Trains/Common/map)
   (require Trains/Admin/cards)
 

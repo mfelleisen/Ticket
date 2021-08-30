@@ -4,7 +4,7 @@ echo "gc-ing"
 rm -rf *~ */*~ ; rm -rf errors.txt 
 
 echo "making"
-time raco make */*.rkt
+time raco make Admin/manager.rkt
 
 echo "testing"
 echo "start" > errors.txt

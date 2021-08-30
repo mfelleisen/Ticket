@@ -54,7 +54,7 @@
   (require (submod Trains/Player/astrategy examples))
   (require (submod Trains/Common/map examples))
   (require (submod Trains/Common/state examples))
-  (require Trains/Player/simple-strategy)
+  (require Trains/Player/hold-10-strategy)
   (require SwDev/Lib/should-be-racket)
   (require rackunit))
 
@@ -123,7 +123,7 @@
 ;                                          
 ;                                          
 
-(module+ test ;; simple tests with simple-strategy to make sure the mechanics work 
+(module+ test ;; simple tests with hold-10-strategy to make sure the mechanics work 
 
   (define p1-static (new player% [strategy% simple-strategy%]))
 
@@ -137,7 +137,7 @@
 
 (module+ test ;; simple tests with dynamically loaded simple-strategy to make sure the mechanics work 
 
-  (define p1-dynamic (make-player-from-strategy-path 'Trains/Player/simple-strategy))
+  (define p1-dynamic (make-player-from-strategy-path 'Trains/Player/hold-10-strategy))
 
   (check-true (void? (send p1-dynamic setup vtriangle 45 '[red red blue blue])))
 

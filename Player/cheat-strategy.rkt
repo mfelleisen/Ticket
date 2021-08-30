@@ -45,7 +45,7 @@
 
 (require Trains/Common/basic-constants)
 (require Trains/Common/map)
-(require Trains/Player/simple-strategy)
+(require Trains/Player/hold-10-strategy)
 (require SwDev/Lib/should-be-racket)
 
 (module+ test
