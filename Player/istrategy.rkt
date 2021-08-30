@@ -21,3 +21,32 @@
 (define HOLD-10 "Hold-10")
 (define BUY-NOW "Buy-Now")
 (define CHEAT   "Cheat")
+
+;; -----------------------------------------------------------------------------
+;; implemented strategies
+
+#| Using the standard datatype pattern (see Fundamentals II, week 2): 
+
+
++-----------+                   +-----------+
+| istrategy | <---------------- | astrategy |
++-----------+                   +-----------+
+                                     ^
+                                     |
+                            +------------------+
+                            |                  |
+                +------------------+      +------------------+
+                | hold-10-strategy |      | buy-now-strategy |
+                +------------------+      +------------------+
+                            ^
+                            |
+                +-------------------+
+                | cheat-strategy    |
+                +-------------------+
+
+The filenames are the same as the class names. The `astrategy` class
+uses Beta-style inheritance _and_ Java-style inheritance to set up
+basic defaults 
+
+|#
+
