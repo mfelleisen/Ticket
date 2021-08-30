@@ -2,13 +2,17 @@
 
 ;; create the README.md files from README.source in the top-level and all code directories 
 
-(define EXCEPTIONS '["scribblings" "Docs"]) ;; no need for organization tables 
+(define EXCEPTIONS '["Client" "Remote" "Server" "scribblings" "Docs"]) ;; no need for organization tables 
+
+(require SwDev/Debugging/spy)
 
 (define (main . x)
   (define show (empty? x))
   (define untracked (git-status-check))
-  (define adirs (for/list ([fd (directory-list)] #:when (good? untracked fd)) (path->string fd)))
-  (readme (remove* EXCEPTIONS adirs) show)
+  (define adirs
+    (remove* EXCEPTIONS
+      (for/list ([fd (directory-list)] #:when (good? untracked fd)) (path->string fd))))
+  (readme adirs show)
   (define afils (map (λ (d) (list (build-path d "README.md") d)) adirs))
   (write-readme-and-show (make-header "directory") afils values show))
 

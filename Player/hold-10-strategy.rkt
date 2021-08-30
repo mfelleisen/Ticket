@@ -22,8 +22,8 @@
 
 (require (only-in Trains/Player/astrategy strategy/c%))
 
-(provide (contract-out [simple-strategy% strategy/c%])
-         (rename-out [simple-strategy% strategy%]))
+(provide (contract-out [hold-10-strategy% strategy/c%])
+         (rename-out [hold-10-strategy% strategy%]))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -75,7 +75,7 @@
 ;                                                     ;;;    ;;    
 ;                                                                  
 
-(define simple-strategy%
+(define hold-10-strategy%
   (class base-strategy%
     
     (inherit-field the-game-map rails# cards destination1 destination2)
@@ -118,9 +118,9 @@
 ;                                          
 
 (module+ test
-  (define strat-tri   (new simple-strategy% [the-game-map vtriangle] [rails# 45]))
-  (define strat-tri++ (new simple-strategy% [the-game-map vtriangle++] [rails# 45]))
-  (define strat-rec   (new simple-strategy% [the-game-map vrectangle][rails# 45]))
+  (define strat-tri   (new hold-10-strategy% [the-game-map vtriangle] [rails# 45]))
+  (define strat-tri++ (new hold-10-strategy% [the-game-map vtriangle++] [rails# 45]))
+  (define strat-rec   (new hold-10-strategy% [the-game-map vrectangle][rails# 45]))
 
   (check-equal? (send strat-tri pick-destinations destinations) (apply set (take destinations-lst 3)))
   
@@ -136,4 +136,4 @@
   (define okay '[Boston Orlando green 5])
   (check-equal? (send strat-tri choose-action pstate-play) okay)
   (check-equal? (send strat-tri++ choose-action pstate-play) okay)
-  (check-equal? (send strat-tri++ choose-action pstate-play+) okay) "destinations not connected !!!")
+  (check-equal? (send strat-tri++ choose-action pstate-play+) okay "destinations not connected !!!"))

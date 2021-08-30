@@ -72,7 +72,7 @@
 ;                                          
 
 (define cheat-strategy%
-  (class simple-strategy%
+  (class hold-10-strategy%
     (super-new)
 
     (inherit-field the-game-map)

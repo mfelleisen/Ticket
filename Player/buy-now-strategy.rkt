@@ -22,8 +22,8 @@
 
 (require (only-in Trains/Player/astrategy strategy/c%))
 
-(provide (contract-out [dumb-strategy% strategy/c%])
-         (rename-out [dumb-strategy% strategy%]))
+(provide (contract-out [buy-now-strategy% strategy/c%])
+         (rename-out [buy-now-strategy% strategy%]))
                        
 
 ;                                                                                                  
@@ -76,7 +76,7 @@
 ;                                                     ;;;    ;;    
 ;                                                                  
 
-(define dumb-strategy%
+(define buy-now-strategy%
   (class base-strategy%
     
     (inherit-field the-game-map rails# cards destination1 destination2)
@@ -97,7 +97,7 @@
     (super-new)))
 
 (define cheats-strategy%
-  (class dumb-strategy%
+  (class buy-now-strategy%
 
     (super-new)
 
@@ -129,8 +129,8 @@
 ;                                          
 
 (module+ test
-  (define strat-tri (new dumb-strategy% [the-game-map vtriangle] [rails# 45]))
-  (define strat-rec (new dumb-strategy% [the-game-map vrectangle][rails# 45]))
+  (define strat-tri (new buy-now-strategy% [the-game-map vtriangle] [rails# 45]))
+  (define strat-rec (new buy-now-strategy% [the-game-map vrectangle][rails# 45]))
 
   (check-equal? (send strat-tri pick-destinations destinations)
                 (apply set (take (reverse destinations-lst) 3)))

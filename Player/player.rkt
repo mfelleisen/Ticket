@@ -125,7 +125,7 @@
 
 (module+ test ;; simple tests with hold-10-strategy to make sure the mechanics work 
 
-  (define p1-static (new player% [strategy% simple-strategy%]))
+  (define p1-static (new player% [strategy% hold-10-strategy%]))
 
   (check-true (void? (send p1-static setup vtriangle 45 '[red red blue blue])))
 
@@ -135,7 +135,7 @@
   (check-true (list? (send p1-static play pstate2)))
   (check-true (void? (dev/null (send p1-static win #false)))))
 
-(module+ test ;; simple tests with dynamically loaded simple-strategy to make sure the mechanics work 
+(module+ test ;; simple tests with dynamically loaded hold-10-strategy to make sure the mechanics work 
 
   (define p1-dynamic (make-player-from-strategy-path 'Trains/Player/hold-10-strategy))
 
