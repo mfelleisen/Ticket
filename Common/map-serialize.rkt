@@ -43,8 +43,8 @@
  
  (contract-out
   ;; extract VGraph from JSexpr on STDIN, #false otherwise
-  [parse-game-map   (-> (or/c #false game-map?))]
-  [parse-map        (-> jsexpr? (or/c #false game-map?))]
+  [read-and-parse-map (->         (or/c #false game-map?))]
+  [parse-game-map     (-> jsexpr? (or/c #false game-map?))]
   
   [game-map->jsexpr (-> game-map? (and/c jsexpr? guarantee))]))
 
@@ -200,16 +200,16 @@
 
 #; {-> (U False VGraph)}
 ;; extract VGraph from JSexpr on STDIN, #false otherwise 
-(define (parse-game-map)
+(define (read-and-parse-map)
   (define j (read-message))
   (cond
     [(eof-object? j) #false]
     [(and (string? j) (regexp-match #px"ERR" j)) #false]
-    [else (parse-map j)]))
+    [else (parse-game-map j)]))
 
 #; {JSexpr -> (U False VGraph)}
 ;; extract width, height, and list of nodes from JSexpr, #false otherwise 
-(define (parse-map j)
+(define (parse-game-map j)
   (let/ec k
     (define (return x)
       (displayln x (current-error-port))
@@ -312,13 +312,13 @@
     (parameterize ([current-error-port (open-output-string)]) e))
   
   (define-syntax-rule (->vgraph g)
-    (dev-null (with-input-from-string (jsexpr->string (game-map->jsexpr g)) parse-game-map)))
+    (dev-null (with-input-from-string (jsexpr->string (game-map->jsexpr g)) read-and-parse-map)))
   
   (define example1 `([A [1 1]] (B [2 2])))
   (define connect1 '[[A B red 3]])
   (define graph1  [construct-game-map MAX-WIDTH MAX-WIDTH example1 connect1])
   
-  (check-equal? (parse-map (game-map->jsexpr graph1)) graph1 "parse map")
+  (check-equal? (parse-game-map (game-map->jsexpr graph1)) graph1 "parse map")
   (check-equal? (->vgraph graph1) graph1 "parse")
  
   (define example2 `([A%D [1 1]] (B [2 2])))
@@ -339,7 +339,7 @@
   ;; invalid but well-formed JSON
   
   (define (->string g msg)
-    (check-false (dev-null (with-input-from-string (jsexpr->string g) parse-game-map)) msg))
+    (check-false (dev-null (with-input-from-string (jsexpr->string g) read-and-parse-map)) msg))
 
   (define cities1 '[["A" [1 1]] ["B" [2 2]]])
 
@@ -365,9 +365,9 @@
   (define gm9 (hash-set (hash-set gm* 'connections (hash)) 'cities '[["a" [1 1]] ["B" [1 1]]]))
   (->string gm9 "identical locations")
 
-  (check-false (with-input-from-file "map-serialize.rkt" parse-game-map) "bad file format")
+  (check-false (with-input-from-file "map-serialize.rkt" read-and-parse-map) "bad file format")
   
-  (check-false (with-input-from-string "" parse-game-map) "eof"))
+  (check-false (with-input-from-string "" read-and-parse-map) "eof"))
 
 (module+ test
   (require Trains/Lib/get-image-from-url)

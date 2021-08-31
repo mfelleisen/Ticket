@@ -694,7 +694,7 @@
     (sort (map (λ (p) (get-field name p)) players) string<?))
 
   (define-runtime-path map1 "map-1.json")
-  (define big-map (with-input-from-file map1 parse-game-map))
+  (define big-map (with-input-from-file map1 read-and-parse-map))
   
   (define (sorted-destinations destinatuons) (sort destinatuons lexi<?))
 
