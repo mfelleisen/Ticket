@@ -248,11 +248,9 @@
     (define (return x)
       (displayln x (current-error-port))
       #false)
-    (match (spy j)
+    (match j
       [(? (curry equal? MORE)) j]
       [a (parse-acquired1 j return)])))
-
-(require SwDev/Debugging/spy)
 
 ;                                          
 ;                                          
