@@ -29,9 +29,11 @@ security, or fairness.
 
 | file | purpose |
 |--------------------- | ------- |
+| [basic-constants-serialize.rkt](basic-constants-serialize.rkt) | de/serializing basic constants | 
 | [basic-constants.rkt](basic-constants.rkt) | ovide | 
+| [json.rkt](json.rkt) | for generating serializing and deserializing plain values from and to JSexpr | 
 | [map-serialize.rkt](map-serialize.rkt) | serialization of board maps to JSON | 
 | [map.rkt](map.rkt) | a data representation of the railroad map | 
 | [player-interface.rkt](player-interface.rkt) | the player interface | 
-| [state-serialize.rkt](state-serialize.rkt) | ovide | 
+| [state-serialize.rkt](state-serialize.rkt) | state de/serialization | 
 | [state.rkt](state.rkt) | representation of a player's knowledge about the game | 
