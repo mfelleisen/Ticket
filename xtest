@@ -4,7 +4,7 @@ echo "gc-ing"
 rm -rf *~ */*~ ; rm -rf errors.txt 
 
 echo "making"
-time raco make Admin/manager.rkt
+time raco make Admin/manager.rkt Remote/*.rkt 
 
 echo "testing"
 echo "start" > errors.txt
@@ -12,6 +12,7 @@ time raco test Common/*.rkt 2>> errors.txt
 time raco test Editor/map-editor.rkt
 time raco test Player/*.rkt 2>> errors.txt
 time raco test Admin/referee.rkt Admin/state.rkt 2>> errors.txt
+time raco test Remote/*.rkt 2>> errors.txt
 
 # time raco test Remote/*.rkt  2>> errors.txt
 

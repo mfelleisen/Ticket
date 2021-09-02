@@ -14,11 +14,13 @@
  ;; #:exp specifies what the expected result is 
  test-remote)
 
+;; ---------------------------------------------------------------------------------------------------
 (require SwDev/Debugging/diff)
 (require (for-syntax syntax/parse))
 (require rackunit)
 (require json)
 
+;; ---------------------------------------------------------------------------------------------------
 (define ((report-diff e) x)
   (cond
     [(and (eq? x (void)) (eq? e (void)))
@@ -64,6 +66,3 @@
                   (send r1 method args ...)))
               (~a "exoected result of call: " m)))))
         (~a "call as message: " m))]))
-
-(module+ test 
-  (test-remote 'make-remote-player [play] #:msg "hello"))

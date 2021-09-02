@@ -10,18 +10,18 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 
-natural? 
+; natural? 
 (define (parse-natural x) (and (natural? x) x))
 (define (natural->jsexpr n) n)
 
-boolean?
+; boolean?
 (define (parse-boolean x) x)
 (define (boolean->jsexpr b) b)
 
-void?
+; void?
 (define (parse-void j) (match j ["void" (void)]))
 (define (void->jsexpr v) "void")
 
-string?
+; string?
 (define parse-string values)
 (define string->jsexpr values)
