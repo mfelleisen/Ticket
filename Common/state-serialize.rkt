@@ -1,5 +1,23 @@
 #lang racket
 
+;                                                          
+;                                                          
+;                                                          
+;                                             ;            
+;                                             ;            
+;    ;;;;   ;   ;;  ; ;;;    ;;;;    ;;;;;  ;;;;;;   ;;;;  
+;    ;  ;;   ;  ;   ;;  ;   ;;  ;;   ;;       ;     ;    ; 
+;   ;    ;    ;;    ;    ;  ;    ;   ;        ;     ;      
+;   ;;;;;;    ;;    ;    ;  ;    ;   ;        ;     ;;;    
+;   ;         ;;    ;    ;  ;    ;   ;        ;        ;;; 
+;   ;         ;;    ;    ;  ;    ;   ;        ;          ; 
+;    ;       ;  ;   ;;  ;   ;;  ;;   ;        ;     ;    ; 
+;    ;;;;;  ;    ;  ; ;;;    ;;;;    ;         ;;;   ;;;;  
+;                   ;                                      
+;                   ;                                      
+;                   ;                                      
+;                                                          
+
 (provide
 
  DESTINATION
@@ -10,9 +28,13 @@
 
  pstate->jsexpr
  action->jsexpr
+ destination->jsexpr
  
  parse-state
- parse-acquired1)
+ parse-action 
+ parse-acquired1
+ #;(parse-destination return j cities gm)
+ parse-destination)
  
 
 ;                                                                                                  
@@ -100,15 +122,15 @@
 ;                                                                          
 
 (define (pstate->jsexpr ps)
-  (hash THIS        (ii->jsexpr (pstate-I ps))
-        ACQUIRED (for/list ([x (pstate-others ps)]) (acquired->jsexpr x))))
+  (hasheq THIS     (ii->jsexpr (pstate-I ps))
+          ACQUIRED (for/list ([x (pstate-others ps)]) (acquired->jsexpr x))))
 
 (define (ii->jsexpr i)
-  (hash (DESTINATION 1) (destination->jsexpr (ii-destination1 i))
-        (DESTINATION 2) (destination->jsexpr (ii-destination2 i))
-        RAILS           (ii-rails i)
-        CARDS           (ii-cards i)
-        ACQUIRED     (acquired->jsexpr (ii-connections i))))
+  (hasheq (DESTINATION 1) (destination->jsexpr (ii-destination1 i))
+          (DESTINATION 2) (destination->jsexpr (ii-destination2 i))
+          RAILS           (ii-rails i)
+          CARDS           (ii-cards i)
+          ACQUIRED     (acquired->jsexpr (ii-connections i))))
 
 (define (acquired->jsexpr c0)
   (for/list ([c (in-set c0)])
@@ -168,15 +190,15 @@
                  ((? (curry eq? RAILS)) (? natural? rails))
                  ((? (curry eq? CARDS)) cd)
                  ((? (curry eq? ACQUIRED)) cs))
-     (ii (parse-destination return d1 cities gm)
-         (parse-destination return d2 cities gm)
+     (ii (parse-destination d1 return cities gm)
+         (parse-destination d2 return cities gm)
          rails
          (parse-cards return cd)
          ((parse-acquired return cities conns) cs)
          #false)]
     [_ (return "not a player object (with the six required fields)")]))
 
-(define (parse-destination return j cities gm)
+(define (parse-destination j (return values) (cities #false) (gm #false))
   (match j
     [(list (? city? from-c) (? city? to-c))
      (cond
@@ -184,14 +206,14 @@
        [else 
         (define d-candidate (2cities from-c to-c return cities))
         (define-values (from to) (apply values d-candidate))
-        (if (game-map-connected? gm from to)
+        (if (or (not gm) (game-map-connected? gm from to))
             d-candidate
             (return "destinations aren't connected in the given map"))])]
     [_ (return "not a destination array")]))
 
 (define (parse-cards return j)
   (unless (hash? j) (return "not a card object"))
-  (for/hash ([(c s) j])
+  (for/hasheq ([(c s) j])
     (unless (color? c) (return "not a color (in the domain of a card object)"))
     (unless (natural? s) (return "not a count (in the domain of a card object)"))
     (values c s)))
@@ -200,7 +222,7 @@
   (for/set ([x j])
     (parse-acquired1 x return cities conns)))
 
-(define (parse-acquired1 x return cities conns)
+(define (parse-acquired1 x return (cities #false) (conns #false))
   (match x
     [(list (? city? city1) (? city? city2) (? color? c) (? seg#? s))
      (define candidate (append (2cities city1 city2 return cities) (list (string->symbol c) s)))
@@ -214,7 +236,23 @@
   (define c2 (string->symbol city2))
   (if (or (boolean? cities) (and (member c1 cities) (member c2 cities)))
       (list c1 c2)
-      (return (~a "not cities: " city1 (member c1 cities) " & " city2 (member c2 cities) "::" cities ))))
+      (return (~a "not cities: "
+                  city1
+                  (member c1 cities)
+                  " & "
+                  city2
+                  (member c2 cities) "::" cities ))))
+
+(define (parse-action j)
+  (let/ec done
+    (define (return x)
+      (displayln x (current-error-port))
+      #false)
+    (match (spy j)
+      [(? (curry equal? MORE)) j]
+      [a (parse-acquired1 j return)])))
+
+(require SwDev/Debugging/spy)
 
 ;                                          
 ;                                          
@@ -237,7 +275,8 @@
   (require SwDev/Lib/should-be-racket)
 
   (define (->string g [vg #false])
-    (dev/null (with-input-from-string (jsexpr->string (pstate->jsexpr g)) (λ () (read-and-parse-state vg)))))
+    (define g-as-str (jsexpr->string (pstate->jsexpr g)))
+    (dev/null (with-input-from-string g-as-str (λ () (read-and-parse-state vg)))))
 
   (check-false (->string pstate-play+ vtriangle++) "pstate's destination1 connects disjoint clique")
 

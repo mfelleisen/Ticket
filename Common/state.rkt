@@ -173,8 +173,8 @@
 (module+ examples
   (provide ii- cards1 cards2 ii-final ii-play path01)
   
-  (define cards1 (hash 'green 5))
-  (define cards2 (hash 'green 5 'blue 7 'red 6))
+  (define cards1 (hasheq 'green 5))
+  (define cards2 (hasheq 'green 5 'blue 7 'red 6))
 
   (define orl-sea '[Orlando Seattle blue 5])
   (define bos-sea '[Boston Seattle red 3])

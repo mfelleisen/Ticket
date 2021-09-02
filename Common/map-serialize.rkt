@@ -122,16 +122,16 @@
 (module+ examples
   
   (define vtriangle-serialized
-    (hash CITIES      (map (λ (x) (cons (~a (first x)) (rest x))) triangle-nod*)
-          ;; can this manual conversion be eliminated? 
-          CONNECTIONS (hash 'Boston  (hash 'Orlando (hash 'green 5
-                                                          'white 3)
-                                           'Seattle  (hash 'green 4
-                                                           'red 3))
-                            'Orlando (hash 'Seattle  (hash 'blue 5))
-                            'Seattle (hash))
-          HEIGHT      MAX-WIDTH
-          WIDTH       MAX-WIDTH)))
+    (hasheq CITIES      (map (λ (x) (cons (~a (first x)) (rest x))) triangle-nod*)
+            ;; can this manual conversion be eliminated? 
+            CONNECTIONS (hasheq 'Boston  (hasheq 'Orlando (hasheq 'green 5
+                                                                  'white 3)
+                                                 'Seattle  (hasheq 'green 4
+                                                                   'red 3))
+                                'Orlando (hasheq 'Seattle  (hasheq 'blue 5))
+                                'Seattle (hasheq))
+            HEIGHT      MAX-WIDTH
+            WIDTH       MAX-WIDTH)))
 
 ;                                                                          
 ;                                                                          
@@ -156,31 +156,31 @@
     [(game-map-png g)
      =>
      (λ (img)
-       (hash URI (bytes->string/utf-8 (image->data-url img))
-             CITIES (map (lambda (x) (cons (~a (first x)) (rest x))) (game-map-locations g))
-             CONNECTIONS (graph->jsexpr g)))]
+       (hasheq URI (bytes->string/utf-8 (image->data-url img))
+               CITIES (map (lambda (x) (cons (~a (first x)) (rest x))) (game-map-locations g))
+               CONNECTIONS (graph->jsexpr g)))]
     [else 
-     (hash WIDTH  (game-map-width g)
-           HEIGHT (game-map-height g)
-           CITIES (map (lambda (x) (cons (~a (first x)) (rest x))) (game-map-locations g))
-           CONNECTIONS (graph->jsexpr g))]))
+     (hasheq WIDTH  (game-map-width g)
+             HEIGHT (game-map-height g)
+             CITIES (map (lambda (x) (cons (~a (first x)) (rest x))) (game-map-locations g))
+             CONNECTIONS (graph->jsexpr g))]))
 
 #; {Graph -> JGraph}
 (define (graph->jsexpr graph)
-  (for/hash ([c (game-map-cities graph)])
+  (for/hasheq ([c (game-map-cities graph)])
     (values c (to* graph c))))
 
 #; {Graph City -> JSlice}
 (define (to* graph city)
-  (for*/hash ([connection* (group-by first (game-map-connections graph city))]
-              [next-city   (in-value (first (first connection*)))]
-              #:when (symbol<? city next-city))
+  (for*/hasheq ([connection* (group-by first (game-map-connections graph city))]
+                [next-city   (in-value (first (first connection*)))]
+                #:when (symbol<? city next-city))
     (define color+seg# (map rest connection*))
     (values next-city (connected-via color+seg#))))
 
 #; {[Listof Connection] -> JColors}
 (define (connected-via connection*)
-  (for/hash ([c (group-by first connection*)])
+  (for/hasheq ([c (group-by first connection*)])
     (values (first (first c)) (second (first c)))))
 
 ;                                                                               
@@ -343,26 +343,26 @@
 
   (define cities1 '[["A" [1 1]] ["B" [2 2]]])
 
-  (define gm3 (hash 'width "A" 'height 0 'connections #hash() 'cities '[]))
+  (define gm3 (hasheq 'width "A" 'height 0 'connections #hash() 'cities '[]))
   (->string gm3 "bad width")
 
-  (define gm4 (hash 'width MAX-WIDTH 'height MAX-WIDTH 'connections '() 'cities '[]))
+  (define gm4 (hasheq 'width MAX-WIDTH 'height MAX-WIDTH 'connections '() 'cities '[]))
   (->string gm4 "bad target connection")
 
-  (define gm* (hash 'width MAX-WIDTH 'height MAX-WIDTH 'cities cities1))
-  (define gm5 (hash-set  gm* 'connections (hash 'A '())))
+  (define gm* (hasheq 'width MAX-WIDTH 'height MAX-WIDTH 'cities cities1))
+  (define gm5 (hash-set  gm* 'connections (hasheq 'A '())))
   (->string gm5 "bad color connection")
   
-  (define gm6 (hash-set gm* 'connections (hash 'A (hash 'B '[]))))
+  (define gm6 (hash-set gm* 'connections (hasheq 'A (hasheq 'B '[]))))
   (->string gm6 "bad length connection")
   
-  (define gm7 (hash-set gm* 'connections (hash 'A (hash 'C '[]))))
+  (define gm7 (hash-set gm* 'connections (hasheq 'A (hasheq 'C '[]))))
   (->string gm7 "bad city destination")
 
-  (define gm8 (hash-set gm*  'connections (hash 'C (hash 'B '[]))))
+  (define gm8 (hash-set gm*  'connections (hasheq 'C (hasheq 'B '[]))))
   (->string gm8 "bad city origination")
   
-  (define gm9 (hash-set (hash-set gm* 'connections (hash)) 'cities '[["a" [1 1]] ["B" [1 1]]]))
+  (define gm9 (hash-set (hash-set gm* 'connections (hasheq)) 'cities '[["a" [1 1]] ["B" [1 1]]]))
   (->string gm9 "identical locations")
 
   (check-false (with-input-from-file "map-serialize.rkt" read-and-parse-map) "bad file format")

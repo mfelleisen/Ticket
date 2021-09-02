@@ -658,12 +658,18 @@
        #s(node Boston      #s(cord 793 201))
        #s(node NYC         #s(cord 693 301))
        #s(node Seattle     #s(cord 131 168)))
-     '#hash((Boston      . (#s(to Seattle white 3) #s(to Orlando white 5) #s(to NYC white 3)))
+     '#hash((Boston      . (#s(to Orlando white 5)
+                            #s(to NYC white 3)
+                            #s(to Seattle white 3)))
             (NYC         . (#s(to Boston white 3)))
-            (Orlando     . (#s(to |San Diego| blue 5)
-                            #s(to |San Diego| red 5)))
-            (|San Diego| . (#s(to Seattle white 4)))
-            (Seattle     . ())))))
+            (Orlando     . (#s(to Boston white 5)
+                            #s(to |San Diego| red 5)
+                            #s(to |San Diego| blue 5)))
+            (|San Diego| . (#s(to Orlando red 5)
+                            #s(to Orlando blue 5)
+                            #s(to Seattle white 4)))
+            (Seattle     . (#s(to Boston white 3)
+                            #s(to |San Diego| white 4)))))))
 
 (module+ test
 
