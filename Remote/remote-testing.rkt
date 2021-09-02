@@ -1,6 +1,17 @@
 #lang racket
 
+;; a facility for testing remote players 
+
 (provide
+ #;(test make-remote-player
+         (m args ...)
+         (~optional (~seq #:remote input) #:defaults ([input #'(~a "void")]))
+         (~optional (~seq #:exp e) #:defaults ([e #'(void)]))
+         #:msg m)
+ ;; creates a remote player, invokes method `m`, which then sends message `m` across the "wire"
+ ;; #:remote and #:exp (with "void" defaults) set up a second ("inner") test case about retirn values:
+ ;; #:remote specifies what the client sends in
+ ;; #:exp specifies what the expected result is 
  test-remote)
 
 (require SwDev/Debugging/diff)
