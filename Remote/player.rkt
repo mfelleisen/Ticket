@@ -20,10 +20,9 @@
 ;                                                                  
 ;                                                                  
 
-(require Trains/Common/player-interface)
+(require (only-in Trains/Common/player-interface manager-player/c))
 
 (provide
- ;; a contract that describes the player class's interface to the administrator 
  (contract-out
   (make-remote-player
    (-> input-port? output-port? manager-player/c))))
@@ -43,24 +42,19 @@
 ;                 ;                                                                    
 ;                 ;                                                                    
 
-(require Trains/Common/basic-constants)
+(require Trains/Remote/define-remote)
+(require Trains/Common/basic-constants-serialize)
 (require Trains/Common/state-serialize)
 (require Trains/Common/map-serialize)
-(require Trains/Common/map)
-(require Trains/Common/player-interface)
-(require json)
-
-(require "define-remote.rkt")
-
-(require SwDev/Testing/communication)
+(require (except-in Trains/Common/player-interface manager-player/c))
+(require (except-in Trains/Common/json string->jsexpr))
 
 (module+ test
   (require (submod ".."))
+  (require Trains/Remote/remote-testing)
   (require (submod Trains/Common/state examples))
-  (require Trains/Common/state)
-  (require SwDev/Debugging/diff)
-  (require rackunit)
-  (require (for-syntax syntax/parse)))
+  (require (submod Trains/Common/map examples))
+  (require (submod Trains/Common/map-serialize examples)))
 
 ;                                            
 ;                                            
@@ -91,22 +85,11 @@
     (define/remote (start boolean)                     game-map)
     (define/remote (end   boolean)                     void)
     
-    (define/remote (setup game-map natural color-list) void)
+    (define/remote (setup game-map natural color*)     void)
     (define/remote (pick  [destination])               destination-set)
     (define/remote (play  pstate)                      action)
-    (define/remote (more  color-list)                  void)
+    (define/remote (more  color*)                      void)
     (define/remote (win   boolean)                     void)))
-
-(define (natural->jsexpr n) n)
-(define (boolean->jsexpr b) b)
-(define (color-list->jsexpr loc) (map (λ (c) (~a c)) loc))
-
-(define (parse-destination-set j)
-  (match j
-    [`[,(and dest `(,[? city? from] ,(? city? to))) ...]
-     (apply set (map parse-destination dest))]))
-
-(define (parse-void j) (match j ["void" (void)]))
 
 ;                                     
 ;                                     
@@ -124,11 +107,6 @@
 ;                                     
 
 (module+ test
-  (require (submod Trains/Common/map examples))
-  (require (submod Trains/Common/map-serialize examples))
-
-  (require "remote-testing.rkt")
-
   (define pstate1-serialized (pstate->jsexpr pstate1))
 
   (test-remote make-remote-player
