@@ -29,12 +29,16 @@
  pstate->jsexpr
  action->jsexpr
  destination->jsexpr
+ destination-set->jsexpr
  
- parse-state
+ parse-state parse-pstate
  parse-action 
  parse-acquired1
  #;(parse-destination return j cities gm)
- parse-destination)
+ parse-destination
+
+ parse-destination-set
+ destination-set?)
  
 
 ;                                                                                                  
@@ -147,6 +151,9 @@
     [(? (curry equal? MORE)) c0]
     [c (acquired1->jsexpr c)]))
 
+(define (destination-set->jsexpr s)
+  (for/list ([x (in-set s)]) (map ~a (apply list-cities x))))
+
 ;                                                                                          
 ;                                                                                          
 ;        ;                                     ;             ;;;       ;                   
@@ -171,7 +178,7 @@
     [(and (string? j) (regexp-match #px"ERR" j)) #false]
     [else (parse-state j vgraph)]))
 
-(define (parse-state j gm)
+(define (parse-state j (gm #false))
   (define cities (and gm (game-map-cities gm)))
   (define conns  (and gm (game-map-all-connections gm)))
   (let/ec k
@@ -181,7 +188,9 @@
     (match j
       [(hash-table ((? (curry eq? THIS)) this) ((? (curry eq? ACQUIRED)) (list c ...)))
        (pstate (parse-this return this gm cities conns) (map (parse-acquired return cities conns) c))]
-      [_ (return "not a state object (with the two required fields)")])))
+      [_ (return (format "not a state object (with the two required fields)\n~e" j))])))
+
+(define parse-pstate parse-state)
 
 (define (parse-this return j gm cities conns)
   (match j
@@ -252,6 +261,15 @@
       [(? (curry equal? MORE)) j]
       [a (parse-acquired1 j return)])))
 
+(define (parse-destination-set j)
+  (match j
+    [`[,(and dest `(,[? city? from] ,(? city? to))) ...]
+     (apply set (map parse-destination dest))]))
+
+(define (destination-set? d)
+  (and (set? d) (for/and ([x d]) (destination/c x))))
+
+
 ;                                          
 ;                                          
 ;                                          
@@ -268,6 +286,11 @@
 ;                                          
 ;                                          
 ;                                          
+
+(module+ examples
+  (require (submod Trains/Common/state examples))
+  (provide pstate1-serialized)
+  (define pstate1-serialized (pstate->jsexpr pstate1)))
 
 (module+ test
   (require SwDev/Lib/should-be-racket)
