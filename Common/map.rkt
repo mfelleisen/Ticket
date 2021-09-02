@@ -221,24 +221,24 @@
     (append triangle-source `[[|Kansas City| |St. Louis| green 4]]))
   
   (define triangle
-    [hash 'Orlando `[,[to 'Boston 'white 3]
-                     ,[to 'Boston 'green 5]
-                     ,[to 'Seattle 'blue 5]]          
-          'Seattle `[,[to 'Orlando 'blue 5]
-                     ,[to 'Boston 'red 3]
-                     ,[to 'Boston 'green 4]]
-          'Boston  `[,[to 'Seattle 'red 3]
-                     ,[to 'Seattle 'green 4]
-                     ,[to 'Orlando 'white 3]
-                     ,[to 'Orlando 'green 5]]])
+    [hasheq 'Orlando `[,[to 'Boston 'white 3]
+                       ,[to 'Boston 'green 5]
+                       ,[to 'Seattle 'blue 5]]          
+            'Seattle `[,[to 'Orlando 'blue 5]
+                       ,[to 'Boston 'red 3]
+                       ,[to 'Boston 'green 4]]
+            'Boston  `[,[to 'Seattle 'red 3]
+                       ,[to 'Seattle 'green 4]
+                       ,[to 'Orlando 'white 3]
+                       ,[to 'Orlando 'green 5]]])
   
   (define simple-triangle
-    [hash 'Orlando `[,[to 'Boston  'blue 3]
-                     ,[to 'Seattle 'blue 3]]
-          'Boston  `[,[to 'Seattle 'blue 3]
-                     ,[to 'Orlando 'blue 3]]
-          'Seattle `[,[to 'Boston  'blue 3]
-                     ,[to 'Orlando 'blue 3]]])
+    [hasheq 'Orlando `[,[to 'Boston  'blue 3]
+                       ,[to 'Seattle 'blue 3]]
+            'Boston  `[,[to 'Seattle 'blue 3]
+                       ,[to 'Orlando 'blue 3]]
+            'Seattle `[,[to 'Boston  'blue 3]
+                       ,[to 'Orlando 'blue 3]]])
 
   (provide simple-triangle-paths)
   (define simple-triangle-paths 
@@ -303,10 +303,10 @@
 
   (define project-triangle-to [set '[Boston Seattle red 3] '[Orlando Seattle blue 5]])
   (define projected-triangle
-    [hash 'Orlando `[,[to 'Seattle 'blue 5]]          
-          'Seattle `[,[to 'Orlando 'blue 5]
-                     ,[to 'Boston 'red 3]]
-          'Boston  `[,[to 'Seattle 'red 3]]])
+    [hasheq 'Orlando `[,[to 'Seattle 'blue 5]]          
+            'Seattle `[,[to 'Orlando 'blue 5]
+                       ,[to 'Boston 'red 3]]
+            'Boston  `[,[to 'Seattle 'red 3]]])
   (define projected-vtriangle
     (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) projected-triangle)))
 
@@ -366,7 +366,7 @@
 
 #; {[Listof [List Symbol Symvol ColorSymbol Seg#]] -> Graph}
 (define (connections->graph c*)
-  (let* ([graph (hash)]
+  (let* ([graph (hasheq)]
          [graph (add-one-direction graph c*)]
          [graph (add-one-direction graph (flip-from-to c*))])
     graph))
