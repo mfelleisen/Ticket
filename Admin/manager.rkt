@@ -45,6 +45,10 @@
          #:cards   [c (listof color?)])
         (r (or/c ERR results/c)))]))
 
+(module+ examples
+  (provide  manager-results->names))
+
+
 ;                                                                                      
 ;       ;                                  ;                                           
 ;       ;                                  ;                          ;                
@@ -205,7 +209,12 @@
     (class true-mock%
       (super-new)
       (define/public (start . x) gm)
-      (define/public (end . x) 'thanks))))
+      (define/public (end . x) 'thanks)))
+
+  #; {[Manageresult XPlayer]-> [ManagerResults String]}
+  (define (manager-results->names result)
+    (match-define [list winners cheats] result)
+    `[,(players->names winners) ,(players->names cheats)]))
 
 (module+ test ;; mock players 
  
@@ -220,11 +229,6 @@
   (check-equal? (manager k1-k2) `[ () ,(reverse k1-k2)]))
 
 (module+ test ;; real players 
-  
-  #; {[Manageresult XPlayer]-> [ManagerResults String]}
-  (define (manager-results->names result)
-    (match-define [list winners cheats] result)
-    `[,(players->names winners) ,(players->names cheats)])
 
   #; {GameMap N N N -> Test}
   ;; the numbers cannot be chosen freely
@@ -241,5 +245,3 @@
   (check-manager vrectangle 1 1 0)
   (check-manager vrectangle 0 1 0)
   (check-manager big-map 17 1 10))
-
-
