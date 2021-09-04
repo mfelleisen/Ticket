@@ -25,7 +25,7 @@
 (provide
  (contract-out
   (make-remote-player
-   (-> input-port? output-port? manager-player/c))))
+   (-> string? input-port? output-port? manager-player/c))))
 
 ;                                                                                      
 ;       ;                                  ;                                           
@@ -72,8 +72,8 @@
 ;   ;                    ;;                  
 
 
-(define (make-remote-player in out)
-  (new remote-player% [in in] [out out]))
+(define (make-remote-player name in out)
+  (new remote-player% [name name] [in in] [out out]))
 
 (define remote-player%
   (class object% [init-field in out (strategy 'just-to-satisfy-the-contract) [name (gensym 'rem)]]

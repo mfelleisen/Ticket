@@ -175,7 +175,7 @@
     (define name (read-message in))
     (cond
       [(short-string? name)
-       (define next (if (test-run?) (add1 (length players)) (make-remote-player in out)))
+       (define next (if (test-run?) (add1 (length players)) (make-remote-player name in out)))
        (cons next players)]
       [else
        (define m [if (and (string? name) (regexp-match #px"Timed" name)) "name" "not a short string"])
@@ -264,7 +264,7 @@
 
 (module+ test
 
-  (define QUIET #false)
+  (define QUIET #true)
  
   (define (test-server-client-with players bad# (man-spec '[]) (age-ordering reverse))
     (define PORT# 45674)
@@ -307,16 +307,5 @@
              (check-true (cons? result-2))
              (check-true (empty? (rest (first result-2))) "one winner")
              (check-equal? (length (second result-2)) cheat# "no cheaters")
-
-             (for-each (λ (p) (displayln (get-field name p))) players-2)
-             (displayln 'winners)
-             (for-each (λ (p) (displayln (get-field name p))) (second bundles))
-             (displayln 'cheaters)
-             (for-each (λ (p) (displayln (get-field name p))) (third bundles))
-             (displayln 'actual-winners)
-             (for-each (λ (p) (displayln (get-field name p))) (first result-2))
-             (displayln 'actual-cheaters)  
-             (for-each (λ (p) (displayln (get-field name p))) (second result-2))
-
              (check-equal? (manager-results->names result-2)
                            (manager-results->names `{[,@(second bundles)] ,(third bundles)}))))
