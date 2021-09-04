@@ -113,6 +113,9 @@
 ;; -- if there are min players, return those and shut down
 ;; -- otherwise return false, requesting an extension
 
+;; `man-spec` is a keyword-dicionary that is turned into arguments to the manager
+;; that way the server is parametric wrt to the manager's domain 
+
 (define (server config [age-ordering reverse] [house-players '()])
   (define port (dict-ref config PORT))
   (define MAX-TIME    (dict-ref config SERVER-WAIT))
@@ -278,7 +281,11 @@
                ;; badly named players drop out: 
                [config (hash-set config T-PLAYERS (- (length players) bad#))]) 
           config))
-      (define customer (thread (λ () (parameterize ([current-error-port err-out]) (client players PORT#)))))
+      (define customer
+        (thread
+         (λ ()
+           (parameterize ([current-error-port err-out])
+             (client players PORT#)))))
       (define result
         (parameterize ([current-error-port err-out])
           (server config3 age-ordering)))
@@ -286,7 +293,8 @@
         result
         (sync customer)
         (custodian-shutdown-all (current-custodian)))))
-      
+
+  ;; - - - test case 1 
   (define PLRS '["a" "b" "c" "d" "e1" "failed attempt at Name" "e"])
   (define players-1
     (map (λ (n) (new player% [name n] [the-map big-map] [strategy% hold-10-strategy%])) PLRS))
@@ -296,12 +304,14 @@
              (check-true (empty? (rest (first result-1))) "one winner")
              (check-true (empty? (second result-1)) "no cheaters"))
 
+  ;; - - - test case 2 (adapted from manager)
   (define hold-10# 17)
   (define buy-now#  1)
   [define cheat#   10]
   [define bundles   (make-players big-map hold-10# buy-now# cheat#)]
   [define players-2 (apply append bundles)]
-  (define man-spec  `[[#:shuffle . ,sorted-destinations] [#:cards . ,(make-list CARDS-PER-GAME 'white)]])
+  (define man-spec  `[[#:shuffle . ,sorted-destinations]
+                      [#:cards . ,(make-list CARDS-PER-GAME 'white)]])
   [define result-2  (test-server-client-with players-2 0 man-spec reverse)]
   (test-case "player 2"
              (check-true (cons? result-2))
