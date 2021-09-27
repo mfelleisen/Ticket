@@ -44,7 +44,7 @@
         (writeln `[,(first c) or ,(second c) not cities: ,cities] (current-error-port)))
       r)))
 
-(define (is-city? a-game-map)
+(define (is-city a-game-map)
   (define cities (map node-name (game-map-city-places a-game-map)))
   (λ (c) (member c cities)))
 
@@ -93,22 +93,9 @@
   [game-map-all-connections (-> game-map? (set/c (list/c symbol? symbol? color? seg#?)))]
   [game-map-connections     (-> game-map? symbol? (listof (list/c symbol? color? seg#?)))]
   
-  [all-destinations
-   ;; produces all destinations for the given graph (in lexicographically directed form)
-   (-> game-map? (listof destination/c))]
-
-  (game-map-connected?
-   ;; produces a list of all paths from `A` to `B` in the given `vgraph`
-   ;; GUARANTEE start from the symbol<? of the two cities, reach the other one (paths are 2-dir)
-   (->i ([g game-map?] [from (g) (is-city? g)] [to (g) (is-city? g)]) (r boolean?)))
-  
-  ;; the longest path in this game map
-  (game-map-longest-path (-> game-map? natural?))
-  
-  [all-possible-paths
-   ;; produces a list of all paths in the given graph
-   ;; GUARANTEE every path connects `A` and `B` such that `(symbol<? A B)` holds
-   (-> game-map? (listof connection*/c))]))
+  [all-destinations      (-> game-map? (listof destination/c))]
+  (game-map-connected?   (->i ([g game-map?] [from (g) (is-city g)] [to (g) (is-city g)]) (r any/c)))
+  (game-map-longest-path (-> game-map? natural?))))
 
 (module+ examples
   (provide vrectangle)
@@ -159,28 +146,52 @@
 ;                                                           ;              
 ;                                                                          
 
-(define (game-map-equal? one two ek)
-  (equal?
-   (drop (reverse (vector->list (struct->vector one))) 4)
-   (drop (reverse (vector->list (struct->vector two))) 4)))
-
-(define (game-map-hash-code . x) 100)
-
-(define (game-map-secondary-hash-code . x) 10000)
-
 ;; INCLUDING THE VISUAL ELEMENTS 
-(struct game-map [width height city-places graph
-                        ;; these three fields are about memoization 
-                        destinations paths paths-between
-                        ;; this one is for background visualization 
-                        png]
+(struct game-map
+  [;; the first four fields are essential
+   width
+   height
+   city-places
+   graph
+   ;; these three fields are about memoization 
+   destinations paths paths-between
+   ;; this one is for background visualization 
+   png]
   #:transparent
   #:mutable
   #:methods gen:equal+hash
-  [(define equal-proc game-map-equal?)
-   (define hash-proc  game-map-hash-code)
-   (define hash2-proc game-map-secondary-hash-code)])
+  [(define (equal-proc one two ek)
+     (equal?
+      (drop (reverse (vector->list (struct->vector one))) 4)
+      (drop (reverse (vector->list (struct->vector two))) 4)))
+   (define hash-proc  (λ _ 100))
+   (define hash2-proc (λ _ 10000))])
 
+(struct to [city color seg#] #:prefab)
+(struct node [name posn] #:prefab)
+(struct cord [x y] #:prefab)
+
+;; The visual graph structure
+;; 
+;; THE GRAPH STRUCTURE 
+#; {type VGraph = (game-map Natural Natural Nod* Graph)}
+;;                INTERPRETATION width x height plus city specs plus connectivity 
+#; {type Nod*   = [Listof Node]}
+#; {type Node   = (node Symbol Cord)}
+#; {type Cord   = (cord N N)}
+;;                INTERPRETATION what cities are called, where they are located 
+;;                ASSUMPTIONS, enforced by exported constructor
+;;                -- the city names are distinct 
+;;                -- the locations are within the width x height grid
+;; 
+#; {type Graph  = (Hashof Symbol Slice*)}
+;;                INTERPRETATION maps city to all existing Slices
+#; {type Slice  = (to Symbol Color Seg#)}
+;;                INTERPRETATION target city, the color of the connection, and the number of segments
+;;                ASSUMPTIONS, enforced by exported constructor 
+;;                -- cities are consistently named 
+
+;; ---------------------------------------------------------------------------------------------------
 (define (plain-game-map width height city-places graph)
   (game-map width height city-places graph #false #false (hash) #false))
 
@@ -188,25 +199,7 @@
   (for/list ([n (game-map-city-places g)])
     `[,(node-name n) ,(rest (vector->list (struct->vector (node-posn n))))]))
 
-#; {type VGraph = (visual-graph N N Nod* Graph)}
-
-(struct node [name posn] #:prefab)
-(struct cord [x y] #:prefab)
-#; {type Nod* = [Listof Node]}
-#; {type Node = (node Symbol Cord)}
-#; {type Cord = (cord N N)}
-
-;; THE GRAPH STRUCTURE 
-#; {type Graph = [Hashof Symbol Slice*]}
-;; maps city to all existing Slices
-
-(struct to [city color seg#] #:prefab)
-#; {type Slice = (to Symbol Color Seg#)}
-;; -- target city, its color, and the number of segments
-;; ASSUMPTIONS
-;; -- cities are consistently named (keep separate city to posn map for drawing)
-;; -- `to`s are two-ways (undirected)
-
+;; ---------------------------------------------------------------------------------------------------
 (module+ examples
   (define triangle-source
     '[[Orlando Seattle blue 5]
