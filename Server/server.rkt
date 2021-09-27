@@ -21,7 +21,7 @@
 ;                                                          
 
 (require (only-in Trains/Admin/manager results/c))
-(require Fish/Lib/hash-contract)
+(require SwDev/Lib/hash-contract)
 
 (define port/c (and/c natural-number/c (</c 60000) (>/c 10000)))
 (define player#/c natural-number/c)
@@ -29,7 +29,8 @@
 (define PORT 'port)
 (define SERVER-TRIES  'server-tries)
 (define SERVER-WAIT   'server-wait)
-(define T-PLAYERS     't-players)
+(define MAX-T-PLAYERS 'max-t-players)
+(define MIN-T-PLAYERS 'min-t-players)
 (define TIME-PER-TURN 'time-per-turn)
 (define MAN-SPEC      'manager-specific)
 
@@ -37,11 +38,10 @@
 
 (provide
  ;; server options 
- PORT SERVER-TRIES SERVER-WAIT T-PLAYERS TIME-PER-TURN 
+ PORT SERVER-TRIES SERVER-WAIT MAX-T-PLAYERS MIN-T-PLAYERS TIME-PER-TURN 
 
  (contract-out
   [server
-   #; (server player#/c wait-for-sec port#)
    ;; returns the list of winners and cheaters/failures 
    ;; runsning an manager on the players that connected on port# in time
    ;; plus the house players (if any) 
@@ -119,8 +119,8 @@
 (define (server config [age-ordering reverse] [house-players '()])
   (define port (dict-ref config PORT))
   (define MAX-TIME    (dict-ref config SERVER-WAIT))
-  (define MIN-PLAYERS (dict-ref config T-PLAYERS))
-  (define MAX-PLAYERS (dict-ref config T-PLAYERS)) ;; BUG: need to accommodate max and min 
+  (define MIN-PLAYERS (dict-ref config MIN-T-PLAYERS))
+  (define MAX-PLAYERS (dict-ref config MAX-T-PLAYERS)) ;; BUG: need to accommodate max and min 
   (define MAX-TRIES   (dict-ref config SERVER-TRIES))
 
   ;; set up custodian so `server` can clean up all threads, TCP ports in case it is re-used
@@ -150,7 +150,7 @@
       [else
        (channel-put communicate-with-sign-up (~a "are there at least " MIN-PLAYERS " signed up"))
        (cond
-         [(channel-get communicate-with-sign-up) => reverse]
+         [(channel-get communicate-with-sign-up) => values]
          [else (loop (- n 1))])])))
 
 #; {Port Channel [Listof Player] Int Int -> Void}
@@ -214,7 +214,8 @@
     (hash
      PORT       45670
      SERVER-WAIT   20
-     T-PLAYERS      5
+     MIN-T-PLAYERS  5
+     MAX-T-PLAYERS 10
      SERVER-TRIES   1
      TIME-PER-TURN 10))
 
@@ -232,7 +233,7 @@
       (define config2
         (let* ([config config]
                [config (hash-set config PORT port)]
-               [config (if k (hash-set config T-PLAYERS k) config)])
+               [config (if k (hash-set config MIN-T-PLAYERS k) config)])
           config))
       (define th (thread (λ () (server config2))))
       (sleep 1)
@@ -266,10 +267,9 @@
 
 
 (module+ test
-
   (define QUIET #true)
  
-  (define (test-server-client-with players bad# (man-spec '[]) (age-ordering reverse))
+  (define (test-server-client-with players bad-during-signup# (man-spec '[]) (age-ordering reverse))
     (define PORT# 45674)
     (parameterize ([current-custodian (make-custodian)]
                    [time-out-limit 1.2])
@@ -279,7 +279,8 @@
                [config (hash-set config PORT PORT#)]
                [config (hash-set config MAN-SPEC man-spec)]
                ;; badly named players drop out: 
-               [config (hash-set config T-PLAYERS (- (length players) bad#))]) 
+               [config (hash-set config MIN-T-PLAYERS (- (length players) bad-during-signup#))]
+               [config (hash-set config MAX-T-PLAYERS (- (length players) bad-during-signup#))]) 
           config))
       (define customer
         (thread
