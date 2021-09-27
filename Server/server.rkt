@@ -33,14 +33,16 @@
 (define MIN-T-PLAYERS 'min-t-players)
 (define TIME-PER-TURN 'time-per-turn)
 (define MAN-SPEC      'manager-specific)
+(define QUIET         'quiet)
 
-(define options (list PORT SERVER-TRIES SERVER-WAIT TIME-PER-TURN))
+(define options (list PORT SERVER-TRIES SERVER-WAIT TIME-PER-TURN MAN-SPEC QUIET))
 
 (provide
  ;; server options 
- PORT SERVER-TRIES SERVER-WAIT MAX-T-PLAYERS MIN-T-PLAYERS TIME-PER-TURN 
+ PORT SERVER-TRIES SERVER-WAIT MAX-T-PLAYERS MIN-T-PLAYERS TIME-PER-TURN MAN-SPEC
 
  (contract-out
+  (DEFAULT-CONFIG (hash-carrier/c options))
   [server
    ;; returns the list of winners and cheaters/failures 
    ;; runsning an manager on the players that connected on port# in time
@@ -78,6 +80,35 @@
   (require (submod Trains/Admin/referee examples))
   (require (submod Trains/Admin/manager examples))
   (require rackunit))
+
+;                                                          
+;                                                          
+;                              ;;;     ;                   
+;                             ;        ;                   
+;                             ;                            
+;     ;;;    ;;;;   ; ;;;   ;;;;;;   ;;;     ;;; ;   ;;;;  
+;    ;   ;  ;;  ;;  ;;   ;    ;        ;     ;  ;;  ;    ; 
+;   ;       ;    ;  ;    ;    ;        ;    ;    ;  ;      
+;   ;       ;    ;  ;    ;    ;        ;    ;    ;  ;;;    
+;   ;       ;    ;  ;    ;    ;        ;    ;    ;     ;;; 
+;   ;       ;    ;  ;    ;    ;        ;    ;    ;       ; 
+;    ;   ;  ;;  ;;  ;    ;    ;        ;     ;  ;;  ;    ; 
+;     ;;;    ;;;;   ;    ;    ;     ;;;;;;;  ;;; ;   ;;;;  
+;                                                ;         
+;                                            ;  ;;         
+;                                             ;;;          
+;                                                          
+
+(define DEFAULT-CONFIG
+    (hash
+     PORT       45670
+     SERVER-WAIT   20
+     MIN-T-PLAYERS  5
+     MAX-T-PLAYERS 10
+     SERVER-TRIES   1
+     TIME-PER-TURN 10
+     MAN-SPEC     '[]
+     QUIET         #true))
 
 ;                                            
 ;                                            
@@ -209,17 +240,7 @@
 ;                                        ;;                                            
 
 (module+ test ;; timing
-
-  (define config
-    (hash
-     PORT       45670
-     SERVER-WAIT   20
-     MIN-T-PLAYERS  5
-     MAX-T-PLAYERS 10
-     SERVER-TRIES   1
-     TIME-PER-TURN 10))
-
-
+  
   #; { N Port-Number (U False n:N) -> (U False [Listof 0]: (=/c (length) n))}
   #; (run-server-test m p k)
   ;; runs the server on port p, waitig for m players, but receiving k
@@ -231,7 +252,7 @@
                    [current-custodian  custodian]
                    [current-error-port err-out])
       (define config2
-        (let* ([config config]
+        (let* ([config DEFAULT-CONFIG]
                [config (hash-set config PORT port)]
                [config (if k (hash-set config MIN-T-PLAYERS k) config)])
           config))
@@ -267,21 +288,22 @@
 
 
 (module+ test
-  (define QUIET #true)
- 
-  (define (test-server-client-with players bad-during-signup# (man-spec '[]) (age-ordering reverse))
+  (define (test-server-client-with players bad-during-signup#
+                                   (man-spec '[])
+                                   (age-ordering reverse)
+                                   (config0 DEFAULT-CONFIG))
     (define PORT# 45674)
     (parameterize ([current-custodian (make-custodian)]
                    [time-out-limit 1.2])
-      (define err-out  (if QUIET (open-output-string) (current-error-port)))
       (define config3
-        (let* ([config config]
+        (let* ([config config0]
                [config (hash-set config PORT PORT#)]
                [config (hash-set config MAN-SPEC man-spec)]
                ;; badly named players drop out: 
                [config (hash-set config MIN-T-PLAYERS (- (length players) bad-during-signup#))]
                [config (hash-set config MAX-T-PLAYERS (- (length players) bad-during-signup#))]) 
           config))
+      (define err-out  (if (dict-ref config3 QUIET) (open-output-string) (current-error-port)))
       (define customer
         (thread
          (λ ()
