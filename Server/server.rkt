@@ -120,7 +120,7 @@
   (define port (dict-ref config PORT))
   (define MAX-TIME    (dict-ref config SERVER-WAIT))
   (define MIN-PLAYERS (dict-ref config MIN-T-PLAYERS))
-  (define MAX-PLAYERS (dict-ref config MAX-T-PLAYERS)) ;; BUG: need to accommodate max and min 
+  (define MAX-PLAYERS (dict-ref config MAX-T-PLAYERS))
   (define MAX-TRIES   (dict-ref config SERVER-TRIES))
 
   ;; set up custodian so `server` can clean up all threads, TCP ports in case it is re-used
