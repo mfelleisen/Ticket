@@ -20,28 +20,23 @@
 ;                                                          
 
 (require (only-in Trains/Common/basic-constants width? height? color? seg#?))
+(require Trains/Common/connection)
 (require SwDev/Contracts/unique)
 (require (prefix-in htdp: 2htdp/image))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define lexi-cities/c (λ (x) (symbol<? (first x) (second x))))
+(define destination/c (and/c (list/c symbol? symbol?) (λ (x) (symbol<? (first x) (second x)))))
 
-(define destination/c (and/c (list/c symbol? symbol?) lexi-cities/c))
-
-(define connection/c  (and/c [list/c symbol? symbol? color? seg#?] lexi-cities/c))
 (define connection*/c [listof connection/c])
-(define connection-from  first)
-(define connection-to    second)
-(define connection-color third)
-(define connection-seg#  fourth)
 
 (define (in-cities? nodes)
   (define cities (map first nodes))
   (λ (c*)
     (for/and ([c c*])
-      (define r  (and (member (first c) cities) (member (second c) cities)))
+      (define r  (and (member (connection-from c) cities) (member (connection-to c) cities)))
       (unless r
-        (writeln `[,(first c) or ,(second c) not cities: ,cities] (current-error-port)))
+        (define m `[,(connection-from c) or ,(connection-to c) not cities: ,cities])
+        (writeln m (current-error-port)))
       r)))
 
 (define (is-city a-game-map)
@@ -58,12 +53,6 @@
  #; (destinaion? (list city1 city2)) #; impllies #; (symbol<? city1 city2)
  destination/c
 
- connection/c
- connection-from
- connection-to 
- connection-color
- connection-seg#
- 
  (contract-out
   [construct-game-map
    (->i ([w width?]
@@ -314,9 +303,9 @@
     (sort 
      (set->list 
       (for/fold ([s (set)]) ([c (in-set connections)])
-        (define c1 (first c))
+        (define c1 (connection-from c))
         (define c1-in-cities (first (memf (λ (x) (eq? (node-name x) c1)) cities)))
-        (define c2 (second c))
+        (define c2 (connection-to c))
         (define c2-in-cities (first (memf (λ (x) (eq? (node-name x) c2)) cities)))
         (set-add (set-add s c1-in-cities) c2-in-cities))) symbol<? #:key node-name))
   (define width (game-map-width gm))
@@ -366,7 +355,7 @@
 
 #; {[Listof Connection] -> [Listof Connection]}
 (define (flip-from-to c*)
-  (map (λ (x) (list* (second x) (first x) (cddr x))) c*))
+  (map connection-flip c*))
 
 #; {[Hashof Symbol Slice] [Listof Connections] -> [Hashof Symbol Slice]}
 (define (add-one-direction graph c*)
@@ -709,7 +698,7 @@
   ;; for game-map-connections, all of them 
   (define symmetric
     (for/set ([x triangle-source])
-      (append (list-cities (first x) (second x)) (cddr x))))
+      (connection-ordered x)))
   
   (check-equal? (game-map-all-connections vtriangle) symmetric "game-map-connection all")
 

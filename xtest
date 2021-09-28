@@ -12,7 +12,7 @@ time raco test Common/*.rkt 2>> errors.txt
 time raco test Editor/map-editor.rkt
 time raco test Player/*.rkt 2>> errors.txt
 time raco test Admin/referee.rkt Admin/state.rkt 2>> errors.txt
-time raco test Remote/*.rkt 2>> errors.txt
+# time raco test Remote/*.rkt 2>> errors.txt
 
 echo "end" >> errors.txt
  

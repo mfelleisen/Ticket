@@ -55,6 +55,7 @@
 
 (require Trains/Lib/image)
 (require Trains/Editor/connections-editor)
+(require Trains/Common/connection)
 (require Trains/Common/map)
 (require Trains/Common/map-serialize)
 (require Trains/Common/basic-constants)

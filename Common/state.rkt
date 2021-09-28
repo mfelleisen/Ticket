@@ -78,6 +78,7 @@
 ;                                                                                                  
 
 (require Trains/Common/basic-constants)
+(require Trains/Common/connection)
 (require Trains/Common/map)
 
 (module+ test

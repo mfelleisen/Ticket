@@ -61,6 +61,7 @@
 ;                   ;                                                                              
 ;                                                                                                  
 
+(require Trains/Common/connection)
 (require Trains/Common/map)
 (require Trains/Common/state)
 (require Trains/Common/player-interface)
