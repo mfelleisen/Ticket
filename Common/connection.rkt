@@ -33,16 +33,15 @@
  (rename-out [make-connection connection])
 
  connection/c
- connection?
+ 
  connection-from
  connection-to
- connection-ft
+ connection-ft ;; select the two cities as a list 
  connection-color
  connection-seg#
- connection-flip
- connection-ordered
- connection-good?
 
+ connection-flip ;; flip the direction 
+ 
  connection-serialize)
 
 ;                                                                                                  
@@ -117,13 +116,6 @@
 
 (define (connection-flip x)
   (connection (connection-to x) (connection-from x) (connection-color x) (connection-seg# x)))
-
-(define (connection-ordered x)
-  (match x
-    [(connection f t c s)
-     (match-define [list x y] (list-cities f t))
-     (connection x y c s)]
-    [_ (error 'connection-ordered "connection expected, given: ~e" x)]))
 
 (define (connection-ft c)
   (list (connection-from c) (connection-to c)))
