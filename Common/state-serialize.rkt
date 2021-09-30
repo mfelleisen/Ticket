@@ -238,8 +238,7 @@
 (define (parse-acquired1 x return (cities #false) (conns #false))
   (match x
     [(list (? city? city1) (? city? city2) (? color? c) (? seg#? s))
-     (define candidate1 (append (2cities city1 city2 return cities) (list (string->symbol c) s)))
-     (define candidate (apply connect candidate1))
+     (define candidate (connection (2cities city1 city2 return cities) (string->symbol c) s))
      (if (or (boolean? conns) (set-member? conns candidate))
          candidate
          (return "non-existent connection"))]

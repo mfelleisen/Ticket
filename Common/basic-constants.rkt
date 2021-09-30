@@ -1,5 +1,7 @@
 #lang racket
 
+;; basic constants and functions for the game 
+
 (provide
  width?
  height?
