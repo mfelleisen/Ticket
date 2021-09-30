@@ -191,16 +191,16 @@
 ;; ---------------------------------------------------------------------------------------------------
 (module+ examples
   (define triangle-source
-    `[,[connection 'Orlando 'Seattle 'blue 5]
-      ,[connection 'Boston  'Seattle 'red 3]
-      ,[connection 'Boston  'Seattle 'green 4]
-      ,[connection 'Boston  'Orlando 'white 3]
-      ,[connection 'Boston  'Orlando 'green 5]])
+    `[,[connection Orlando Seattle blue 5]
+      ,[connection Boston  Seattle red 3]
+      ,[connection Boston  Seattle green 4]
+      ,[connection Boston  Orlando white 3]
+      ,[connection Boston  Orlando green 5]])
 
   (define kc-st '["Kansas City" "St. Louis" "green" 4])
 
   (define triangle++-source
-    (append triangle-source `[,[connection '|Kansas City| '|St. Louis| 'green 4]]))
+    (append triangle-source `[,[connection |Kansas City| |St. Louis| green 4]]))
   
   (define triangle
     [hasheq 'Orlando `[,[to 'Boston 'white 3]
@@ -252,7 +252,7 @@
   (define vtriangle (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) triangle))
   (define striangle (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) simple-triangle))
   
-  (define vtriangle-boston-seattle (connection 'Boston 'Seattle 'red 3))
+  (define vtriangle-boston-seattle (connection Boston Seattle red 3))
   (define vtriangle-paths (all-possible-paths vtriangle))
   (define vtriangle-conns (set vtriangle-boston-seattle))
   (define vtriangle-dests
@@ -284,7 +284,7 @@
   (provide project-triangle-to projected-vtriangle)
 
   (define project-triangle-to
-    [set [connection 'Boston 'Seattle 'red 3] [connection 'Orlando 'Seattle 'blue 5]])
+    [set [connection Boston Seattle red 3] [connection Orlando Seattle blue 5]])
   (define projected-triangle
     [hasheq 'Orlando `[,[to 'Seattle 'blue 5]]          
             'Seattle `[,[to 'Boston 'red 3]
@@ -446,7 +446,7 @@
         [(equal? candidate1 candidate2) (generate)]
         [else
          (match-define [list x y] (list-cities candidate1 candidate2))
-         (connection x y (random-pick COLORS) (random-pick SEG#))]))
+         (cconnect x y (random-pick COLORS) (random-pick SEG#))]))
     
     (define/override (err)
       (error 'random-connections "unable to generate more connections for ~a" city-names))
@@ -613,7 +613,7 @@
     (set-union
      s
      (for/set ([c (game-map-connections graph from)])
-       (apply connection (append (list-cities from (first c)) (rest c)))))))
+       (apply cconnect (append (list-cities from (first c)) (rest c)))))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (game-map-cities graph) (map node-name (game-map-city-places graph)))

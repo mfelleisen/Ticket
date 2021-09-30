@@ -125,9 +125,9 @@
   (check-equal? (get-field destination1 strat-tri) '(Orlando Seattle))
   (check-equal? (get-field destination2 strat-tri) '(Boston Seattle))
 
-  (check-equal? (send strat-tri choose-action pstate1) (connection 'Boston 'Orlando 'green 5))
-  (check-equal? (send strat-tri choose-action pstate2) [connection 'Boston 'Orlando 'green 5])
+  (check-equal? (send strat-tri choose-action pstate1) (connection Boston Orlando green 5))
+  (check-equal? (send strat-tri choose-action pstate2) [connection Boston Orlando green 5])
   (check-equal? (send strat-tri choose-action (like-pstate2 'green 3)) MORE)
   (check-equal? (send strat-tri more-cards 'green 'red) (void))
   (check-equal? (send strat-rec choose-action (like-pstate2 'green 2))
-                (connection 'Orlando '|San Diego| 'blue 5)))
+                (connection Orlando |San Diego| blue 5)))

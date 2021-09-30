@@ -90,7 +90,7 @@
           
           (define colors (map connection-color d-c-conns))
           (define others (remove* colors COLORS))
-          (connection c d (random-pick others) 3)))
+          (cconnect c d (random-pick others) 3)))
 
       (cond
         [under-connected-cities under-connected-cities]

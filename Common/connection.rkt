@@ -2,7 +2,8 @@
 
 (provide
  connection/c
- connection
+ cconnect
+ (rename-out [make-connection connection])
  connection?
  connection-from
  connection-to
@@ -18,7 +19,11 @@
 
 (require (only-in Trains/Common/basic-constants color? seg#? list-cities))
 
-(struct connection [from to color seg#] #:prefab)
+(require syntax/parse/define)
+
+(struct connection [from to color seg#] #:prefab #:extra-constructor-name cconnect)
+
+(define-syntax-parse-rule (make-connection a:id b:id c:id d) (connection 'a 'b 'c d))
 
 (define (connection-flip x)
   (connection (connection-to x) (connection-from x) (connection-color x) (connection-seg# x)))

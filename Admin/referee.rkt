@@ -615,8 +615,8 @@
 
   (define p1-beats-p2 
     (let ()
-      (define basic  (set [connection 'Boston 'Seattle 'green 4]))
-      (define better (set [connection 'Boston 'Seattle 'red 3][connection 'Orlando 'Seattle 'blue 5]))
+      (define basic  (set [connection Boston Seattle green 4]))
+      (define better (set [connection Boston Seattle red 3][connection Orlando Seattle blue 5]))
       (define p1 (ii '[Boston Seattle] '[Boston Orlando] 32 (hash) better 'x))
       (define p2 (ii '[Boston Seattle] '[Boston Orlando] 32 (hash) basic  'y))
       (define p1-p (project-game-map vtriangle better))

@@ -87,7 +87,7 @@
   (define cards1 (hash 'green 5))
   (define dest1  (list 'Boston 'Seattle))
   (define ii1 (ii dest1 '(Boston Orlando) 40 cards1 (set) #f))
-  (define ii2 (ii dest1 '(Orlando Seattle) 5 cards1 (set [connection 'Boston 'Seattle 'red 3]) #f))
+  (define ii2 (ii dest1 '(Orlando Seattle) 5 cards1 (set [connection Boston Seattle red 3]) #f))
 
   (define rstate1 (rstate (list ii1 ii2) '[] '[]))
   (provide rstate1-drop)

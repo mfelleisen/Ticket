@@ -270,7 +270,7 @@
   (unless (hash? j) (return "not a connection object"))
   (for/fold ([r '()]) ([(from c*) j])
     (unless (member from cities) (return "not a city in the domain of the connection object"))
-    (append r (map (λ (x) (apply connection (cons from x))) (parse-1-connection c* cities return)))))
+    (append r (map (λ (x) (apply cconnect (cons from x))) (parse-1-connection c* cities return)))))
 
 #; {JSexpr [Listof Symbol] [Boolean -> Emtpy] -> [Listof [List Symbol ColorSymbol Seg#]]}
 (define (parse-1-connection j cities return)
@@ -316,7 +316,7 @@
     (dev-null (with-input-from-string (jsexpr->string (game-map->jsexpr g)) read-and-parse-map)))
   
   (define example1 `([A [1 1]] (B [2 2])))
-  (define connect1 `[,[connection 'A 'B 'red 3]])
+  (define connect1 `[,[connection A B red 3]])
   (define graph1  [construct-game-map MAX-WIDTH MAX-WIDTH example1 connect1])
   
   (check-equal? (parse-game-map (game-map->jsexpr graph1)) graph1 "parse map")
@@ -327,7 +327,7 @@
              (λ () (->vgraph [construct-game-map MAX-WIDTH MAX-WIDTH example2 connect1]))
              "bad city")
 
-  (define connect4 `[,[connection 'A 'B 'red 9]])
+  (define connect4 `[,[connection A B red 9]])
   (check-exn exn:fail:contract?
              (λ () (->vgraph [construct-game-map MAX-WIDTH MAX-WIDTH example1 connect4]))
              "fail a cont")
