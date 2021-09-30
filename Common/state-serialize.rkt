@@ -239,7 +239,7 @@
   (match x
     [(list (? city? city1) (? city? city2) (? color? c) (? seg#? s))
      (define candidate1 (append (2cities city1 city2 return cities) (list (string->symbol c) s)))
-     (define candidate  (apply cconnect candidate1))
+     (define candidate (apply connect candidate1))
      (if (or (boolean? conns) (set-member? conns candidate))
          candidate
          (return "non-existent connection"))]

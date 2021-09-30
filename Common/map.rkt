@@ -446,7 +446,7 @@
         [(equal? candidate1 candidate2) (generate)]
         [else
          (match-define [list x y] (list-cities candidate1 candidate2))
-         (cconnect x y (random-pick COLORS) (random-pick SEG#))]))
+         (connect x y (random-pick COLORS) (random-pick SEG#))]))
     
     (define/override (err)
       (error 'random-connections "unable to generate more connections for ~a" city-names))
@@ -613,7 +613,7 @@
     (set-union
      s
      (for/set ([c (game-map-connections graph from)])
-       (apply cconnect (append (list-cities from (first c)) (rest c)))))))
+       (apply connect (append (list-cities from (first c)) (rest c)))))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (game-map-cities graph) (map node-name (game-map-city-places graph)))

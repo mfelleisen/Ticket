@@ -270,7 +270,7 @@
   (unless (hash? j) (return "not a connection object"))
   (for/fold ([r '()]) ([(from c*) j])
     (unless (member from cities) (return "not a city in the domain of the connection object"))
-    (append r (map (λ (x) (apply cconnect (cons from x))) (parse-1-connection c* cities return)))))
+    (append r (map (λ (x) (apply connect (cons from x))) (parse-1-connection c* cities return)))))
 
 #; {JSexpr [Listof Symbol] [Boolean -> Emtpy] -> [Listof [List Symbol ColorSymbol Seg#]]}
 (define (parse-1-connection j cities return)

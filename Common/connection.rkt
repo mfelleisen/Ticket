@@ -1,8 +1,27 @@
 #lang racket
 
+;; represent individual connections
+
+;                                                          
+;                                                          
+;                                                          
+;                                             ;            
+;                                             ;            
+;    ;;;;   ;;  ;;  ; ;;;    ;;;;    ;;;;   ;;;;;;   ;;;;  
+;   ;    ;   ;  ;   ;;  ;;  ;;  ;;   ;;  ;    ;     ;    ; 
+;   ;;;;;;    ;;    ;    ;  ;    ;   ;        ;     ;      
+;   ;         ;;    ;    ;  ;    ;   ;        ;      ;;;;  
+;   ;         ;;    ;    ;  ;    ;   ;        ;          ; 
+;   ;;   ;   ;  ;   ;;  ;;  ;;  ;;   ;        ;     ;    ; 
+;    ;;;;;  ;    ;  ; ;;;    ;;;;    ;         ;;;   ;;;;  
+;                   ;                                      
+;                   ;                                      
+;                   ;                                      
+;                                                          
+
 (provide
  connection/c
- cconnect
+ connect
  (rename-out [make-connection connection])
  connection?
  connection-from
@@ -16,14 +35,64 @@
 
  connection-serialize)
 
+;                                                                                                  
+;                                                                                                  
+;        ;                                       ;                             ;                   
+;        ;                                       ;                                                 
+;        ;                                       ;                                                 
+;    ;;; ;   ;;;;   ; ;;;    ;;;;   ; ;;;    ;;; ;   ;;;;   ; ;;;     ;;;    ;;;     ;;;;    ;;;;  
+;   ;;  ;;  ;    ;  ;;  ;;  ;    ;  ;;   ;  ;;  ;;  ;    ;  ;;   ;   ;   ;     ;    ;    ;  ;    ; 
+;   ;    ;  ;;;;;;  ;    ;  ;;;;;;  ;    ;  ;    ;  ;;;;;;  ;    ;  ;          ;    ;;;;;;  ;      
+;   ;    ;  ;       ;    ;  ;       ;    ;  ;    ;  ;       ;    ;  ;          ;    ;        ;;;;  
+;   ;    ;  ;       ;    ;  ;       ;    ;  ;    ;  ;       ;    ;  ;          ;    ;            ; 
+;   ;;  ;;  ;;   ;  ;;  ;;  ;;   ;  ;    ;  ;;  ;;  ;;   ;  ;    ;   ;   ;     ;    ;;   ;  ;    ; 
+;    ;;; ;   ;;;;;  ; ;;;    ;;;;;  ;    ;   ;;; ;   ;;;;;  ;    ;    ;;;    ;;;;;   ;;;;;   ;;;;  
+;                   ;                                                                              
+;                   ;                                                                              
+;                   ;                                                                              
+;                                                                                                  
 
 (require (only-in Trains/Common/basic-constants color? seg#? list-cities))
 
 (require syntax/parse/define)
 
-(struct connection [from to color seg#] #:prefab #:extra-constructor-name cconnect)
+;                                                                          
+;                                                                          
+;        ;                                                                 
+;        ;            ;                                                    
+;        ;            ;                                                    
+;    ;;; ;    ;;;   ;;;;;;    ;;;            ;;;;    ;;;;   ; ;;;          
+;   ;;  ;;   ;   ;    ;      ;   ;           ;;  ;  ;    ;  ;;  ;;         
+;   ;    ;       ;    ;          ;           ;      ;;;;;;  ;    ;         
+;   ;    ;   ;;;;;    ;      ;;;;;           ;      ;       ;    ;         
+;   ;    ;  ;    ;    ;     ;    ;           ;      ;       ;    ;    ;;   
+;   ;;  ;;  ;   ;;    ;     ;   ;;           ;      ;;   ;  ;;  ;;    ;;   
+;    ;;; ;   ;;; ;     ;;;   ;;; ;           ;       ;;;;;  ; ;;;     ;;   
+;                                                           ;              
+;                                                           ;              
+;                                                           ;              
+;                                                                          
+
+(struct connection [from to color seg#] #:prefab #:extra-constructor-name connect)
 
 (define-syntax-parse-rule (make-connection a:id b:id c:id d) (connection 'a 'b 'c d))
+
+;                                          
+;                                          
+;     ;                                    
+;     ;                                    
+;     ;                                    
+;   ;;;;;   ;    ;  ; ;;;    ;;;;          
+;     ;     ;    ;  ;;   ;  ;    ;         
+;     ;     ;    ;  ;    ;  ;              
+;     ;     ;    ;  ;    ;   ;;;;          
+;     ;     ;    ;  ;    ;       ;    ;;   
+;     ;     ;   ;;  ;    ;  ;    ;    ;;   
+;     ;      ;;; ;  ;    ;   ;;;;     ;;   
+;                                          
+;                                          
+;                                          
+;                                          
 
 (define (connection-flip x)
   (connection (connection-to x) (connection-from x) (connection-color x) (connection-seg# x)))
@@ -43,7 +112,22 @@
 
 (define connection/c (and/c connection? connection-good?))
 
-;; ---------------------------------------------------------------------------------------------------
+;                                                                          
+;                                                                          
+;                              ;             ;;;       ;                   
+;                                              ;                           
+;                                              ;                           
+;    ;;;;    ;;;;    ;;;;    ;;;      ;;;      ;     ;;;    ;;;;;;   ;;;;  
+;   ;    ;  ;    ;   ;;  ;     ;     ;   ;     ;       ;        ;;  ;    ; 
+;   ;       ;;;;;;   ;         ;         ;     ;       ;       ;;   ;;;;;; 
+;    ;;;;   ;        ;         ;     ;;;;;     ;       ;      ;;    ;      
+;        ;  ;        ;         ;    ;    ;     ;       ;     ;;     ;      
+;   ;    ;  ;;   ;   ;         ;    ;   ;;     ;       ;    ;;      ;;   ; 
+;    ;;;;    ;;;;;   ;       ;;;;;   ;;; ;      ;;;  ;;;;;  ;;;;;;   ;;;;; 
+;                                                                          
+;                                                                          
+;                                                                          
+;                                                                          
 
 (define (connection-serialize c)
   (match-define [connection city1 city2 color seg#] c)
