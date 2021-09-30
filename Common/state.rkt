@@ -177,8 +177,8 @@
   (define cards1 (hasheq 'green 5))
   (define cards2 (hasheq 'green 5 'blue 7 'red 6))
 
-  (define orl-sea '[Orlando Seattle blue 5])
-  (define bos-sea '[Boston Seattle red 3])
+  (define orl-sea [connection 'Orlando 'Seattle 'blue 5])
+  (define bos-sea [connection 'Boston 'Seattle 'red 3])
   (define conns0 (set orl-sea))
   (define conns1 (set bos-sea))
   (define path01 (list bos-sea orl-sea))
@@ -206,7 +206,7 @@
   (define blues (make-list 7 'blue))
   (check-equal? (ii+cards (ii+cards (ii- cards1) blues) (make-list 6 'red)) (ii- cards2))
 
-  (check-equal? (ii-acquire ii-play '[Boston Seattle red 3]) ii-final)
+  (check-equal? (ii-acquire ii-play [connection 'Boston 'Seattle 'red 3]) ii-final)
   (check-equal? (ii-conn-score ii-play) 5))
 
 ;                                                  
@@ -305,7 +305,7 @@
    (all-available-connections vtriangle pstate1)
    (set-subtract (game-map-all-connections vtriangle) conns0 conns1))
   
-  (define total (game-map-all-connections vtriangle))
-  
-  (check-false (legal-action? pstate1 total (list 'Boston 'Seattle 'red  3)))
-  (check-true (legal-action? pstate1 total (list 'Boston 'Orlando 'green  5))))
+  (define total (game-map-all-connections vtriangle)) 
+
+  (check-false (legal-action? pstate1 total (connection 'Boston 'Seattle 'red  3)))
+  (check-true (legal-action? pstate1 total (connection 'Boston 'Orlando 'green  5))))

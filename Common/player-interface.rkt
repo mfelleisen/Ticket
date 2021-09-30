@@ -45,6 +45,7 @@
 ;                                                                                                  
 
 (require Trains/Common/basic-constants)
+(require Trains/Common/connection)
 (require Trains/Common/map)
 (require Trains/Common/state)
 
@@ -67,7 +68,7 @@
 
 (define MORE "more cards")
 
-(define action? (list/c symbol? symbol? color? seg#?))
+(define action? connection/c)
 
 (define strategy%/c
   (class/c))

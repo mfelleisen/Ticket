@@ -49,6 +49,7 @@
 ;                                                                                                  
 
 (require Trains/Common/player-interface)
+(require Trains/Common/connection)
 (module+ test
   (require (submod ".."))
   (require (submod Trains/Player/astrategy examples))
@@ -132,7 +133,7 @@
   (check-equal? (set-count (send p1-static pick destinations)) 3)
   (check-equal? (send p1-static play pstate1) MORE)
   (check-true (void? (send p1-static more '[green blue])))
-  (check-true (list? (send p1-static play pstate2)))
+  (check-true (connection? (send p1-static play pstate2)))
   (check-true (void? (dev/null (send p1-static win #false)))))
 
 (module+ test ;; simple tests with dynamically loaded hold-10-strategy to make sure the mechanics work 
@@ -144,5 +145,5 @@
   (check-equal? (set-count (send p1-dynamic pick destinations)) 3)
   (check-equal? (send p1-dynamic play pstate1) MORE)
   (check-true (void? (send p1-dynamic more '[green blue])))
-  (check-true (list? (send p1-dynamic play pstate2)))
+  (check-true (connection? (send p1-dynamic play pstate2)))
   (check-true (void? (dev/null (send p1-dynamic win #false)))))

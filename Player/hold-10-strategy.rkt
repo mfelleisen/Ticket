@@ -45,6 +45,7 @@
 
 (require (except-in Trains/Player/astrategy strategy/c%))
 (require Trains/Common/basic-constants)
+(require Trains/Common/connection)
 (require Trains/Common/player-interface)
 
 
@@ -128,12 +129,12 @@
   (check-equal? (get-field destination2 strat-tri) '(Boston Orlando))
 
   (check-equal? (send strat-tri choose-action pstate1) MORE)
-  (check-equal? (send strat-tri choose-action pstate2) `[Boston Orlando green 5])
+  (check-equal? (send strat-tri choose-action pstate2) [connection 'Boston 'Orlando 'green 5])
   (check-equal? (send strat-tri choose-action (like-pstate2 'green 3)) MORE)
   (check-equal? (send strat-tri more-cards 'green 'red) (void))
-  (check-equal? (send strat-rec choose-action (like-pstate2 'green 2)) '(Orlando |San Diego| blue 5))
+  (check-equal? (send strat-rec choose-action (like-pstate2 'green 2)) (connection 'Orlando '|San Diego| 'blue 5))
 
-  (define okay '[Boston Orlando green 5])
+  (define okay [connection 'Boston 'Orlando 'green 5])
   (check-equal? (send strat-tri choose-action pstate-play) okay)
   (check-equal? (send strat-tri++ choose-action pstate-play) okay)
   (check-equal? (send strat-tri++ choose-action pstate-play+) okay "destinations not connected !!!"))

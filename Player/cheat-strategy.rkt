@@ -44,6 +44,7 @@
 ;                                                                                                  
 
 (require Trains/Common/basic-constants)
+(require Trains/Common/connection)
 (require Trains/Common/map)
 (require Trains/Player/hold-10-strategy)
 (require SwDev/Lib/should-be-racket)
@@ -84,12 +85,12 @@
       (define under-connected-cities 
         (for*/first ([c cities]
                      [d cities]
-                     [d-c-conns (in-value  (filter (λ (x) (equal? (take x 2) (list c d))) conns))]
+                     [d-c-conns (in-value  (filter (λ (x) (equal? (connection-ft x) (list c d))) conns))]
                      #:when (and (symbol<? c d) (<= (length d-c-conns) (apply max SEG#))))
           
-          (define colors (map third d-c-conns))
+          (define colors (map connection-color d-c-conns))
           (define others (remove* colors COLORS))
-          (list c d (random-pick others) 3)))
+          (connection c d (random-pick others) 3)))
 
       (cond
         [under-connected-cities under-connected-cities]

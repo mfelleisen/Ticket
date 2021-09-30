@@ -152,12 +152,12 @@
 ;                                  
 
 (define ((can-acquire? rails# cards) x)
-  (match-define [list _c _d color seg#] x)
-  (and (>= rails# seg#) (>= (hash-ref cards color 0) seg#)))
+  (and (>= rails# (connection-seg# x))
+       (>= (hash-ref cards (connection-color x) 0) (connection-seg# x))))
 
 (define (lexi->length->color<? c1 c2)
-  (let ((from-to-1 (take c1 2))
-        (from-to-2 (take c2 2)))
+  (let ((from-to-1 (connection-ft c1))
+        (from-to-2 (connection-ft c2)))
     (or (lexi<? from-to-1 from-to-2)
         (and (equal? from-to-1 from-to-2)
              (let ([length-1 (connection-seg# c1)]

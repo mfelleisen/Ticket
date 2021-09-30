@@ -79,7 +79,7 @@
   [game-map-cities    (-> game-map? [listof symbol?])]
   [game-map-locations (-> game-map? [listof [list/c symbol? (list/c natural? natural?)]])]
 
-  [game-map-all-connections (-> game-map? (set/c (list/c symbol? symbol? color? seg#?)))]
+  [game-map-all-connections (-> game-map? (set/c connection/c))]
   [game-map-connections     (-> game-map? symbol? (listof (list/c symbol? color? seg#?)))]
   
   [all-destinations      (-> game-map? (listof destination/c))]
@@ -191,16 +191,16 @@
 ;; ---------------------------------------------------------------------------------------------------
 (module+ examples
   (define triangle-source
-    '[[Orlando Seattle blue 5]
-      [Boston Seattle red 3]
-      [Boston Seattle green 4]
-      [Boston Orlando white 3]
-      [Boston Orlando green 5]])
+    `[,[connection 'Orlando 'Seattle 'blue 5]
+      ,[connection 'Boston  'Seattle 'red 3]
+      ,[connection 'Boston  'Seattle 'green 4]
+      ,[connection 'Boston  'Orlando 'white 3]
+      ,[connection 'Boston  'Orlando 'green 5]])
 
   (define kc-st '["Kansas City" "St. Louis" "green" 4])
 
   (define triangle++-source
-    (append triangle-source `[[|Kansas City| |St. Louis| green 4]]))
+    (append triangle-source `[,[connection '|Kansas City| '|St. Louis| 'green 4]]))
   
   (define triangle
     [hasheq 'Orlando `[,[to 'Boston 'white 3]
@@ -224,7 +224,7 @@
 
   (provide simple-triangle-paths)
   (define simple-triangle-paths 
-    '{;; Boston <-> Seattle
+    `{;; Boston <-> Seattle
       ;; ------------------
       [(Boston Seattle blue 3) (Orlando Seattle blue 3)] 
       [(Boston Seattle blue 3)]
@@ -252,7 +252,7 @@
   (define vtriangle (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) triangle))
   (define striangle (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) simple-triangle))
   
-  (define vtriangle-boston-seattle (list 'Boston 'Seattle 'red 3))
+  (define vtriangle-boston-seattle (connection 'Boston 'Seattle 'red 3))
   (define vtriangle-paths (all-possible-paths vtriangle))
   (define vtriangle-conns (set vtriangle-boston-seattle))
   (define vtriangle-dests
@@ -283,11 +283,12 @@
 (module+ examples
   (provide project-triangle-to projected-vtriangle)
 
-  (define project-triangle-to [set '[Boston Seattle red 3] '[Orlando Seattle blue 5]])
+  (define project-triangle-to
+    [set [connection 'Boston 'Seattle 'red 3] [connection 'Orlando 'Seattle 'blue 5]])
   (define projected-triangle
     [hasheq 'Orlando `[,[to 'Seattle 'blue 5]]          
-            'Seattle `[,[to 'Orlando 'blue 5]
-                       ,[to 'Boston 'red 3]]
+            'Seattle `[,[to 'Boston 'red 3]
+                       ,[to 'Orlando 'blue 5]]
             'Boston  `[,[to 'Seattle 'red 3]]])
   (define projected-vtriangle
     (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) projected-triangle)))
@@ -359,8 +360,12 @@
 
 #; {[Hashof Symbol Slice] [Listof Connections] -> [Hashof Symbol Slice]}
 (define (add-one-direction graph c*)
-  (for*/fold ([directed-graph graph]) ([c (group-by connection-from c*)][from (in-value (caar c))])
-    (hash-update directed-graph from (curry append (map (λ (x) (apply to (rest x))) c)) '[])))
+  (for*/fold ([directed-graph graph])
+             ([c (group-by connection-from c*)]
+              [from (in-value (connection-from (first c)))])
+    (define up
+      (curry append (map (λ (x) (to (connection-to x) (connection-color x) (connection-seg# x))) c)))
+    (hash-update directed-graph from up '[])))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -437,8 +442,11 @@
     (define/override (generate)
       (define candidate1 (random-pick city-names))
       (define candidate2 (random-pick city-names))
-      (if (equal? candidate1 candidate2) (generate)
-          (append (list-cities candidate1 candidate2) `[,(random-pick COLORS) ,(random-pick SEG#)])))
+      (cond
+        [(equal? candidate1 candidate2) (generate)]
+        [else
+         (match-define [list x y] (list-cities candidate1 candidate2))
+         (connection x y (random-pick COLORS) (random-pick SEG#))]))
     
     (define/override (err)
       (error 'random-connections "unable to generate more connections for ~a" city-names))
@@ -605,7 +613,7 @@
     (set-union
      s
      (for/set ([c (game-map-connections graph from)])
-       (append (list-cities from (first c)) (rest c))))))
+       (apply connection (append (list-cities from (first c)) (rest c)))))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (game-map-cities graph) (map node-name (game-map-city-places graph)))
@@ -681,8 +689,10 @@
   (check-equal? (apply set (all-paths vtriangle 'Seattle 'Boston))
                 [set `[[Boston Seattle green 4]]
                      `[[Boston Seattle red 3]]
-                     `[[Boston Orlando green 5] [Orlando Seattle blue 5]]
-                     `[[Boston Orlando white 3] [Orlando Seattle blue 5]]])
+                     `[[Boston Orlando green 5]
+                       [Orlando Seattle blue 5]]
+                     `[[Boston Orlando white 3]
+                       [Orlando Seattle blue 5]]])
 
   (check-equal? (apply set (all-possible-paths striangle))
                 (apply set simple-triangle-paths))

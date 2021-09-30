@@ -142,7 +142,7 @@
 
 (define (acquired->jsexpr c0)
   (for/list ([c (in-set c0)])
-    (acquired1->jsexpr c)))
+    (connection-serialize c)))
 
 (define (acquired1->jsexpr c)
   (match-define [list city1 city2 color seg#] c)
@@ -153,7 +153,7 @@
 (define (action->jsexpr c0)
   (match c0
     [(? (curry equal? MORE)) c0]
-    [c (acquired1->jsexpr c)]))
+    [c (connection-serialize c)]))
 
 (define (destination-set->jsexpr s)
   (for/list ([x (in-set s)]) (map ~a (apply list-cities x))))
@@ -238,7 +238,8 @@
 (define (parse-acquired1 x return (cities #false) (conns #false))
   (match x
     [(list (? city? city1) (? city? city2) (? color? c) (? seg#? s))
-     (define candidate (append (2cities city1 city2 return cities) (list (string->symbol c) s)))
+     (define candidate1 (append (2cities city1 city2 return cities) (list (string->symbol c) s)))
+     (define candidate  (apply connection candidate1))
      (if (or (boolean? conns) (set-member? conns candidate))
          candidate
          (return "non-existent connection"))]
@@ -314,9 +315,6 @@
 
 
   (define A (acquired->jsexpr (all-available-connections vtriangle pstate1)))
-  (define B (sort (sort A string<? #:key connection-from) string<? #:key connection-to))
+  (define B (sort (sort A string<? #:key first) string<? #:key second))
   
   (check-equal? A B))
-
-
-  
