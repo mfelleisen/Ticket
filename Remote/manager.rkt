@@ -46,6 +46,7 @@
 
 (require Trains/Remote/define-dispatcher)
 (require Trains/Common/json)
+(require Trains/Common/action-serialize)
 (require Trains/Common/basic-constants-serialize)
 (require Trains/Common/map-serialize)
 (require (except-in Trains/Common/player-interface manager-player/c))

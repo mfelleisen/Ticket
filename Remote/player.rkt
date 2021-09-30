@@ -44,6 +44,7 @@
 
 (require Trains/Remote/define-remote)
 (require Trains/Common/basic-constants-serialize)
+(require Trains/Common/action-serialize)
 (require Trains/Common/state-serialize)
 (require Trains/Common/map-serialize)
 (require (except-in Trains/Common/player-interface manager-player/c))

@@ -30,13 +30,11 @@
  CARDS
 
  pstate->jsexpr
- action->jsexpr
  destination->jsexpr
  destination-set->jsexpr
  
  parse-state parse-pstate
- parse-action 
- parse-acquired1
+
  #;(parse-destination return j cities gm)
  parse-destination
 
@@ -150,11 +148,6 @@
 
 (define (destination->jsexpr d) (map ~a (apply list-cities d)))
 
-(define (action->jsexpr c0)
-  (match c0
-    [(? (curry equal? MORE)) c0]
-    [c (connection-serialize c)]))
-
 (define (destination-set->jsexpr s)
   (for/list ([x (in-set s)]) (map ~a (apply list-cities x))))
 
@@ -224,6 +217,11 @@
             (return "destinations aren't connected in the given map"))])]
     [_ (return "not a destination array")]))
 
+(define (2cities city1 city2 return cities)
+  (define c1 (string->symbol city1))
+  (define c2 (string->symbol city2))
+  (check-cities c1 c2 return cities))
+
 (define (parse-cards return j)
   (unless (hash? j) (return "not a card object"))
   (for/hasheq ([(c s) j])
@@ -232,38 +230,30 @@
     (values c s)))
 
 (define ((parse-acquired return cities conns) j)
-  (for/set ([x j])
-    (parse-acquired1 x return cities conns)))
+  ;; if cities (and conns) are specified, make sure the parsed connection works 
+  (define (check candidate)
+    (cond
+      [(boolean? candidate)
+       (return (~s "not a connection array (with 2 cities, a color, and a segment length " j))]
+      [(or (boolean? conns) (set-member? conns candidate))
+       (check-cities (connection-from candidate) (connection-to candidate) return cities)
+       candidate]
+      [else (return "non-existent connection")]))
+  (for/set ([x (in-list j)])
+    (if (and (boolean? cities) (boolean? conns))
+        (parse-connection x)
+        (parse-connection x #:check check))))
 
-(define (parse-acquired1 x return (cities #false) (conns #false))
-  (match x
-    [(list (? city? city1) (? city? city2) (? color? c) (? seg#? s))
-     (define candidate (connection (2cities city1 city2 return cities) (string->symbol c) s))
-     (if (or (boolean? conns) (set-member? conns candidate))
-         candidate
-         (return "non-existent connection"))]
-    [_ (return (~s "not a connection array (with 2 cities, a color, and a segment length " x))]))
-
-(define (2cities city1 city2 return cities)
-  (define c1 (string->symbol city1))
-  (define c2 (string->symbol city2))
+#; {Symbol Symbol [String -> Void] [Listof Symbol] -> [List Symbol Symbol]}
+(define (check-cities c1 c2 return cities)
   (if (or (boolean? cities) (and (member c1 cities) (member c2 cities)))
       (list c1 c2)
       (return (~a "not cities: "
-                  city1
+                  c1
                   (member c1 cities)
                   " & "
-                  city2
+                  c2
                   (member c2 cities) "::" cities ))))
-
-(define (parse-action j)
-  (let/ec done
-    (define (return x)
-      (displayln x (current-error-port))
-      #false)
-    (match j
-      [(? (curry equal? MORE)) j]
-      [a (parse-acquired1 j return)])))
 
 (define (parse-destination-set j)
   (match j

@@ -42,7 +42,8 @@
 
  connection-flip ;; flip the direction 
  
- connection-serialize)
+ connection-serialize
+ parse-connection)
 
 ;                                                                                                  
 ;                                                                                                  
@@ -61,7 +62,7 @@
 ;                   ;                                                                              
 ;                                                                                                  
 
-(require (only-in Trains/Common/basic-constants color? seg#? list-cities))
+(require (only-in Trains/Common/basic-constants city? color? seg#? list-cities))
 
 (require syntax/parse/define)
 
@@ -145,3 +146,11 @@
 (define (connection-serialize c)
   (match-define [connection city1 city2 color seg#] c)
   (append (map ~a (list-cities city1 city2)) (list (~a color) seg#)))
+
+
+(define (parse-connection x #:check (check values))
+  (check
+   (match x
+     [(list (? city? city1) (? city? city2) (? color? c) (? seg#? s))
+      (connection (string->symbol city1) (string->symbol city2) (string->symbol c) s)]
+     [_ #false])))
