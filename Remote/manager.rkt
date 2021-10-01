@@ -23,11 +23,23 @@
 (require (only-in Trains/Common/player-interface manager-player/c))
 (require (only-in json jsexpr?))
 
-(define receiver/c (-> (-> (or/c eof-object? jsexpr?) jsexpr?) any))
+(define create-reply/c   (-> (or/c eof-object? jsexpr?) jsexpr?))
+(define receiver/c       (-> create-reply/c any))
+(define remote-manager/c (-> receiver/c (-> manager-player/c any)))
 
-(provide
- (contract-out
-  [make-remote-manager (-> receiver/c (-> manager-player/c any))]))
+;; the `remote-manager` for a player is a function that
+;; -- repeatedly receives JSexpr and turns them into arguments so that it can 
+;; -- call the appropriate method in the given player and then
+;; -- turn the result into a JSexpr that can be sent back 
+;; 
+;; the `receiver` is supposed to be a function that handles the side of a remote-call interaction 
+;; -- its argument is called on the received JSON or EOF turned into JSxpr or EOF
+;;    and its result is what the `receiver` turns back into a remote reply
+;;    [I have developed a library that sets up both a sender and a receiver.]
+;;    
+;; `create-reply` is the best name I could come up with for the argument of the `receiver`
+
+(provide (contract-out [make-remote-manager remote-manager/c]))
 
 ;                                                                                      
 ;       ;                                  ;                                           
@@ -84,25 +96,26 @@
 
 (define ((make-remote-manager receiver) player)
   (define done? (box (gensym)))
-  (define disp  (dispatcher player done?))
+  (define dispatcher (make-dispatcher player done?))
   (parameterize ([io-time-out 1000])
     (let loop ()
       (with-handlers ([void (λ (xn)
                               (fprintf (current-error-port) "~a" (exn-message xn))
                               (set-box! done? xn))])
-        (receiver disp)
+        (receiver dispatcher)
         (unless (boolean? (unbox done?))
           (loop)))))
   (unbox done?))
 
-#;{XPlayer [Box (U Symbol Boolean)] -> JSexpr -> JSexpr}
-(define-dispatcher dispatcher
+#;{XPlayer [Box (U Symbol Boolean)] -> ((U EOF JSexpr)  -> JSexpr)}
+(define-dispatcher make-dispatcher
   [[start boolean] game-map]
   [[setup game-map natural color*] void]
   [[pick  destination-set] destination-set]
   [[play  pstate] action]
   [[more  color*] void]
   [[win   boolean] void]
+  ;; when the last clause matches, the dispatcher signals the end of the cycle by setting done? to #t
   [[end   boolean] void])
 
 ;                                     
@@ -124,31 +137,32 @@
   (define player1 (new player% [the-map vtriangle] [strategy% hold-10-strategy%]))
   (define box1    (box (gensym)))
 
-  (check-false [(dispatcher player1 box1) eof])
+  (check-false [(make-dispatcher player1 box1) eof])
 
-  (check-equal? [(dispatcher player1 box1) `["start" [#true]]] vtriangle-serialized)
+  (check-equal? [(make-dispatcher player1 box1) `["start" [#true]]] vtriangle-serialized)
   (check-true (symbol? (unbox box1)))
 
-  (check-equal? [(dispatcher player1 box1) `["setup" [,vtriangle-serialized 4 ["red" "red"]]]] "void")
+  (check-equal? [(make-dispatcher player1 box1) `["setup" [,vtriangle-serialized 4 ["red" "red"]]]]
+                "void")
   (check-true (symbol? (unbox box1)))
 
   (define (dests n [convert (λ (a b) (list (~a a) (~a b)))])
     (define targets
       (build-list n (λ (i) (string->symbol (~a "Seat" (integer->char (+ (char->integer #\a) i)))))))
     (map convert (make-list n 'Boston) targets))
-  (check-equal? [(dispatcher player1 box1) `["pick" [,(dests 5)]]] (drop (dests 5) 2))
+  (check-equal? [(make-dispatcher player1 box1) `["pick" [,(dests 5)]]] (drop (dests 5) 2))
   (check-true (symbol? (unbox box1)))
 
-  (check-equal? [(dispatcher player1 box1) `["play" [,pstate1-serialized]]] MORE)
+  (check-equal? [(make-dispatcher player1 box1) `["play" [,pstate1-serialized]]] MORE)
   (check-true (symbol? (unbox box1)))
 
-  (check-equal? [(dispatcher player1 box1) `["more" [["blue" "blue" "red"]]]] "void" "tecn. Illegale")
+  (check-equal? [(make-dispatcher player1 box1) `["more" [["blue" "blue" "red"]]]] "void" "tecn. ill")
   (check-true (symbol? (unbox box1)))
 
-  (check-equal? [(dispatcher player1 box1) `["win" [#true]]] "void")
+  (check-equal? [(make-dispatcher player1 box1) `["win" [#true]]] "void")
   (check-true (symbol? (unbox box1)))
 
-  (check-equal? [(dispatcher player1 box1) `["end" [#false]]] "void")
+  (check-equal? [(make-dispatcher player1 box1) `["end" [#false]]] "void")
   (check-true (boolean? (unbox box1)))
 
   (check-true ((make-remote-manager (λ (f) (f `["end" [#true]]))) player1))

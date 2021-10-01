@@ -22,8 +22,8 @@
      #:with ((pattern right-hand-side) ...) (map (match-clause #'player) (syntax->list #'[ c ...]))
      #:with (pat1 pat ... patN) #'(pattern ...)
      #:with (rhs1 rhs ... rhsN) #'(right-hand-side ...)
-     #`(define ([dispatcher player done?] x)
-         (match x
+     #`(define ([dispatcher player done?] j)
+         (match j
            [(? eof-object?) #false]
            [pat1 (set-box! done? 'go) rhs1]
            [pat  rhs]
