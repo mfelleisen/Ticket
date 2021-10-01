@@ -53,6 +53,7 @@
 (module+ test
   (require (submod ".."))
   (require Trains/Remote/remote-testing)
+  (require Trains/Common/connection)
   (require (submod Trains/Common/state examples))
   (require (submod Trains/Common/map examples))
   (require (submod Trains/Common/map-serialize examples)))
@@ -110,32 +111,32 @@
 (module+ test
   (define pstate1-serialized (pstate->jsexpr pstate1))
 
-  (test-remote make-remote-player
+  (test-remote make-remote-player a
                (start #t)
                #:remote vrectangle-serialized
                #:exp vrectangle
                #:msg '["start" [#t]])
-  (test-remote make-remote-player
+  (test-remote make-remote-player b
                (setup vtriangle 3 '[red blue])
                #:msg `["setup" [,vtriangle-serialized 3 ["red" "blue"]]])
-  (test-remote make-remote-player
+  (test-remote make-remote-player c
                (pick (apply set (make-list 5 '[Boston Seattle])))
                #:remote (make-list 3 '["Boston" "Seattle"])
                #:exp (apply set (make-list 3 '[Boston Seattle]))
                #:msg '("pick" [(["Boston" "Seattle"])]))
-  (test-remote make-remote-player
+  (test-remote make-remote-player d
                (play pstate1)
                #:remote MORE
                #:exp MORE
                #:msg `["play" [,pstate1-serialized]])
-  (test-remote make-remote-player
+  (test-remote make-remote-player e
                (play pstate1)
                #:remote '["Boston" "Seattle" "red" 3]
-               #:exp '[Boston Seattle red 3]
+               #:exp [connection Boston Seattle red 3]
                #:msg `["play" [,pstate1-serialized]])
-  (test-remote make-remote-player
+  (test-remote make-remote-player f
                (more '[blue red]) #:remote "void" #:exp (void) #:msg '["more" [["blue" "red"]]])
-  (test-remote make-remote-player
+  (test-remote make-remote-player g
                (win #f) #:msg '["win" [#f]])
-  (test-remote make-remote-player
+  (test-remote make-remote-player h
                (end #f) #:msg '["end" [#f]]))

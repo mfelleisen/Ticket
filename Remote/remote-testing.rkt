@@ -46,11 +46,11 @@
   ; #:exp JSexpr    ~~ what we expect the method to produce in response
   ; #:msg JSexpr    ~~ what the method sends to the client 
   (syntax-parse stx 
-    [(test make-remote-player
-           (method args ...)
-           (~optional (~seq #:remote input) #:defaults ([input #'(~a "void")]))
-           (~optional (~seq #:exp e) #:defaults ([e #'(void)]))
-           #:msg m)
+    [(_ make-remote-player name:id
+        (method args ...)
+        (~optional (~seq #:remote input) #:defaults ([input #'(~a "void")]))
+        (~optional (~seq #:exp e) #:defaults ([e #'(void)]))
+        #:msg m)
      #'(check-pred
         (report-diff m)
         (string->jsexpr
@@ -62,7 +62,7 @@
                 (λ ()
                   (define ip (current-input-port))
                   (define op (current-output-port))
-                  (define r1 (make-remote-player ip op))
+                  (define r1 (make-remote-player (~a 'name) ip op))
                   (send r1 method args ...)))
               (~a "exoected result of call: " m)))))
         (~a "call as message: " m))]))
