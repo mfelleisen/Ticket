@@ -100,11 +100,13 @@
 (define CANCEL? "Cancel")
 (define NAME    "Enter the city's name")
 
+(require json)
+
 #; {-> GameMap}
 ;; pop up map editor, wait for user to add cities to map & connections, construct map rep.
 (define (map-editor [g #false] #:edit [edit #false])
   (define-values (cities0 connections0 background)
-    (match (or g (parse-game-map))
+    (match (or g (parse-game-map (read-json)))
       [(? boolean?)    (values '[] '[] BACKG)]
       [(? game-map? g) (game-map-internal g)]))
   (match-define (list cities connections) (edit-graph cities0 connections0 background edit))
@@ -141,11 +143,14 @@
 
 (define (external->internal-connections externals)
   (for/list ([c (in-set externals)])
-    (list* (~a (connection-from c)) (~a (connection-to c)) (cddr c))))
+    (list (~a (connection-from c)) (~a (connection-to c)) (connection-color c) (connection-seg# c))))
 
-(define (internal->external-connections internal-connections)  
+(define (internal->external-connections internal-connections)
   (for/list ([c internal-connections])
-    (append (list-cities (string->symbol (first c)) (string->symbol (second c))) (drop c 2))))
+    (define color-seg (cddr c))
+    (connection (list-cities (string->symbol (first c)) (string->symbol (second c)))
+                (first color-seg)
+                (second color-seg))))
 
 (define (internal->external-cities cities)
   (map (λ (x) (cons (string->symbol (first x)) (rest x))) cities))
