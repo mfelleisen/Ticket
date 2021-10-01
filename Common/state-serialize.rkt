@@ -33,7 +33,8 @@
  destination->jsexpr
  destination-set->jsexpr
  
- parse-state parse-pstate
+ parse-pstate
+ parse-acquired
 
  #;(parse-destination return j cities gm)
  parse-destination
@@ -173,9 +174,9 @@
   (cond
     [(eof-object? j) #false]
     [(and (string? j) (regexp-match #px"ERR" j)) #false]
-    [else (parse-state j vgraph)]))
+    [else (parse-pstate j vgraph)]))
 
-(define (parse-state j (gm #false))
+(define (parse-pstate j (gm #false))
   (define cities (and gm (game-map-cities gm)))
   (define conns  (and gm (game-map-all-connections gm)))
   (let/ec k
@@ -186,8 +187,6 @@
       [(hash-table ((? (curry eq? THIS)) this) ((? (curry eq? ACQUIRED)) (list c ...)))
        (pstate (parse-this return this gm cities conns) (map (parse-acquired return cities conns) c))]
       [_ (return (format "not a state object (with the two required fields)\n~e" j))])))
-
-(define parse-pstate parse-state)
 
 (define (parse-this return j gm cities conns)
   (match j
