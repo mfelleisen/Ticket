@@ -6,9 +6,14 @@ manager <-------------- ~~~~ --  player (p_1) . . . player (p_n)
   |                                |                 |  
   |     start(Boolean)             |                 | % true means the tournament 
   | ------------------- ~~~~ ----> |                 | % is about to start 
+  |                                |                 |
+  |     Map                        |                 |
+  | <================== ~~~ =====  |                 | submit game map, m will pick one
   .                                .                 .
   .                                .                 .
   .                                .                 .
   |     start(Boolean)             |                 |
   | ------------------- ~~~~ ----------------------> |
   |                                |                 |
+  |     Map                        |                 |
+  | <================= ~~~~ ======================== | submit game map, m will pick one
