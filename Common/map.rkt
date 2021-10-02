@@ -78,12 +78,20 @@
   [game-map-png       (-> game-map? (or/c #false htdp:image?))]
   [game-map-cities    (-> game-map? [listof symbol?])]
   [game-map-locations (-> game-map? [listof [list/c symbol? (list/c natural? natural?)]])]
-
-  [game-map-all-connections (-> game-map? (set/c connection/c))]
-  [game-map-connections     (-> game-map? symbol? (listof (list/c symbol? color? seg#?)))]
   
+  [game-map-all-connections (-> game-map? (set/c connection/c))]
+
+  ;; all cities reachable from the given one (by color and seg#)
+  [game-map-connections  (-> game-map? symbol? (listof (list/c symbol? color? seg#?)))]
+
+  ;; compute all connected pairs of cities in the given `game-map`
   [all-destinations      (-> game-map? (listof destination/c))]
+
+  ;; are the two cities connected in the given `game-map`
+  ;; (useful for projected maps when `all-d` isn't needed)
   (game-map-connected?   (->i ([g game-map?] [from (g) (is-city g)] [to (g) (is-city g)]) (r any/c)))
+
+  ;; (used for projected maps)
   (game-map-longest-path (-> game-map? natural?))))
 
 (module+ examples
@@ -633,7 +641,7 @@
 
 (module+ examples ;; more
 
-  (provide striangle vtriangle-with-height)
+  (provide striangle vtriangle-with-height vdisconnected)
   
   (define vrectangle
     (plain-game-map
@@ -655,7 +663,18 @@
                             #s(to Orlando blue 5)
                             #s(to Seattle white 4)))
             (Seattle     . (#s(to Boston white 3)
-                            #s(to |San Diego| white 4)))))))
+                            #s(to |San Diego| white 4))))))
+
+  (define vdisconnected
+    (plain-game-map
+     800
+     800
+     '(#s(node |San Diego| #s(cord 176 571))
+       #s(node Orlando     #s(cord 715 528))
+       #s(node Boston      #s(cord 793 201))
+       #s(node NYC         #s(cord 693 301))
+       #s(node Seattle     #s(cord 131 168)))
+     '#hash())))
 
 (module+ test
 
@@ -704,6 +723,8 @@
   ;; for game-map-connections, all of them 
   (check-true (subset? (game-map-all-connections vtriangle) (list->set triangle-source))
              "game-map-connection all")
+
+  (check-equal? (all-destinations vdisconnected) '[])
 
   (check-equal? (apply set (all-destinations vrectangle))
                 (apply set '[[Boston |San Diego|]

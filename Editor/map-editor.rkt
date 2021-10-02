@@ -22,9 +22,12 @@
                          
 (provide
  #; { [GameMap] [#:edit Boolean] -> GameMap}
- ;; this simple map editor produces a visual graph (board) representation 
- ;; cities can be added but not deleted (yet)
- ;; connections are added via a separate selection-based window 
+ ;; a map visualizer [& editor] that produces a visual representation of the given
+ ;; GameMap, which includes width, height, and city placement data. The graph part 
+ ;; of the GameMap includes color and segment# data for the city connections. 
+
+ ;; The GameMap is optional. If it is missing, the function reads it from STDIN (piped in file).
+ ;; When the #:edit argument is #true, the program enables editing 
  map-editor)
 
 (module+ homework
