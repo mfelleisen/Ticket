@@ -436,11 +436,11 @@
     (super-new)
     
     (define/override (generate)
-      (define candidate1 (random-pick city-names))
-      (define candidate2 (random-pick city-names))
+      (define c1 (random-pick city-names))
+      (define c2 (random-pick city-names))
       (cond
-        [(equal? candidate1 candidate2) (generate)]
-        [else (connection (list-cities candidate1 candidate2) (random-pick COLORS) (random-pick SEG#))]))
+        [(equal? c1 c2) (generate)]
+        [else (connection (list-cities c1 c2) (random-pick COLORS) (random-pick SEG#))]))
     
     (define/override (err)
       (error 'random-connections "unable to generate more connections for ~a" city-names))
@@ -503,12 +503,13 @@
 ;                                                                          
 
 (require (for-syntax syntax/parse))
-(require (for-syntax racket/syntax))
+(require (for-syntax (only-in racket ~a)))
 
 (define-syntax (define/memoize stx)
   (syntax-parse stx 
     [(define/memoize (name:id vgraph:id x:id ...) retrieve setter)
-     #:with proper (format-id stx "~a/proper" (syntax-e #'name))
+     #:do ([define proper:id (string->symbol (~a (syntax-e #'name) "/proper"))])
+     #:with proper (datum->syntax stx proper:id stx stx)
      #'(define (name vgraph x ...)
          (define ?destinations (retrieve vgraph x ...))
          (cond
