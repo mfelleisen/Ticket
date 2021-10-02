@@ -1,35 +1,149 @@
 #lang racket
 
-;; create a dispatcher from types 
+;; create a remote manager from types of the player's methods 
+
+;                                                          
+;                                                          
+;                                                          
+;                                             ;            
+;                                             ;            
+;    ;;;;   ;   ;;  ; ;;;    ;;;;    ;;;;;  ;;;;;;   ;;;;  
+;    ;  ;;   ;  ;   ;;  ;   ;;  ;;   ;;       ;     ;    ; 
+;   ;    ;    ;;    ;    ;  ;    ;   ;        ;     ;      
+;   ;;;;;;    ;;    ;    ;  ;    ;   ;        ;     ;;;    
+;   ;         ;;    ;    ;  ;    ;   ;        ;        ;;; 
+;   ;         ;;    ;    ;  ;    ;   ;        ;          ; 
+;    ;       ;  ;   ;;  ;   ;;  ;;   ;        ;     ;    ; 
+;    ;;;;;  ;    ;  ; ;;;    ;;;;    ;         ;;;   ;;;;  
+;                   ;                                      
+;                   ;                                      
+;                   ;                                      
+;                                                          
 
 (provide
- define-dispatcher)
+ #; [define-remote-manager f c:dispatcher-clause ... c:dispatcher-clause]
+ ;; where a dispatcher-clause has the shape 
+ #; [(method:id arg:id ...) return:id]
+ ;; introduces a remote manager named `f`
+ ;; when the last clause matches, the manager shuts down
 
-;; ---------------------------------------------------------------------------------------------------
-(require Trains/Common/json)
+ ;; The syntax assumes that functions called `parse-arg` and `arg?` are defined in the context. 
+ ;; These functions translate JSexprs to Racket values for the method.
+ ;; Converserly, it also assumes that a function called `return->jsexpr` exists in the context.
+ ;; These functions translate Racket values to JSexpres, which the receiver can send back to a server.
+
+ define-remote-manager)
+
+#; (define create-reply/c   (-> (or/c eof-object? jsexpr?) jsexpr?))
+#; (define receiver/c       (-> create-reply/c any))
+#; (define remote-manager/c (-> receiver/c (-> manager-player/c any)))
+
+;; the `remote-manager` for a player is a function that
+;; -- repeatedly receives JSexpr and turns them into arguments so that it can 
+;; -- call the appropriate method in the given player and then
+;; -- turn the result into a JSexpr that can be sent back 
+;; 
+;; the `receiver` is supposed to be a function that handles the side of a remote-call interaction 
+;; -- its argument is called on the received JSON or EOF turned into JSxpr or EOF
+;;    and its result is what the `receiver` turns back into a remote reply
+;;    [I have developed a library that sets up both a sender and a receiver.]
+;;    
+;; `create-reply` is the best name I could come up with for the argument of the `receiver`
+
+;                                                                                                  
+;                                                                                                  
+;        ;                                       ;                             ;                   
+;        ;                                       ;                             ;                   
+;        ;                                       ;                                                 
+;    ;;; ;   ;;;;   ; ;;;    ;;;;   ; ;;;    ;;; ;   ;;;;   ; ;;;     ;;;    ;;;     ;;;;    ;;;;  
+;    ;  ;;   ;  ;;  ;;  ;    ;  ;;  ;;   ;   ;  ;;   ;  ;;  ;;   ;   ;   ;     ;     ;  ;;  ;    ; 
+;   ;    ;  ;    ;  ;    ;  ;    ;  ;    ;  ;    ;  ;    ;  ;    ;  ;          ;    ;    ;  ;      
+;   ;    ;  ;;;;;;  ;    ;  ;;;;;;  ;    ;  ;    ;  ;;;;;;  ;    ;  ;          ;    ;;;;;;  ;;;    
+;   ;    ;  ;       ;    ;  ;       ;    ;  ;    ;  ;       ;    ;  ;          ;    ;          ;;; 
+;   ;    ;  ;       ;    ;  ;       ;    ;  ;    ;  ;       ;    ;  ;          ;    ;            ; 
+;    ;  ;;   ;      ;;  ;    ;      ;    ;   ;  ;;   ;      ;    ;   ;   ;     ;     ;      ;    ; 
+;    ;;; ;   ;;;;;  ; ;;;    ;;;;;  ;    ;   ;;; ;   ;;;;;  ;    ;    ;;;   ;;;;;;;  ;;;;;   ;;;;  
+;                   ;                                                                              
+;                   ;                                                                              
+;                   ;                                                                              
+;                                                                                                  
+
+; (require Trains/Common/json)
+(require SwDev/Testing/communication)
 (require (for-syntax syntax/parse))
 (require (for-syntax (only-in racket ~a)))
 
-;; ---------------------------------------------------------------------------------------------------
+;                                                  
+;                                                  
+;                                                  
+;                                     ;            
+;                                     ;            
+;    ;;;;;   ;;;;   ;;;;;;   ;;;;   ;;;;;;   ;;;;  
+;    ;;      ;  ;;  ;  ;  ; ;;  ;;    ;      ;  ;; 
+;    ;      ;    ;  ;  ;  ; ;    ;    ;     ;    ; 
+;    ;      ;;;;;;  ;  ;  ; ;    ;    ;     ;;;;;; 
+;    ;      ;       ;  ;  ; ;    ;    ;     ;      
+;    ;      ;       ;  ;  ; ;    ;    ;     ;      
+;    ;       ;      ;  ;  ; ;;  ;;    ;      ;     
+;    ;       ;;;;;  ;  ;  ;  ;;;;      ;;;   ;;;;; 
+;                                                  
+;                                                  
+;                                                  
+;                                                  
+
+(define (([make-remote-manager make-dispatcher] receiver) player)
+  (define done? (box (gensym)))
+  (define dispatcher (make-dispatcher player done?))
+  (parameterize ([io-time-out 1000])
+    (let loop ()
+      (with-handlers ([void (λ (xn)
+                              (fprintf (current-error-port) "~a" (exn-message xn))
+                              (set-box! done? xn))])
+        (receiver dispatcher)
+        (unless (boolean? (unbox done?))
+          (loop)))))
+  (unbox done?))
+
+;                                                  
+;                                                  
+;                                                  
+;                             ;                    
+;                             ;                    
+;    ;;;;   ;    ;  ; ;;;   ;;;;;;    ;;;   ;   ;; 
+;   ;    ;   ;   ;  ;;   ;    ;      ;   ;   ;  ;  
+;   ;        ;  ;   ;    ;    ;          ;    ;;   
+;   ;;;      ;  ;   ;    ;    ;      ;;;;;    ;;   
+;      ;;;    ; ;   ;    ;    ;     ;    ;    ;;   
+;        ;    ;;    ;    ;    ;     ;    ;    ;;   
+;   ;    ;    ;;    ;    ;    ;     ;   ;;   ;  ;  
+;    ;;;;      ;    ;    ;     ;;;   ;;; ;  ;    ; 
+;              ;                                   
+;             ;                                    
+;            ;;                                    
+;                                                  
+
 (begin-for-syntax
   (define-syntax-class dispatcher-clause
     (pattern [(method:id arg:id ...) return:id])))
 
-(define-syntax (define-dispatcher stx)
+(define-syntax (define-remote-manager stx)
   (syntax-parse stx
-    [[_ dispatcher c:dispatcher-clause ...]
-     #:with player #'player
+    [[_ f c:dispatcher-clause ...]
      #:with ((pattern right-hand-side) ...) (map (match-clause #'player) (syntax->list #'[ c ...]))
      #:with (pat1 pat ... patN) #'(pattern ...)
      #:with (rhs1 rhs ... rhsN) #'(right-hand-side ...)
-     #`(define ([dispatcher player done?] j)
-         (match j
-           [(? eof-object?) #false]
-           [pat1 (set-box! done? 'go) rhs1]
-           [pat  rhs]
-           ...
-           [patN (set-box! done? #t) rhsN]
-           [ill (error 'dispatcher "server sent ill-formed message: ~e" ill)]))]))
+     
+     #'(define f
+         (let ()
+           (define ([dispatcher player done?] j)
+             (match j
+               [(? eof-object?) #false]
+               [pat1 (set-box! done? 'go) rhs1]
+               [pat  rhs]
+               ...
+               [patN (set-box! done? #t) rhsN]
+               [ill (error 'dispatcher "server sent ill-formed message: ~e" ill)]))
+           (make-remote-manager dispatcher)))]))
 
 (define-for-syntax ((match-clause player) stx)
   (syntax-parse stx
@@ -59,25 +173,3 @@
 
 (define-for-syntax (jsexpr-name id)
   (datum->syntax id (string->symbol (~a (syntax-e id) "->jsexpr")) id id))
-
-;; ---------------------------------------------------------------------------------------------------
-(module+ test
-  (define (parse-symbol x) (string->symbol x))
-  
-  (define player%
-    (class object%
-      (super-new)
-      (define/public (pick x) (displayln `[I picked ,x]))
-      (define/public (done x) (displayln `[I am done: ,x]) "I won")))
- 
-  (define-dispatcher dispatcher 
-    [(pick symbol) void]
-    [(done boolean) string])
-
-  (define player (new player%))
-
-  ([dispatcher player (box 1)] '["pick" ["a"]])
-  ([dispatcher player (box 1)] '["done" [#false]])
-  (with-handlers ([exn:fail? (λ (xn) (void))])
-    [(dispatcher player (box 0)) '["done" []]]
-    (raise 'ouch)))

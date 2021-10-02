@@ -65,14 +65,12 @@
 (require Trains/Common/state-serialize)
 (require Trains/Common/state)
 (require Trains/Common/map)
-(require SwDev/Testing/communication)
 
 (module+ test
   (require (submod ".."))
   (require (submod Trains/Common/map examples))
   (require (submod Trains/Common/map-serialize examples))
   (require (submod Trains/Common/state-serialize examples))
-  (require Trains/Common/state)
   (require Trains/Player/player)
   (require Trains/Player/hold-10-strategy)
   (require SwDev/Lib/should-be-racket)
@@ -94,21 +92,7 @@
 ;   ;                           ;;
 
 
-(define ((make-remote-manager receiver) player)
-  (define done? (box (gensym)))
-  (define dispatcher (make-dispatcher player done?))
-  (parameterize ([io-time-out 1000])
-    (let loop ()
-      (with-handlers ([void (λ (xn)
-                              (fprintf (current-error-port) "~a" (exn-message xn))
-                              (set-box! done? xn))])
-        (receiver dispatcher)
-        (unless (boolean? (unbox done?))
-          (loop)))))
-  (unbox done?))
-
-#;{XPlayer [Box (U Symbol Boolean)] -> ((U EOF JSexpr)  -> JSexpr)}
-(define-dispatcher make-dispatcher
+(define-remote-manager make-remote-manager 
   [[start boolean] game-map]
   [[setup game-map natural color*] void]
   [[pick  destination-set] destination-set]
@@ -134,38 +118,33 @@
 ;                                     
 
 (module+ test
-  (define player1 (new player% [the-map vtriangle] [strategy% hold-10-strategy%]))
-  (define box1    (box (gensym)))
-
-  (check-false [(make-dispatcher player1 box1) eof])
-
-  (check-equal? [(make-dispatcher player1 box1) `["start" [#true]]] vtriangle-serialized)
-  (check-true (symbol? (unbox box1)))
-
-  (check-equal? [(make-dispatcher player1 box1) `["setup" [,vtriangle-serialized 4 ["red" "red"]]]]
-                "void")
-  (check-true (symbol? (unbox box1)))
+  (define plr1 (new player% [the-map vtriangle] [strategy% hold-10-strategy%]))
 
   (define (dests n [convert (λ (a b) (list (~a a) (~a b)))])
     (define targets
       (build-list n (λ (i) (string->symbol (~a "Seat" (integer->char (+ (char->integer #\a) i)))))))
     (map convert (make-list n 'Boston) targets))
-  (check-equal? [(make-dispatcher player1 box1) `["pick" [,(dests 5)]]] (drop (dests 5) 2))
-  (check-true (symbol? (unbox box1)))
 
-  (check-equal? [(make-dispatcher player1 box1) `["play" [,pstate1-serialized]]] MORE)
-  (check-true (symbol? (unbox box1)))
+  (define (run j)
+    (define (receiver dispatcher)
+      (escape (dispatcher j)))
+    (define escape #f)
+    (define rm (make-remote-manager receiver))
+    (let/cc k
+      (set! escape k)
+      (rm plr1)))
 
-  (check-equal? [(make-dispatcher player1 box1) `["more" [["blue" "blue" "red"]]]] "void" "tecn. ill")
-  (check-true (symbol? (unbox box1)))
+  (check-false [run eof])
+  (check-equal? (run `["start" [#true]]) vtriangle-serialized)
+  (check-equal? (run `["setup" [,vtriangle-serialized 4 ["red" "red"]]]) "void")
+  (check-equal? (run  `["pick" [,(dests 5)]]) (drop (dests 5) 2))
+  (check-equal? (run `["play" [,pstate1-serialized]]) MORE)
+  (check-equal? (run `["more" [["blue" "blue" "red"]]]) "void" "tecn. ill")
+  (check-equal? (run `["win" [#true]]) "void")
+  (check-equal? (run `["end" [#false]]) "void")
+  (check-equal? (run `["end" [#true]]) "void")
 
-  (check-equal? [(make-dispatcher player1 box1) `["win" [#true]]] "void")
-  (check-true (symbol? (unbox box1)))
-
-  (check-equal? [(make-dispatcher player1 box1) `["end" [#false]]] "void")
-  (check-true (boolean? (unbox box1)))
-
-  (check-true ((make-remote-manager (λ (f) (f `["end" [#true]]))) player1))
+  (check-equal? ((make-remote-manager (λ (f) (f `["end" [#true]]))) plr1) #true)
   
   (define b*
     `[["start" [#true]]
@@ -174,6 +153,7 @@
       ["play" [,pstate1-serialized]]
       ["win" [#true]]
       ["end" [#true]]])
-  (check-true ((make-remote-manager (λ (f) (begin0 (f (first b*)) (set! b* (rest b*))))) player1))
+  (check-equal? ((make-remote-manager (λ (f) (begin0 (f (first b*)) (set! b* (rest b*))))) plr1) #t)
  
-  (check-pred exn? (dev/null ((make-remote-manager (λ (f) (f `[0 [#true]]))) player1))))
+  (check-pred exn? (dev/null ((make-remote-manager (λ (f) (f `[0 [#true]]))) plr1))))
+
