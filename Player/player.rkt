@@ -26,7 +26,7 @@
 
  (contract-out
   [make-player-from-strategy-path
-   (->* [(or/c module-path? path-string?)] (#:name (or/c string? symbol?))
+   (->* [(or/c module-path? path-string?)] (#:gm game-map? #:name (or/c string? symbol?))
         (instanceof/c referee-player%/c))]
   [player% referee-player%/c]))
 
@@ -49,6 +49,7 @@
 ;                                                                                                  
 
 (require Trains/Common/player-interface)
+(require Trains/Common/map)
 (require Trains/Common/connection)
 (module+ test
   (require (submod ".."))
@@ -77,9 +78,9 @@
 ;   ;                        ;;                    
 ;                                                  
 
-(define (make-player-from-strategy-path p #:name [name (gensym 'dynamic)])
+(define (make-player-from-strategy-path p #:name [name (gensym 'dynamic)] #:gm [gm #f])
   (define strat% (dynamic-require p 'strategy%))
-  (new player% [strategy% strat%] [name name]))
+  (new player% [strategy% strat%] [name name] [the-map gm]))
                                          
 (define player%
   (class object% [init-field strategy% [name (gensym 'player)] [the-map #false] [quiet #true]]
@@ -136,7 +137,7 @@
   (check-true (connection/c (send p1-static play pstate2)))
   (check-true (void? (dev/null (send p1-static win #false)))))
 
-(module+ test ;; simple tests with dynamically loaded hold-10-strategy to make sure the mechanics work 
+(module+ test ; simple tests with dynamically loaded hold-10-strategy to make sure the mechanics work 
 
   (define p1-dynamic (make-player-from-strategy-path 'Trains/Player/hold-10-strategy))
 
