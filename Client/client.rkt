@@ -101,7 +101,7 @@
     (list done
           (thread
            (λ ()
-             (parameterize ([prefix-with-spaces 2040]
+             (parameterize ([prefix-with-spaces 5000]
                             [trickle-output? #t])
                (define r (manager behavior))
                (if wait? (channel-put done (list name r)) (void))))))))
