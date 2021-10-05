@@ -68,6 +68,7 @@
 (require Trains/Remote/player)
 (require Trains/Lib/xsend)
 (require (except-in Trains/Admin/manager results/c))
+(require (submod Trains/Admin/manager examples))
 
 (require SwDev/Testing/communication)
 
@@ -106,7 +107,7 @@
      MIN-T-PLAYERS  5
      MAX-T-PLAYERS 10
      SERVER-TRIES   1
-     TIME-PER-TURN 10
+     TIME-PER-TURN 1.2
      MAN-SPEC     '[]
      QUIET         #true))
 
@@ -168,7 +169,10 @@
 (define (configure-manager players config)
   (define game-time-out (dict-ref config TIME-PER-TURN))
   (define man-specifics (dict-ref config MAN-SPEC '[]))
-  (keyword-apply/dict manager man-specifics (list players)))
+  (parameterize ([time-out-limit game-time-out])
+    (define result (keyword-apply/dict manager man-specifics (list players)))
+    (send-message (manager-results->names result))
+    result))
 
 #;{Port# [Listof Player] Int Int Int -> [Listof Player]}
 (define (wait-for-players port house-players MAX-TRIES MAX-TIME MIN-PLAYERS MAX-PLAYERS)
