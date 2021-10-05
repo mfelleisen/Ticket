@@ -57,6 +57,7 @@
   [construct-game-map
    (->i ([w width?]
          [h height?]
+	 ;; the city names are assumed to be distinct? 
          [cities-and-places [listof [list/c symbol? [list/c natural? natural?]]]]
          [connections       [cities-and-places] (and/c connection*/c (in-cities? cities-and-places))])
         (#:map [map any/c])
