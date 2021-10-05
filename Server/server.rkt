@@ -108,6 +108,8 @@
      MAX-T-PLAYERS 10
      SERVER-TRIES   1
      TIME-PER-TURN 1.2
+     ;; a lit of optional keyword arguments:
+     #; {[#:shuffle . shuffle-proc] [#:cards DOT list-of color]}
      MAN-SPEC     '[]
      QUIET         #true))
 
