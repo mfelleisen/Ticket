@@ -61,6 +61,7 @@
    make-players
 
    #; {[Listof XPlayer] -> [Listof String]}
+   ;; extract nanes, sort by string<?
    players->names
 
    #; {GameMap from "map-1.json"}
@@ -189,7 +190,7 @@
   (cond
     [(< (length destination*) (+ (- PICKS-PER DESTS-PER) (* DESTS-PER (length the-external-players))))
      ERR]
-    [else 
+    [else
      (let* ([the-state (setup-all-players the-external-players the-game-map cards destination*)]
             [the-state (play-turns the-state connections)]
             [results   (score-game the-state the-game-map)])
