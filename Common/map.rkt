@@ -260,6 +260,15 @@
 
   (define vtriangle (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) triangle))
   (define striangle (plain-game-map MAX-WIDTH MAX-WIDTH (list->node triangle-nod*) simple-triangle))
+
+  (provide vtriangle-too-many)
+
+  (define vtriangle-too-many
+    (let* ([lettrs "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"]
+           [names  (map (compose string->symbol string) (string->list lettrs))]
+           [places (for/list ([n names] [x (in-naturals)]) `[,n [,x ,x]])]
+           [cities (append places triangle-nod*)])
+      (plain-game-map MAX-WIDTH MAX-WIDTH (list->node cities) triangle)))
   
   (define vtriangle-boston-seattle (connection Boston Seattle red 3))
   (define vtriangle-paths (all-possible-paths vtriangle))
