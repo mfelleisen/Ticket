@@ -28,7 +28,11 @@
 
  ;; The GameMap is optional. If it is missing, the function reads it from STDIN (piped in file).
  ;; When the #:edit argument is #true, the program enables editing 
- map-editor)
+ map-editor
+
+ #; Natural
+ ;; parameter that controls how long map-editor displays its view 
+ max-visualize-time)
 
 (module+ homework
   (provide
@@ -171,14 +175,14 @@
   (send connection stop)
   (list cities conns))
 
-(define max-time (make-parameter 100000000)) ;; for testing
+(define max-visualize-time (make-parameter 100000000)) ;; for testing
 #; {[Listof InternalCities] [Listof InteranlConnections] Image -> [Listof InternalCities]}
 (define (edit-with-big-bang nod0 connection backg edit)
   (big-bang nod0
     [to-draw (draw-graph connection backg)]
     [on-mouse (if edit (add-city connection) (λ (s . _) s))]
     ;; this just triggers a regular update of the image w/ new connections 
-    [on-tick values 1 (max-time)]
+    [on-tick values 1 (max-visualize-time)]
     [close-on-stop #true]))
 
 #; {[Instance Connection%] -> [Listof InternalCities] N N MouseEvent -> [Listof InternalCities]}
@@ -285,7 +289,7 @@
 
 (module+ test
   (check-equal?
-   (parameterize ((max-time 1))
+   (parameterize ((max-visualize-time 1))
      (game-map->jsexpr 
       (with-input-from-string (with-output-to-string (λ () (send-message vtriangle-serialized)))
         map-editor)))
