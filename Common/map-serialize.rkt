@@ -42,7 +42,9 @@
  CONNECTIONS
  
  (contract-out
-  ;; extract VGraph from JSexpr on STDIN, #false otherwise
+  ;; extract GameMap from JSexpr on STDIN, #false otherwise
+  ;; the spec disallows duplicate cities, duplicate places
+  ;; BUT does NOT check the number of cities or connections
   [read-and-parse-map (->         (or/c #false game-map?))]
   [parse-game-map     (-> jsexpr? (or/c #false game-map?))]
   
