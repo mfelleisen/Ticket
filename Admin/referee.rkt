@@ -682,7 +682,7 @@
     (define (make-players n strat% prefix)
       (build-list n
                   (λ (i)
-                    (define name (~a prefix (integer->char (+ (char->integer #\a) i))))
+                    (define name (~a prefix (make-string i #\a)))
                     (new player% [strategy% strat%] [the-map the-map] [name name]))))
     
     (define hold-10-players (make-players hold-10# hold-10:strategy% "holdten"))
