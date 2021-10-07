@@ -244,4 +244,5 @@
   (check-manager vrectangle 1 1 1)
   (check-manager vrectangle 1 1 0)
   (check-manager vrectangle 0 1 0)
-  (check-manager big-map 17 1 10))
+  (check-manager big-map 17 1 10)
+  (check-manager big-map 27 1 12))
