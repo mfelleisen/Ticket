@@ -248,6 +248,7 @@
   +conns)
 
 #; {[Listof InternalCities] Image -> Image}
+;; add cities at the specified places to the given background image 
 (define (draw-cities cities background)
   (for/fold ([image background]) ([n cities])
     (match-define [list name [list x y]] n)
@@ -256,6 +257,8 @@
     +name))
 
 #; {[Listof InternalConnection] [Listof InternalCities] Image -> Image}
+;; add connections at the specified places to the given background image
+;; the connections are offset with magic numbers here (hmph)
 (define (draw-connections edges cities background)
   (for/fold ([image background]) ([edge-set (group-by (λ (x) (take x 2)) edges)])
     (for/fold ([image image]) ([x edge-set][j (in-naturals)])
