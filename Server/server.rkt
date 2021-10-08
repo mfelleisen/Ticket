@@ -48,7 +48,7 @@
    ;; runsning an manager on the players that connected on port# in time
    ;; plus the house players (if any) 
    ;; wait-for-sec seconds or N >= player# as soon as that many signed up 
-   (->i ([config (hash-carrier/c options)]) ([players any/c]) (r results/c))]))
+   (->i ([confg (hash-carrier/c options)]) ([plyrs any/c] #:result (s (-> list? any/c))) (r any/c))]))
 
 ;                                                                                      
 ;       ;                                  ;                                           
@@ -128,6 +128,8 @@
 ;                                            
 ;                                            
 
+(define SHORT 50)
+
 (define LOCAL     "127.0.0.1")
 (define MAX-TCP   30)
 (define REOPEN    #t)
@@ -150,7 +152,7 @@
 ;; `man-spec` is a keyword-dicionary that is turned into arguments to the manager
 ;; that way the server is parametric wrt to the manager's domain 
 
-(define (server config [age-ordering reverse] [house-players '()])
+(define (server config [age-ordering reverse] [house-players '()] #:result (show void))
   (define port (dict-ref config PORT))
   (define MAX-TIME    (dict-ref config SERVER-WAIT))
   (define MIN-PLAYERS (dict-ref config MIN-T-PLAYERS))
@@ -164,17 +166,17 @@
       (cond
         [(empty? players) (fprintf (current-error-port) MIN-ERROR MIN-PLAYERS) DEFAULT-RESULT]
         [(test-run?) => (λ (result) (channel-put result (age-ordering players)) DEFAULT-RESULT)]
-        [else (configure-manager (age-ordering players) config)])
+        [else (configure-and-run-manager (age-ordering players) config show)])
       (custodian-shutdown-all (current-custodian)))))
 
 #; {[Listof Player] ImmutableHash -> [List [Listof Player] [Listof Player]]}
-(define (configure-manager players config)
+(define (configure-and-run-manager players config show)
   (define game-time-out (dict-ref config TIME-PER-TURN))
   (define man-specifics (dict-ref config MAN-SPEC '[]))
   (parameterize ([time-out-limit game-time-out])
     (define result (keyword-apply/dict manager man-specifics (list players)))
     (send-message (manager-results->names result))
-    result))
+    (show result)))
 
 #;{Port# [Listof Player] Int Int Int -> [Listof Player]}
 (define (wait-for-players port house-players MAX-TRIES MAX-TIME MIN-PLAYERS MAX-PLAYERS)
@@ -218,8 +220,13 @@
        (define next (if (test-run?) (add1 (length players)) (make-remote-player name in out)))
        (cons next players)]
       [else
-       (define m [if (and (string? name) (regexp-match #px"Timed" name)) "name" "not a short string"])
-       (displayln (~a "failed to send " m) (current-error-port))
+       (define m
+         [if (string? name)
+             (if (regexp-match #px"Timed" name)
+                 "timed out"
+                 name)
+             (~a "not a string: " name)])
+       (displayln (~a "improper sign-up: " m) (current-error-port))
        (close-input-port in)
        (close-output-port out)
        players])))
@@ -228,7 +235,7 @@
 (define (short-string? p)
   (and (string? p)
        (regexp-match #px"^[a-zA-Z]*$" p) 
-       (<= 1 (string-length p) 12)))
+       (<= 1 (string-length p) SHORT)))
 
 ;                                                                                      
 ;                                                                                      
@@ -262,7 +269,7 @@
                [config (hash-set config PORT port)]
                [config (if k (hash-set config MIN-T-PLAYERS k) config)])
           config))
-      (define th (thread (λ () (server config2))))
+      (define th (thread (λ () (server config2 #:result values))))
       (sleep 1)
       (if (boolean? k)
           (sync th)
@@ -299,8 +306,7 @@
                                    (age-ordering reverse)
                                    (config0 DEFAULT-CONFIG))
     (define PORT# 45674)
-    (parameterize ([current-custodian (make-custodian)]
-                   [time-out-limit 1.2])
+    (parameterize ([current-custodian (make-custodian)])
       (define config3
         (let* ([config config0]
                [config (hash-set config PORT PORT#)]
@@ -317,7 +323,7 @@
              (client players PORT#)))))
       (define result
         (parameterize ([current-error-port err-out])
-          (server config3 age-ordering)))
+          (server config3 age-ordering #:result values)))
       (begin0
         result
         (sync customer)
@@ -341,7 +347,9 @@
   [define players-2 (apply append bundles)]
   (define man-spec  `[[#:shuffle . ,sorted-destinations]
                       [#:cards . ,(make-list CARDS-PER-GAME 'white)]])
-  [define result-2  (test-server-client-with players-2 0 man-spec reverse)]
+  (define qconfig   (hash-set DEFAULT-CONFIG QUIET #true))
+  [define result-2  (test-server-client-with players-2 0 man-spec reverse qconfig)]
+  
   (test-case "player 2"
              (check-true (cons? result-2))
              (check-true (empty? (rest (first result-2))) "one winner")
