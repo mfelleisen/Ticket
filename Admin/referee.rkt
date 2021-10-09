@@ -46,8 +46,7 @@
                        ->
                        (U ERR [RefereeResult XPlayer])]}
  referee)
-
-
+ 
 (module+ examples ;; from referee to manager 
   (provide
 
@@ -676,6 +675,15 @@
 ;                                                                                  
 ;                                                                                  
 
+#; {[RefereeResult XPlayer]-> [RefereeResults String]}
+(define (ref-results->names result)
+  (match-define [list rankings cheats] result)
+  `[,(map players->names rankings) ,(players->names cheats)])
+
+#; {[Listof XPlayer] -> [Listof String]}
+(define (players->names players)
+  (sort (map (λ (p) (~a (get-field name p))) players) string<?))
+
 (module+ examples 
 
   (define (make-players the-map hold-10# buy-now# cheat#)
@@ -690,20 +698,11 @@
     (define cheater-players (make-players cheat#   cheat:strategy%   "cheater"))
 
     `[,hold-10-players ,buy-now-players ,cheater-players])
-  
-  #; {[Listof XPlayer] -> [Listof String]}
-  (define (players->names players)
-    (sort (map (λ (p) (get-field name p)) players) string<?))
 
   (define-runtime-path map1 "map-1.json")
   (define big-map (with-input-from-file map1 read-and-parse-map))
   
-  (define (sorted-destinations destinatuons) (sort destinatuons lexi<?))
-
-  #; {[RefereeResult XPlayer]-> [RefereeResults String]}
-  (define (ref-results->names result)
-    (match-define [list rankings cheats] result)
-    `[,(map players->names rankings) ,(players->names cheats)]))
+  (define (sorted-destinations destinatuons) (sort destinatuons lexi<?)))
 
 (module+ test 
   
