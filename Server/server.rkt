@@ -39,7 +39,7 @@
 
 (provide
  ;; server options 
- PORT SERVER-TRIES SERVER-WAIT MAX-T-PLAYERS MIN-T-PLAYERS TIME-PER-TURN MAN-SPEC
+ PORT SERVER-TRIES SERVER-WAIT MAX-T-PLAYERS MIN-T-PLAYERS TIME-PER-TURN MAN-SPEC QUIET
 
  (contract-out
   (DEFAULT-CONFIG (hash-carrier/c options))
@@ -105,7 +105,7 @@
      PORT       45670
      SERVER-WAIT   20
      MIN-T-PLAYERS  5
-     MAX-T-PLAYERS 10
+     MAX-T-PLAYERS 50
      SERVER-TRIES   1
      TIME-PER-TURN 1.2
      ;; a lit of optional keyword arguments:
