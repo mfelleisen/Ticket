@@ -68,6 +68,9 @@
 (require Trains/Common/map)
 (require Trains/Admin/prepare-games)
 (require Trains/Admin/referee)
+
+(require Trains/Player/astrategy)
+
 (require Trains/Lib/xsend)
 
 (module+ examples
@@ -101,7 +104,7 @@
                  #; [Listof Card]
                  #:cards   (cards (make-list CARDS-PER-GAME 'red))
                  #; [[Listof Destination] -> [Listof Destination]]
-                 #:shuffle (shuffle values))
+                 #:shuffle (shuffle (λ (destinatuons) (sort destinatuons lexi<?))))
   (define ((run-one-game gm) lop) (referee lop gm #:shuffle shuffle #:cards cards))
   (let/ec return 
     (let*-values
@@ -223,10 +226,10 @@
     (build-list n (λ (_) (new mocked%))))
 
   (define m1-m2 (make-mock-players 2 vtriangle))
-  (check-equal? (manager m1-m2) ERR "the triangle problem")
+  (check-equal? (manager m1-m2 #:shuffle values) ERR "the triangle problem")
 
   (define k1-k2 (make-mock-players 2 vrectangle))
-  (check-equal? (manager k1-k2) `[ () ,(reverse k1-k2)]))
+  (check-equal? (manager k1-k2 #:shuffle values) `[ () ,(reverse k1-k2)]))
 
 (module+ test ;; real players 
 
