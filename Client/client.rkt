@@ -75,24 +75,22 @@
 (define LOCAL "127.0.0.1")
 (define PORT0 45678)
 
-(define (client players (port PORT0) (wait? #false) (ip LOCAL))
+(define (client players (port PORT0) (wait? #false) (ip LOCAL) #:quiet (quiet #true))
   (define (connector name)
     (if (not name)
         (connect-to-server-as-receiver ip port)
         (connect-to-server-as-receiver ip port #:init (λ (ip) (send-message name ip)))))
-  (define player-threads (make-players wait? players connector))
+  (define player-threads (make-players wait? players connector quiet))
   (when wait?
     (wait-for-all player-threads)
     (displayln "all done")))
 
 #; {type ChanneledThreads = [Listof [List Channel Thread]]}
 
-#; {Boolean [Listof Player] [-> (values InputPort OutputPort)] -> ChanneledThreads}
-(define (make-players wait? players connector)
+#; {Boolean [Listof Player] [-> (values InputPort OutputPort)] Boolean -> ChanneledThreads}
+(define (make-players wait? players connector quiet)
   (define done (make-channel))
   (for/list ((1player players) (i (in-naturals)))
-    (when (= i 5)
-      (sleep (/ MAX-TIME 2)))
     (define-values (name behavior manager)
       (let ()
         (define name (get-field name 1player))
@@ -101,7 +99,9 @@
     (list done
           (thread
            (λ ()
+             (define err-out (if quiet (open-output-string) (current-error-port)))
              (parameterize ([prefix-with-spaces 5000]
+                            [current-error-port err-out]
                             [trickle-output? #t])
                (define r (manager behavior))
                (if wait? (channel-put done (list name r)) (void))))))))
