@@ -35,7 +35,3 @@ server                           client (c_1) ... client (c_n)
   |                                     |
   |                                     |
   |                                     |
-
-* The PlayerName consist of at least one and at most 12 alphabetical ASCII
-  characters. The server expects to receive a name within 3s after 
-  the connection is established. 

@@ -41,6 +41,8 @@
  ;; server options 
  PORT SERVER-TRIES SERVER-WAIT MAX-T-PLAYERS MIN-T-PLAYERS TIME-PER-TURN MAN-SPEC QUIET
 
+ SHORT
+
  (contract-out
   (DEFAULT-CONFIG (hash-carrier/c options))
   [server
@@ -113,6 +115,8 @@
      MAN-SPEC     '[]
      QUIET         #true))
 
+(define SHORT 50)
+
 ;                                            
 ;                                            
 ;                                            
@@ -127,8 +131,6 @@
 ;                                            
 ;                                            
 ;                                            
-
-(define SHORT 50)
 
 (define LOCAL     "127.0.0.1")
 (define MAX-TCP   30)
