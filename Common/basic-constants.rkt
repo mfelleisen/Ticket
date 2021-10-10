@@ -93,7 +93,7 @@
 (define MAX-PLAYER-PER-GAME 8)
 
 (define CARDS-PER-GAME 250)
-(define MAX-PLAYER-NAME 12)
+(define MAX-PLAYER-NAME 50)
 (define PLAYER-NAME-PX #px"[a-zA-Z]")
 
 ;; -----------------------------------------------------------------------------

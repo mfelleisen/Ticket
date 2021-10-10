@@ -67,6 +67,7 @@
 ;                 ;                                                                    
 ;                 ;                                                                    
 
+(require Trains/Common/basic-constants)
 (require Trains/Remote/player)
 (require Trains/Lib/xsend)
 (require (except-in Trains/Admin/manager results/c))
@@ -115,7 +116,7 @@
      MAN-SPEC     '[]
      QUIET         #true))
 
-(define SHORT 50)
+(define SHORT MAX-PLAYER-NAME)
 
 ;                                            
 ;                                            
