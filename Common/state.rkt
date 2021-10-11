@@ -231,7 +231,11 @@
 ;; what the player knows about itself and others 
 
 (module+ examples
-  
+
+  (provide pstate0)
+
+  (define pstate0 (pstate (ii- cards1) '[]))
+
   (define pstate1 (pstate (ii- cards1) (list conns1)))
   
   (define (like-pstate2 c n) (pstate (ii- (hash-set cards2 c n)) (list conns1)))
@@ -246,8 +250,9 @@
 #; {Map PlayerState -> [Setof Connections]}
 ;; determine the connections the active player can still acquire 
 (define (all-available-connections m ps)
-  (define total (game-map-all-connections m))
-  (define other (apply set-union (pstate-others ps)))
+  (define total  (game-map-all-connections m))
+  (define bought (pstate-others ps))
+  (define other  (if (empty? bought) (set) (apply set-union bought)))
   (set-subtract total other (ii-connections (pstate-I ps))))
 
 (define TERMINATION# 3)
@@ -304,6 +309,10 @@
   (check-equal? 
    (all-available-connections vtriangle pstate1)
    (set-subtract (game-map-all-connections vtriangle) conns0 conns1))
+
+  (check-equal? 
+   (all-available-connections vtriangle pstate0)
+   (set-subtract (game-map-all-connections vtriangle) conns0) "there are no others!")
   
   (define total (game-map-all-connections vtriangle)) 
 
