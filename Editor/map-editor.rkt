@@ -289,8 +289,18 @@
 ;                                          
 ;                                          
 ;                                          
-
+ 
 (module+ test
+
+  (define-values (cities conns backg)
+    (game-map-internal
+    (with-input-from-string (with-output-to-string (λ () (send-message vrectangle-serialized)))
+      (λ () (parse-game-map (read-json))))))
+
+  (define background (rectangle 800 800 'solid 'black))
+  (define +c (draw-cities cities background))
+  (define +s (draw-connections conns cities +c))
+  
   (check-equal?
    (parameterize ((max-visualize-time 1))
      (game-map->jsexpr 
