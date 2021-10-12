@@ -29,7 +29,7 @@
 
   (define (the-map file-name)
     (let* ([f (file-exists? file-name)]
-           [f (and f (with-input-from-file file-name parse-game-map))]
+           [f (and f (with-input-from-file file-name read-and-parse-map))]
            [s (or f (construct-random-map 200 800 (build-list 20 (compose string->symbol ~a)) 40))]
            [j (if f #false (game-map->jsexpr s))]
            [_ (and j (with-output-to-file file-name (λ () (write-json j)) #:exists 'replace))])
