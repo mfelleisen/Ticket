@@ -25,9 +25,7 @@
 
  manager-player/c
  action?
- MORE
- DONE
- OKAY)
+ MORE)
 
 ;                                                                                                  
 ;                                                                                                  
@@ -50,8 +48,6 @@
 (require Trains/Common/connection)
 (require Trains/Common/map)
 (require Trains/Common/state)
-
-(require trace-contract)
 
 ;                                                                          
 ;                                                                          
@@ -77,34 +73,22 @@
 (define strategy%/c
   (class/c))
 
-(define DONE 'done)
-(define OKAY 'okay)
-
 (define referee-player%/c
-  (trace/c ([r (or/c DONE set? action? MORE (listof color?)  OKAY)])
-    (class/c
-     ;; hand the player the map for the game, a number of rails, and some cards
-     [setup (->m game-map? natural? (listof color?) r)]
+  (class/c
+   ;; hand the player the map for the game, a number of rails, and some cards
+   [setup (->m game-map? natural? (listof color?) any/c)]
 
-     ;; ask the player to pick some destinations and to return the remainder 
-     [pick  (->m (set/c destination/c) r)]
+   ;; ask the player to pick some destinations and to return the remainder 
+   [pick  (->m (set/c destination/c) (set/c destination/c))]
 
-     ;; grant the player the right to take a turn 
-     [play  (->m pstate? r)]
+   ;; grant the player the right to take a turn 
+   [play  (->m pstate? (or/c MORE action?))]
 
-     ;; if the preceding call to `play` returned `MORE`, call `more` to hand out more cards
-     [more  (->m (listof color?) r)]
+   ;; if the preceding call to `play` returned `MORE`, call `more` to hand out more cards
+   [more  (->m (listof color?) any/c)]
 
-     ;; inform the player whether it won (#t)/lost (#f) the game 
-     [win   (->m boolean? r)])
-    ((r) (proper-call-order? r))))
-
-(require stream-etc)
-
-(define (proper-call-order? r)
-  #t)
-
-
+   ;; inform the player whether it won (#t)/lost (#f) the game 
+   [win   (->m boolean? any/c)]))
 
 ;; A proper game interaction sequence is a word in this regular expression:
 ;;    setup, pick, {play | more}*, win

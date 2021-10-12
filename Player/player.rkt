@@ -90,7 +90,8 @@
     (define/public (end . x) 'thanks)
 
     [define/public (setup gm rails cards)
-      (set! strategy (new strategy% [the-game-map gm] [rails# rails]))]
+      (set! strategy (new strategy% [the-game-map gm] [rails# rails]))
+      DONE]
 
     [define/public (pick destinations)
       (send strategy pick-destinations destinations)]
@@ -99,11 +100,12 @@
       (send strategy choose-action s)]
 
     [define/public (more cards)
-      (void)]
+      cards]
 
     [define/public (win did-i-win?)
       (unless quiet 
-        (displayln `[,name did ,(if did-i-win? 'WIN 'LOSE)]))]
+        (displayln `[,name did ,(if did-i-win? 'WIN 'LOSE)]))
+      OKAY]
     
     (super-new)))
 
@@ -129,22 +131,22 @@
 
   (define p1-static (new player% [strategy% hold-10-strategy%]))
 
-  (check-true (void? (send p1-static setup vtriangle 45 '[red red blue blue])))
+  (check-equal? (send p1-static setup vtriangle 45 '[red red blue blue]) 'done)
 
   (check-equal? (set-count (send p1-static pick destinations)) 3)
   (check-equal? (send p1-static play pstate1) MORE)
-  (check-true (void? (send p1-static more '[green blue])))
+  (check-equal? (send p1-static more '[green blue]) '[green blue])
   (check-true (connection/c (send p1-static play pstate2)))
-  (check-true (void? (dev/null (send p1-static win #false)))))
+  (check-equal? (dev/null (send p1-static win #false)) 'okay))
 
 (module+ test ; simple tests with dynamically loaded hold-10-strategy to make sure the mechanics work 
 
   (define p1-dynamic (make-player-from-strategy-path 'Trains/Player/hold-10-strategy))
 
-  (check-true (void? (send p1-dynamic setup vtriangle 45 '[red red blue blue])))
+  (check-equal? (send p1-dynamic setup vtriangle 45 '[red red blue blue]) 'done)
 
   (check-equal? (set-count (send p1-dynamic pick destinations)) 3)
   (check-equal? (send p1-dynamic play pstate1) MORE)
-  (check-true (void? (send p1-dynamic more '[green blue])))
+  (check-equal? (send p1-dynamic more '[green blue])  '[green blue])
   (check-true (connection/c (send p1-dynamic play pstate2)))
-  (check-true (void? (dev/null (send p1-dynamic win #false)))))
+  (check-equal? (dev/null (send p1-dynamic win #false)) 'okay))
