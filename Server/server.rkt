@@ -335,7 +335,7 @@
   ;; - - - test case 1 
   (define PLRS '["a" "b" "c" "d" "e1" "failed attempt at Name" "e"])
   (define players-1
-    (map (λ (n) (new player% [name n] [the-map big-map] [strategy% hold-10-strategy%])) PLRS))
+    (map (λ (n) (make-player #:name n #:gm big-map #:strategy hold-10-strategy%)) PLRS))
   [define result-1 (test-server-client-with players-1 2)]
   (test-case "player 1"
              (check-true (cons? result-1))

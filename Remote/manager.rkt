@@ -118,7 +118,7 @@
 ;                                     
 
 (module+ test
-  (define plr1 (new player% [the-map vtriangle] [strategy% hold-10-strategy%]))
+  (define plr1 (make-player #:gm vtriangle #:strategy hold-10-strategy%))
 
   (define (dests n [convert (λ (a b) (list (~a a) (~a b)))])
     (define targets
@@ -153,7 +153,9 @@
       ["play" [,pstate1-serialized]]
       ["win" [#true]]
       ["end" [#true]]])
-  (check-equal? ((make-remote-manager (λ (f) (begin0 (f (first b*)) (set! b* (rest b*))))) plr1) #t)
+
+  (define plr2 (make-player #:gm vtriangle #:strategy hold-10-strategy%))
+  (check-equal? ((make-remote-manager (λ (f) (begin0 (f (first b*)) (set! b* (rest b*))))) plr2) #t)
  
   (check-pred exn? (dev/null ((make-remote-manager (λ (f) (f `[0 [#true]]))) plr1))))
 

@@ -105,6 +105,9 @@
                  #:cards   (cards (make-list CARDS-PER-GAME 'red))
                  #; [[Listof Destination] -> [Listof Destination]]
                  #:shuffle (shuffle (λ (destinatuons) (sort destinatuons lexi<?))))
+
+  [time-out-limit 2.0]
+
   (define ((run-one-game gm) lop) (referee lop gm #:shuffle shuffle #:cards cards))
   (let/ec return 
     (let*-values

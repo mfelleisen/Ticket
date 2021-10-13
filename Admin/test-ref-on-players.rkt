@@ -83,7 +83,7 @@
   (define the-file 10)
 
   (define (make-players i)
-    (build-list i (λ (i) (new player% [strategy% hold-10-strategy%] [name (~a "player" i)]))))
+    (build-list i (λ (i) (make-player #:strategy hold-10-strategy% #:name (~a "player" i)))))
 
   (define (run-test the-map)
     (define results (referee (make-players 8) the-map #:cards cards-handed-out))

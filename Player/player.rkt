@@ -20,14 +20,26 @@
 ;                   ;                                      
 ;                                                          
 
+(require Trains/Player/istrategy)
+
 (provide
 
  #; {type XPlayer}
 
  (contract-out
+  ;; make a player from a path to a strategy module-file and an optional game-map and name
   [make-player-from-strategy-path
-   (->* [(or/c module-path? path-string?)] (#:gm game-map? #:name (or/c string? symbol?))
+   (->* [(or/c module-path? path-string?)]
+        (#:gm game-map? #:name (or/c string? symbol?))
         (instanceof/c referee-player%/c))]
+
+  [make-player
+   ;; make a player from a strategy class and an optional game-map and name
+   (->* [#:strategy strategy/c%]
+        (#:gm game-map? #:name (or/c string? symbol?))
+        (instanceof/c referee-player%/c))]
+
+  #;
   [player% referee-player%/c]))
 
 ;                                                                                                  
@@ -81,6 +93,9 @@
 (define (make-player-from-strategy-path p #:name [name (gensym 'dynamic)] #:gm [gm #f])
   (define strat% (dynamic-require p 'strategy%))
   (new player% [strategy% strat%] [name name] [the-map gm]))
+
+(define (make-player #:strategy strat% #:name [name (gensym 'dynamic)] #:gm [gm #f])
+  (new player% [strategy% strat%] [name name] [the-map gm]))
                                          
 (define player%
   (class object% [init-field strategy% [name (gensym 'player)] [the-map #false] [quiet #true]]
@@ -129,7 +144,7 @@
 
 (module+ test ;; simple tests with hold-10-strategy to make sure the mechanics work 
 
-  (define p1-static (new player% [strategy% hold-10-strategy%]))
+  (define p1-static (make-player #:strategy hold-10-strategy%))
 
   (check-equal? (send p1-static setup vtriangle 45 '[red red blue blue]) 'done)
 

@@ -181,6 +181,8 @@
                  #:cards   (cards (make-list 100 'red))
                  #; [[Listof Destination] -> [Listof Destination]]
                  #:shuffle (shuffle values))
+
+  [time-out-limit 2.0]
   
   (define destination* (shuffle (all-destinations the-game-map)))
   (define connections  (game-map-all-connections the-game-map))
@@ -691,7 +693,7 @@
       (build-list n
                   (λ (i)
                     (define name (~a prefix (make-string i #\a)))
-                    (new player% [strategy% strat%] [the-map the-map] [name name]))))
+                    (make-player #:strategy strat% #:gm the-map #:name name))))
     
     (define hold-10-players (make-players hold-10# hold-10:strategy% "holdten"))
     (define buy-now-players (make-players buy-now# buy-now:strategy% "buynow"))
@@ -717,7 +719,7 @@
                             #:shuffle sorted-destinations
                             #:cards (make-list CARDS-PER-GAME 'white)))
                   (ref-results->names `{[[,@buy-nows] [,@hold-10s]] ,cheaters})))
-  
+
   (check-referee vrectangle 1 1 1)
   (check-referee vrectangle 1 1 0)
   (check-referee big-map 7 1 0))
