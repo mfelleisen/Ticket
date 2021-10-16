@@ -183,7 +183,6 @@
                  #:shuffle (shuffle values))
   
   (define destination* (shuffle (all-destinations the-game-map)))
-  (define connections  (game-map-all-connections the-game-map))
   
   ;; is this too expensive as a contract? 
   (cond
@@ -191,7 +190,7 @@
      ERR]
     [else
      (let* ([the-state (setup-all-players the-external-players the-game-map cards destination*)]
-            [the-state (play-turns the-state connections)]
+            [the-state (play-turns the-state the-game-map)]
             [results   (score-game the-state the-game-map)])
        results)]))
 
@@ -346,34 +345,34 @@
 ;                                          
 ;                                          
 
-#; {RefereeState [Setof Connection] -> RefereeState}
+#; {RefereeState GameMap -> RefereeState}
 ;; play turns until the game is over
 ;; separate drop-outs from  active to passive state
 ;; ASSUME all players have >= RAILS-MIN rails 
-(define (play-turns the-state0 connections)
+(define (play-turns the-state0 gm)
   (let play ([the-state the-state0][turns-w/o-change 0])
     (define players (rstate-players the-state))
     (match players 
       ['() the-state]
-      [_ (match (play-1-turn the-state connections)
+      [_ (match (play-1-turn the-state gm)
            [#false (play (rstate-drop the-state) 0)]
            [(list nu-the-state game-over?)
             (define no-change (if (equal? the-state nu-the-state) (add1 turns-w/o-change) 0))
             (define next-state (rstate-rotate nu-the-state))
             (if (or game-over? (= no-change (length players)))
-                (play-last-round next-state connections)
+                (play-last-round next-state gm)
                 (play next-state no-change))])])))
 
-#; {RefereeState [Setof Connections] -> [List RefereeState Boolean]}
+#; {RefereeState GameMap -> [List RefereeState Boolean]}
 ;; allow each player to play one more turn, except the first one
-(define (play-last-round the-state0 connections)
+(define (play-last-round the-state0 gm)
   (for/fold ([the-state (rstate-rotate the-state0)]) ((_ (rest (rstate-players the-state0))))
-    (match (play-1-turn the-state connections)
+    (match (play-1-turn the-state gm)
       [#false       (rstate-drop the-state)]
       [(list nup _) (rstate-rotate nup)])))
 
-#; {RefereeState [Setof Connection] -> (U False [List RefereeState Boolean])}
-(define (play-1-turn the-state connections)
+#; {RefereeState GameMap -> (U False [List RefereeState Boolean])}
+(define (play-1-turn the-state gm)
   (define next (first (rstate-players the-state)))
   (define the-player-state (rstate->pstate the-state))
   (match (xsend (ii-payload next) play the-player-state)
@@ -382,7 +381,7 @@
      (if-rstate-update the-state (play-1-more-cards next (rstate-cards the-state)))]
     [response
      (and
-      (legal-action? the-player-state connections response)
+      (legal-action? the-player-state gm response)
       (if-rstate-update the-state (player-1-acquire next response)))]))
 
 #; {MePlayer [Listof Card] -> (U False [List MePlayer {listof Card}])}
@@ -434,17 +433,17 @@
   ;; player-1-turn
   (define active1 (ii-default 'red 3))
   (check-equal? 
-   (play-1-turn (rstate (list active1) '[] '[]) vtriangle-conns)
+   (play-1-turn (rstate (list active1) '[] '[]) vtriangle)
    (list (rstate (list (ii-default #:rails 0 #:con `[,vtriangle-boston-seattle])) '[] '[]) #true))
   (define active2 (ii-default))
-  (check-false (play-1-turn (rstate (list active2) '[] '[]) vtriangle-conns))
+  (check-false (play-1-turn (rstate (list active2) '[] '[]) vtriangle))
 
   (define active3 [(make-an-ii (new [mock% #:play (λ _ (raise 'bad))]))])
-  (check-false (play-1-turn (rstate (list active3) '[] '[]) vtriangle-conns))
+  (check-false (play-1-turn (rstate (list active3) '[] '[]) vtriangle))
 
   (define active4 (make-an-ii (new [mock% #:play (λ _ MORE)])))
   (check-equal? 
-   (play-1-turn (rstate (list [active4]) cards '[]) vtriangle-conns)
+   (play-1-turn (rstate (list [active4]) cards '[]) vtriangle)
    (list (rstate (list (active4 'red 2)) '[] '[]) #false))
 
   ;; -------------------------------------------------------------------------------------------------
@@ -455,23 +454,24 @@
   (define lop-got-more (lop cards mock-more-card))
   (define lop-bad-play (lop '[] mock-bad-play))
   
-  (check-equal? (play-last-round (rstate lop-ask-more cards '()) (set)) (rstate lop-got-more '[] '[]))
-  (check-equal? (play-last-round (rstate lop-bad-play '[] '()) (set))
+  (check-equal? (play-last-round (rstate lop-ask-more cards '()) vtriangle)
+                (rstate lop-got-more '[] '[]))
+  (check-equal? (play-last-round (rstate lop-bad-play '[] '()) vtriangle)
                 (rstate (list (first lop-bad-play)) '[] `[,(ii-payload (second lop-bad-play))]))
 
   ;; -------------------------------------------------------------------------------------------------
   ;; play-turns 
-  (check-equal? (play-turns (rstate (list (ii+payload ii-play mock-more-card)) cards '()) (set))
+  (check-equal? (play-turns (rstate (list (ii+payload ii-play mock-more-card)) cards '()) vtriangle)
                 (rstate (list (ii+cards (ii+payload ii-play mock-more-card) cards)) '[] '()))
   
   (define lop-turn-got-more (reverse (lop '[] mock-more-card cards)))
   (define lop-turn-bad-play (list (ii+payload ii-final mock-bad-play)))
   
-  (check-equal? (play-turns (rstate lop-ask-more cards '()) (set))
+  (check-equal? (play-turns (rstate lop-ask-more cards '()) vtriangle)
                 (rstate lop-turn-got-more '[] '[]))
-  (check-equal? (play-turns (rstate '[]  cards '()) (set))
+  (check-equal? (play-turns (rstate '[]  cards '()) vtriangle)
                 (rstate '[] cards '()))
-  (check-equal? (play-turns (rstate lop-turn-bad-play cards '()) (set))
+  (check-equal? (play-turns (rstate lop-turn-bad-play cards '()) vtriangle)
                 (rstate '[] cards (map ii-payload lop-turn-bad-play))))
 
 ;                                                          

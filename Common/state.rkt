@@ -4,6 +4,21 @@
 
 (require Trains/Common/map)
 
+;                                                   
+;                                                   
+;                                        ;          
+;                                        ;          
+;    ;;;   ;   ;  ;;;;    ;;;    ;;;;  ;;;;;   ;;;  
+;   ;;  ;   ; ;   ;; ;;  ;; ;;   ;;  ;   ;    ;   ; 
+;   ;   ;;  ;;;   ;   ;  ;   ;   ;       ;    ;     
+;   ;;;;;;   ;    ;   ;  ;   ;   ;       ;     ;;;  
+;   ;       ;;;   ;   ;  ;   ;   ;       ;        ; 
+;   ;       ; ;   ;; ;;  ;; ;;   ;       ;    ;   ; 
+;    ;;;;  ;   ;  ;;;;    ;;;    ;       ;;;   ;;;  
+;                 ;                                 
+;                 ;                                 
+;                 ;                                 
+
 (provide
 
  #; {PlayerState Connection -> Player}
@@ -29,7 +44,7 @@
  #; {Map PlayerState -> [Setof Connection]}
  all-available-connections
 
- #; {PlayerState [Listof Connection] Connection -> Boolean}
+ #; {PlayerState GameMap Connection -> Boolean}
  legal-action?
 
  #; {MePlayer[False] X -> MePlayer[X]}
@@ -277,16 +292,15 @@
 (define (rails-spent connections)
   (for/sum ([c connections]) (connection-seg# c)))
 
-#; {PlayerState [Setof Connections] Connection -> Boolean}
+#; {PlayerState GameMap -> Boolean}
 ;; can this player acquire the specified connection 
-(define (legal-action? ps total c)
-  (define active (pstate-I ps))
-  (define other  (apply set-union (ii-connections active) (pstate-others ps)))
-  (define avail  (set-subtract total other))
+(define (legal-action? ps gm c)
+  (define avail  (all-available-connections gm ps))
   (cond
     [(not (set-member? avail c)) #false]
     [else
-     (define seg# (connection-seg# c))
+     (define active (pstate-I ps))
+     (define seg#   (connection-seg# c))
      (and (>= (ii-rails active) seg#)
           (>= (hash-ref (ii-cards active) (connection-color c) 0) seg#))]))
 
@@ -324,7 +338,5 @@
    (all-available-connections vtriangle pstate0)
    (set-subtract (game-map-all-connections vtriangle) conns0) "there are no others!")
   
-  (define total (game-map-all-connections vtriangle)) 
-
-  (check-false (legal-action? pstate1 total (connection Boston Seattle red  3)))
-  (check-true (legal-action? pstate1 total (connection Boston Orlando green  5))))
+  (check-false (legal-action? pstate1 vtriangle (connection Boston Seattle red  3)))
+  (check-true (legal-action? pstate1 vtriangle (connection Boston Orlando green  5))))
