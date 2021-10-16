@@ -168,6 +168,20 @@
   (when (ii-payload ii-player) (error 'ii+payload "payload already exists ~e" (ii-payload ii-player)))
   (struct-copy ii ii-player [payload pl]))
 
+#; {IPlayer Connection -> Boolean}
+(define (ii-can-acquire-and-occupy? ii-player c)
+  (and (ii-can-acquire? ii-player c) (ii-can-occupy? ii-player c)))
+
+#; {IPlayer Connection -> Boolean}
+(define (ii-can-occupy? ii-player c)
+  (>= (ii-rails ii-player) (connection-seg# c)))
+
+#; {IPlayer Connection -> Boolean}
+(define (ii-can-acquire? ii-player c)
+  (define colored-cards-available (hash-ref (ii-cards ii-player) (connection-color c) 0))
+  (define colored-cards-needed (connection-seg# c))
+  (>= colored-cards-available colored-cards-needed))
+
 ;                                          
 ;                                          
 ;                                          
@@ -295,24 +309,10 @@
 #; {PlayerState GameMap Connection -> Boolean}
 ;; can this player acquire the specified connection 
 (define (legal-action? ps gm c)
-  (define avail  (all-available-connections gm ps))
-  (cond
-    [(not (set-member? avail c)) #false]
-    [else (can-acquire-and-occupy?? (pstate-I ps) c)]))
-
-#; {IPlayer Connection -> Boolean}
-(define (can-acquire-and-occupy?? active c)
-  (and (can-acquire? active c) (can-occupy? active c)))
-
-#; {IPlayer Connection -> Boolean}
-(define (can-occupy? active c)
-  (>= (ii-rails active) (connection-seg# c)))
-
-#; {IPlayer Connection -> Boolean}
-(define (can-acquire? active c)
-  (define colored-cards-available (hash-ref (ii-cards active) (connection-color c) 0))
-  (define colored-cards-needed (connection-seg# c))
-  (>= colored-cards-available colored-cards-needed))
+  (define available  (all-available-connections gm ps))
+  (if (set-member? available c)
+      (ii-can-acquire-and-occupy? (pstate-I ps) c)
+      #false))
 
 ;                                          
 ;                                          
