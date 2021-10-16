@@ -246,14 +246,24 @@
   (define pstate-play  (pstate ii-play (list conns0)))
   (define pstate-final (pstate ii-final (list conns0 conns1))))
 
-
 #; {Map PlayerState -> [Setof Connections]}
-;; determine the connections the active player can still acquire 
-(define (all-available-connections m ps)
-  (define total  (game-map-all-connections m))
+;; determine the connections the active (`my`) player can still acquire
+;; given the fixed game map and what `my` and `others` already own 
+(define (all-available-connections gm ps)
+  (define total  (game-map-all-connections gm))
+  (define mine   (my-connections ps))
+  (define others (other-s-connections ps))
+  (define bought (set-union mine others))
+  (set-subtract total bought))
+
+#; {PlayerState -> [Setof Connection]}
+(define (other-s-connections ps)
   (define bought (pstate-others ps))
-  (define other  (if (empty? bought) (set) (apply set-union bought)))
-  (set-subtract total other (ii-connections (pstate-I ps))))
+  (if (empty? bought) (set) (apply set-union bought)))
+
+#; {PlayerState -> [Setof Connection]}
+(define (my-connections ps)
+  (ii-connections (pstate-I ps)))
 
 (define TERMINATION# 3)
 
