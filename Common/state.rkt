@@ -4,6 +4,21 @@
 
 (require Trains/Common/map)
 
+;                                                   
+;                                                   
+;                                        ;          
+;                                        ;          
+;    ;;;   ;   ;  ;;;;    ;;;    ;;;;  ;;;;;   ;;;  
+;   ;;  ;   ; ;   ;; ;;  ;; ;;   ;;  ;   ;    ;   ; 
+;   ;   ;;  ;;;   ;   ;  ;   ;   ;       ;    ;     
+;   ;;;;;;   ;    ;   ;  ;   ;   ;       ;     ;;;  
+;   ;       ;;;   ;   ;  ;   ;   ;       ;        ; 
+;   ;       ; ;   ;; ;;  ;; ;;   ;       ;    ;   ; 
+;    ;;;;  ;   ;  ;;;;    ;;;    ;       ;;;   ;;;  
+;                 ;                                 
+;                 ;                                 
+;                 ;                                 
+
 (provide
 
  #; {PlayerState Connection -> Player}
@@ -29,7 +44,7 @@
  #; {Map PlayerState -> [Setof Connection]}
  all-available-connections
 
- #; {PlayerState [Listof Connection] Connection -> Boolean}
+ #; {PlayerState GameMap Connection -> Boolean}
  legal-action?
 
  #; {MePlayer[False] X -> MePlayer[X]}
@@ -153,6 +168,20 @@
   (when (ii-payload ii-player) (error 'ii+payload "payload already exists ~e" (ii-payload ii-player)))
   (struct-copy ii ii-player [payload pl]))
 
+#; {IPlayer Connection -> Boolean}
+(define (ii-can-acquire-and-occupy? ii-player c)
+  (and (ii-can-acquire? ii-player c) (ii-can-occupy? ii-player c)))
+
+#; {IPlayer Connection -> Boolean}
+(define (ii-can-occupy? ii-player c)
+  (>= (ii-rails ii-player) (connection-seg# c)))
+
+#; {IPlayer Connection -> Boolean}
+(define (ii-can-acquire? ii-player c)
+  (define colored-cards-available (hash-ref (ii-cards ii-player) (connection-color c) 0))
+  (define colored-cards-needed (connection-seg# c))
+  (>= colored-cards-available colored-cards-needed))
+
 ;                                          
 ;                                          
 ;                                          
@@ -246,14 +275,24 @@
   (define pstate-play  (pstate ii-play (list conns0)))
   (define pstate-final (pstate ii-final (list conns0 conns1))))
 
-
 #; {Map PlayerState -> [Setof Connections]}
-;; determine the connections the active player can still acquire 
-(define (all-available-connections m ps)
-  (define total  (game-map-all-connections m))
+;; determine the connections the active (`my`) player can still acquire
+;; given the fixed game map and what `my` and `others` already own 
+(define (all-available-connections gm ps)
+  (define total  (game-map-all-connections gm))
+  (define mine   (my-connections ps))
+  (define others (other-s-connections ps))
+  (define bought (set-union mine others))
+  (set-subtract total bought))
+
+#; {PlayerState -> [Setof Connection]}
+(define (other-s-connections ps)
   (define bought (pstate-others ps))
-  (define other  (if (empty? bought) (set) (apply set-union bought)))
-  (set-subtract total other (ii-connections (pstate-I ps))))
+  (if (empty? bought) (set) (apply set-union bought)))
+
+#; {PlayerState -> [Setof Connection]}
+(define (my-connections ps)
+  (ii-connections (pstate-I ps)))
 
 (define TERMINATION# 3)
 
@@ -267,18 +306,13 @@
 (define (rails-spent connections)
   (for/sum ([c connections]) (connection-seg# c)))
 
-#; {PlayerState [Setof Connections] Connection -> Boolean}
+#; {PlayerState GameMap Connection -> Boolean}
 ;; can this player acquire the specified connection 
-(define (legal-action? ps total c)
-  (define active (pstate-I ps))
-  (define other  (apply set-union (ii-connections active) (pstate-others ps)))
-  (define avail  (set-subtract total other))
-  (cond
-    [(not (set-member? avail c)) #false]
-    [else
-     (define seg# (connection-seg# c))
-     (and (>= (ii-rails active) seg#)
-          (>= (hash-ref (ii-cards active) (connection-color c) 0) seg#))]))
+(define (legal-action? ps gm c)
+  (define available  (all-available-connections gm ps))
+  (if (set-member? available c)
+      (ii-can-acquire-and-occupy? (pstate-I ps) c)
+      #false))
 
 ;                                          
 ;                                          
@@ -314,7 +348,5 @@
    (all-available-connections vtriangle pstate0)
    (set-subtract (game-map-all-connections vtriangle) conns0) "there are no others!")
   
-  (define total (game-map-all-connections vtriangle)) 
-
-  (check-false (legal-action? pstate1 total (connection Boston Seattle red  3)))
-  (check-true (legal-action? pstate1 total (connection Boston Orlando green  5))))
+  (check-false (legal-action? pstate1 vtriangle (connection Boston Seattle red  3)))
+  (check-true (legal-action? pstate1 vtriangle (connection Boston Orlando green  5))))

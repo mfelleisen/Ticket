@@ -15,6 +15,7 @@
      "typed-racket-lib"
      "scribble-abbrevs"
      "htdp-lib"
+     "trace-contract"
      "gregor-lib"
      "gui-lib"
      "racket-doc"
