@@ -292,17 +292,27 @@
 (define (rails-spent connections)
   (for/sum ([c connections]) (connection-seg# c)))
 
-#; {PlayerState GameMap -> Boolean}
+#; {PlayerState GameMap Connection -> Boolean}
 ;; can this player acquire the specified connection 
 (define (legal-action? ps gm c)
   (define avail  (all-available-connections gm ps))
   (cond
     [(not (set-member? avail c)) #false]
-    [else
-     (define active (pstate-I ps))
-     (define seg#   (connection-seg# c))
-     (and (>= (ii-rails active) seg#)
-          (>= (hash-ref (ii-cards active) (connection-color c) 0) seg#))]))
+    [else (can-acquire-and-occupy?? (pstate-I ps) c)]))
+
+#; {IPlayer Connection -> Boolean}
+(define (can-acquire-and-occupy?? active c)
+  (and (can-acquire? active c) (can-occupy? active c)))
+
+#; {IPlayer Connection -> Boolean}
+(define (can-occupy? active c)
+  (>= (ii-rails active) (connection-seg# c)))
+
+#; {IPlayer Connection -> Boolean}
+(define (can-acquire? active c)
+  (define colored-cards-available (hash-ref (ii-cards active) (connection-color c) 0))
+  (define colored-cards-needed (connection-seg# c))
+  (>= colored-cards-available colored-cards-needed))
 
 ;                                          
 ;                                          
