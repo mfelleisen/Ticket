@@ -81,24 +81,28 @@
 (define OKAY 'okay)
 
 (define referee-player%/c
-  (trace/c ([r (or/c DONE set? action? MORE (listof color?)  OKAY)])
+  (trace/c ([r DONE]
+            [s set?]
+            [t (or/c action? MORE)]
+            [u (listof color?)]
+            [w OKAY])
     ;; this makes the results less concrete, ARGH 
     (class/c
      ;; hand the player the map for the game, a number of rails, and some cards
      [setup (->m game-map? natural? (listof color?) (list/t 'setup r))]
 
      ;; ask the player to pick some destinations and to return the remainder 
-     [pick  (->m (set/c destination/c) (list/t 'pick r))]
+     [pick  (->m (set/c destination/c) (list/t 'pick s))]
 
      ;; grant the player the right to take a turn 
-     [play  (->m pstate? (list/t 'play r))]
+     [play  (->m pstate? (list/t 'play t))]
 
      ;; if the preceding call to `play` returned `MORE`, call `more` to hand out more cards
-     [more  (->m (listof color?) (list/t 'more r))]
+     [more  (->m (listof color?) (list/t 'more u))]
 
      ;; inform the player whether it won (#t)/lost (#f) the game 
-     [win   (->m boolean? (list/t 'win r))])
-    ((r) (proper-call-order? r))))
+     [win   (->m boolean? (list/t 'win w))])
+    ((r s t u w) (proper-call-order? (trace-merge r s t u w)))))
 
 ;; A proper game interaction sequence is a word in this regular expression:
 ;;    setup, pick, {play | more}*, win
@@ -119,13 +123,10 @@
 
 #; {Stream -> Boolean}
 (define (proper-call-order? trace-0)
+
   (define trace0  (stream-map first trace-0))
   (define values0 (stream-map second trace-0))
-
   (define starter (stream-first trace0))
-
-  ; (displayln `[starter is ,(stream-first trace0) str is ,(for/list ([x (in-stream (stream-rest trace0))]) x)] (current-error-port))
-
   (and
    (equal? starter 'setup)
    (let L ([t (stream-rest trace0)] [v (stream-rest values0)] [last-seen starter])
