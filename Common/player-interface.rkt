@@ -25,9 +25,7 @@
 
  manager-player/c
  action?
- MORE
- DONE
- OKAY)
+ MORE)
 
 ;                                                                                                  
 ;                                                                                                  
@@ -71,38 +69,33 @@
 ;                                                                          
 
 (define MORE "more cards")
-
 (define action? connection/c)
 
-(define strategy%/c
-  (class/c))
-
-(define DONE 'done)
-(define OKAY 'okay)
+(define-syntax-rule (tag-trace t) (list/t 't t))
 
 (define referee-player%/c
-  (trace/c ([r DONE]
-            [s set?]
-            [t (or/c action? MORE)]
-            [u (listof color?)]
-            [w OKAY])
+  (trace/c ([setup any/c]
+            [pick  set?]
+            [play  (or/c action? MORE)]
+            [more  (listof color?)]
+            [win   any/c])
     ;; this makes the results less concrete, ARGH 
     (class/c
      ;; hand the player the map for the game, a number of rails, and some cards
-     [setup (->m game-map? natural? (listof color?) (list/t 'setup r))]
+     [setup (->m game-map? natural? (listof color?) (tag-trace setup))]
 
      ;; ask the player to pick some destinations and to return the remainder 
-     [pick  (->m (set/c destination/c) (list/t 'pick s))]
+     [pick  (->m (set/c destination/c) (tag-trace pick))]
 
      ;; grant the player the right to take a turn 
-     [play  (->m pstate? (list/t 'play t))]
+     [play  (->m pstate? (tag-trace play))]
 
      ;; if the preceding call to `play` returned `MORE`, call `more` to hand out more cards
-     [more  (->m (listof color?) (list/t 'more u))]
+     [more  (->m (listof color?) (tag-trace more))]
 
      ;; inform the player whether it won (#t)/lost (#f) the game 
-     [win   (->m boolean? (list/t 'win w))])
-    ((r s t u w) (proper-call-order? (trace-merge r s t u w)))))
+     [win   (->m boolean? (tag-trace win))])
+    ((setup pick play more win) (proper-call-order? (trace-merge setup pick play more win)))))
 
 ;; A proper game interaction sequence is a word in this regular expression:
 ;;    setup, pick, {play | more}*, win
@@ -110,44 +103,40 @@
 ;; followed by an arbitrary number of calls to `play` and possibly `more`, with
 ;; one final call to `win` at the very end of a game.
 
-(define LAST `[pick play more])
+(define PPM `[pick play more])
 
-;; debugging aid
-(define (show-error last-seen lst trace0 value0 t v)
-  (displayln `[last-seen is ,last-seen lst is ,lst] (current-error-port))
-  (displayln `[trace0 is ,(for/list ([x (in-stream trace0)]) x)] (current-error-port))
-  (displayln `[value0 is ,(for/list ([x (in-stream trace0)]) x)] (current-error-port))
-  (displayln `[failure at ,(for/list ([x (in-stream t)]) x)] (current-error-port))
-  (displayln `[failure at ,(for/list ([x (in-stream v)]) x)] (current-error-port))
-  #false)
-
-#; {Stream -> Boolean}
+;; checks the protocol specified above 
 (define (proper-call-order? trace-0)
-
-  (define trace0  (stream-map first trace-0))
-  (define values0 (stream-map second trace-0))
-  (define starter (stream-first trace0))
+  (define starter (first (stream-first trace-0)))
   (and
-   (equal? starter 'setup)
-   (let L ([t (stream-rest trace0)] [v (stream-rest values0)] [last-seen starter])
+   (equal? 'setup starter)
+   (let L ([t (stream-rest trace-0)] [last-seen starter])
 
      ;; for proper debugging, I needed this:
      (define-syntax-rule (-> lst then)
-       (if (member last-seen lst) then (show-error last-seen lst trace0 values0 t v)))
+       (if (member last-seen lst) then (show-error last-seen lst trace-0 t)))
 
      (cond
        [(stream-empty? t) #true]
-       [else (define one (stream-first t))
+       [else (match-define `[,one ,two] (stream-first t))
              (define others (stream-rest t))
-             (define two (stream-first v))
-             (define values (stream-rest v))
              (case one
                [(setup) #false]
-               [(pick)  (-> '[setup] (L others values 'pick))]
-               [(play)  (-> LAST     (L others values (if (eq? MORE two) 'more one)))]
-               [(more)  (-> `[more]  (L others values 'more))]
-               [(win)   (-> LAST     (stream-empty? others))]
+               [(pick)  (-> '[setup] (L others 'pick))]
+               [(play)  (-> PPM      (L others (if (eq? MORE two) 'more one)))]
+               [(more)  (-> `[more]  (L others 'more))]
+               [(win)   (-> PPM      (stream-empty? others))]
                [else    #false])]))))
+
+;; debugging aid
+(define (show-error last-seen lst trace0 t)
+  (displayln `[last-seen is ,last-seen lst is ,lst] (current-error-port))
+  (displayln `[trace0 is ,(for/list ([x (in-stream trace0)]) x)] (current-error-port))
+  (displayln `[failure at ,(for/list ([x (in-stream t)]) x)] (current-error-port))
+  #false)
+
+;; ---------------------------------------------------------------------------------------------------
+#; {Stream : not enpty -> Boolean}
 
 (define manager-player%/c
   (class/c

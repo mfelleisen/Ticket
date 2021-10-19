@@ -105,8 +105,7 @@
     (define/public (end . x) 'thanks)
 
     [define/public (setup gm rails cards)
-      (set! strategy (new strategy% [the-game-map gm] [rails# rails]))
-      DONE]
+      (set! strategy (new strategy% [the-game-map gm] [rails# rails]))]
 
     [define/public (pick destinations)
       (send strategy pick-destinations destinations)]
@@ -119,8 +118,7 @@
 
     [define/public (win did-i-win?)
       (unless quiet 
-        (displayln `[,name did ,(if did-i-win? 'WIN 'LOSE)]))
-      OKAY]
+        (displayln `[,name did ,(if did-i-win? 'WIN 'LOSE)]))]
     
     (super-new)))
 
@@ -146,22 +144,22 @@
 
   (define p1-static (make-player #:strategy hold-10-strategy%))
 
-  (check-equal? (send p1-static setup vtriangle 45 '[red red blue blue]) 'done)
+  (check-equal? (send p1-static setup vtriangle 45 '[red red blue blue]) (void))
 
   (check-equal? (set-count (send p1-static pick destinations)) 3)
   (check-equal? (send p1-static play pstate1) MORE)
   (check-equal? (send p1-static more '[green blue]) '[green blue])
   (check-true (connection/c (send p1-static play pstate2)))
-  (check-equal? (dev/null (send p1-static win #false)) 'okay))
+  (check-equal? (dev/null (send p1-static win #false)) (void)))
 
 (module+ test ; simple tests with dynamically loaded hold-10-strategy to make sure the mechanics work 
 
   (define p1-dynamic (make-player-from-strategy-path 'Trains/Player/hold-10-strategy))
 
-  (check-equal? (send p1-dynamic setup vtriangle 45 '[red red blue blue]) 'done)
+  (check-equal? (send p1-dynamic setup vtriangle 45 '[red red blue blue]) (void))
 
   (check-equal? (set-count (send p1-dynamic pick destinations)) 3)
   (check-equal? (send p1-dynamic play pstate1) MORE)
   (check-equal? (send p1-dynamic more '[green blue])  '[green blue])
   (check-true (connection/c (send p1-dynamic play pstate2)))
-  (check-equal? (dev/null (send p1-dynamic win #false)) 'okay))
+  (check-equal? (dev/null (send p1-dynamic win #false)) (void)))
