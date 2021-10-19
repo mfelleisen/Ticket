@@ -79,7 +79,6 @@
             [play  (or/c action? MORE)]
             [more  (listof color?)]
             [win   any/c])
-    ;; this makes the results less concrete, ARGH 
     (class/c
      ;; hand the player the map for the game, a number of rails, and some cards
      [setup (->m game-map? natural? (listof color?) (tag-trace setup))]
