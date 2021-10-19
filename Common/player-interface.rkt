@@ -79,28 +79,34 @@
             [play  (or/c action? MORE)]
             [more  (listof color?)]
             [win   any/c])
+    
     (class/c
-     ;; hand the player the map for the game, a number of rails, and some cards
-     [setup (->m game-map? natural? (listof color?) (tag-trace setup))]
+     [setup
+      ;; hand the player the map for the game, a number of rails, and some cards
+      (->m game-map? natural? (listof color?) (tag-trace setup))]
+     
+     [pick
+      ;; ask the player to pick some destinations and to return the remainder 
+      (->m (set/c destination/c) (tag-trace pick))]
+     
+     [play
+      ;; grant the player the right to take a turn 
+      (->m pstate? (tag-trace play))]
 
-     ;; ask the player to pick some destinations and to return the remainder 
-     [pick  (->m (set/c destination/c) (tag-trace pick))]
-
-     ;; grant the player the right to take a turn 
-     [play  (->m pstate? (tag-trace play))]
-
-     ;; if the preceding call to `play` returned `MORE`, call `more` to hand out more cards
-     [more  (->m (listof color?) (tag-trace more))]
-
-     ;; inform the player whether it won (#t)/lost (#f) the game 
-     [win   (->m boolean? (tag-trace win))])
+     [more
+      ;; if the preceding call to `play` returned `MORE`, call `more` to hand out more cards
+      (->m (listof color?) (tag-trace more))]
+     
+     [win
+      ;; inform the player whether it won (#t)/lost (#f) the game 
+      (->m boolean? (tag-trace win))])
+    
+    ;; A proper game interaction sequence is a word in this regular expression:
+    ;;    setup, pick, {play | more}*, win
+    ;; meaning the referee calls the player with setup, followed by one call to pick,
+    ;; followed by an arbitrary number of calls to `play` and possibly `more`, with
+    ;; one final call to `win` at the very end of a game.
     ((setup pick play more win) (proper-call-order? (trace-merge setup pick play more win)))))
-
-;; A proper game interaction sequence is a word in this regular expression:
-;;    setup, pick, {play | more}*, win
-;; meaning the referee calls the player with setup, followed by one call to pick,
-;; followed by an arbitrary number of calls to `play` and possibly `more`, with
-;; one final call to `win` at the very end of a game.
 
 (define PPM `[pick play more])
 
