@@ -72,6 +72,41 @@
 (define action? connection/c)
 
 (define-syntax-rule (tag-trace t) (list/t 't t))
+(define FAILED (gensym))
+
+(require SwDev/Debugging/spy)
+
+;; checks the protocol specified above 
+(define proper-call-order?
+  ;; poor mam's object
+  (let (
+        [PPM `[pick play more]])
+
+    ;; debugging aid
+    (define (show-error last-seen lst trace0)
+      (displayln `[last-seen is ,last-seen lst is ,lst] (current-error-port))
+      (displayln `[trace0 is ,(for/list ([x (in-stream trace0)]) x)] (current-error-port))
+      FAILED)
+    
+    (λ (trace-0 [last-seen #false])
+
+      ;; for proper debugging, I needed this:
+      (define-syntax-rule (-> lst then)
+        (if (member last-seen lst) then (show-error last-seen lst trace-0)))
+      
+      (match-define `[,one ,two] trace-0)
+      
+      (and
+       (if (not last-seen)
+           (if (equal? 'setup one) one FAILED)
+           (case one
+             [(setup) FAILED]
+             [(pick)  (-> '[setup] one)]
+             ;; not sure why I need equal? instead of eq? :::
+             [(play)  (-> PPM      (if (equal? MORE two) 'more one))]
+             [(more)  (-> '[more]  one)]
+             [(win)   (-> PPM      #false)]
+             [else    FAILED]))))))
 
 (define referee-player%/c
   (trace/c ([setup any/c]
@@ -106,41 +141,8 @@
     ;; meaning the referee calls the player with setup, followed by one call to pick,
     ;; followed by an arbitrary number of calls to `play` and possibly `more`, with
     ;; one final call to `win` at the very end of a game.
-    ((setup pick play more win) (proper-call-order? (trace-merge setup pick play more win))
-                                ;; is this necessary? 
-                                #:recover (λ _ '()))))
-
-(define PPM `[pick play more])
-
-;; checks the protocol specified above 
-(define (proper-call-order? trace-0)
-  (define starter (first (stream-first trace-0)))
-  (and
-   (equal? 'setup starter)
-   (let L ([t (stream-rest trace-0)] [last-seen starter])
-
-     ;; for proper debugging, I needed this:
-     (define-syntax-rule (-> lst then)
-       (if (member last-seen lst) then (show-error last-seen lst trace-0 t)))
-
-     (cond
-       [(stream-empty? t) #true]
-       [else (match-define `[,one ,two] (stream-first t))
-             (define others (stream-rest t))
-             (case one
-               [(setup) #false]
-               [(pick)  (-> '[setup] (L others 'pick))]
-               [(play)  (-> PPM      (L others (if (equal? MORE two) 'more one)))]
-               [(more)  (-> `[more]  (L others 'more))]
-               [(win)   (-> PPM      (stream-empty? others))]
-               [else    #false])]))))
-
-;; debugging aid
-(define (show-error last-seen lst trace0 t)
-  (displayln `[last-seen is ,last-seen lst is ,lst] (current-error-port))
-  (displayln `[trace0 is ,(for/list ([x (in-stream trace0)]) x)] (current-error-port))
-  (displayln `[failure at ,(for/list ([x (in-stream t)]) x)] (current-error-port))
-  #false)
+    #:fold 
+    ((setup pick play more win) proper-call-order? #:fail-when (λ (x) (eq? FAILED x)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 #; {Stream : not enpty -> Boolean}
