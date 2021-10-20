@@ -48,7 +48,7 @@
 
 (define COLORS '[red blue green white])
 
-(define (color? x) (member (if (string? x) (string->symbol x) x) COLORS))
+(define (color? x) (member (if (string? x) (string->symbol (string-downcase x)) x) COLORS))
 
 (define SEG# '[3 4 5])
 
