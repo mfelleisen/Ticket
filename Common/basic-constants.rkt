@@ -74,10 +74,10 @@
 (define MAX-HEIGHT 800)
 
 (define (width? x)
-  (and (natural? x) (<= MIN-WIDTH x MAX-WIDTH)))
+  (and (integer? x) (positive? x) (<= MIN-WIDTH x MAX-WIDTH)))
 
 (define (height? x)
-  (and (natural? x) (<= MIN-HEIGHT x MAX-HEIGHT)))
+  (and (integer? x)  (positive? x) (<= MIN-HEIGHT x MAX-HEIGHT)))
 
 (define RAILS-PER 45) ;; the number of rails a player receives during set-up 
 (define CARD0-PER  4) ;; the colored cards a player receives during set-up
