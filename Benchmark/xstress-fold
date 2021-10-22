@@ -1,0 +1,22 @@
+#!/bin/bash 
+
+XSTRESS=../Benchmark/xstress-fold.out
+
+echo "swap"
+pushd ../Common/
+cp player-interface-fold.rkt player-interface.rkt
+popd
+
+echo "making"
+raco make xbench
+if [ ! -f $XSTRESS ] ; then
+    echo "start: " $XSTRESS > $XSTRESS ;
+fi 
+
+gtime raco test ./xbench  2>>  $XSTRESS 
+
+echo "swap back"
+pushd ../Common/
+git checkout player-interface.rkt 
+popd
+

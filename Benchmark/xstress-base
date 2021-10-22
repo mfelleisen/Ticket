@@ -1,0 +1,12 @@
+#!/bin/bash 
+
+XSTRESS=../Benchmark/xstress-no-trace.out 
+
+echo "making"
+raco make xbench
+if [ ! -f $XSTRESS ] ; then
+    echo "start: " $XSTRESS > $XSTRESS ;
+fi 
+
+gtime raco test ./xbench 2>> $XSTRESS 
+
