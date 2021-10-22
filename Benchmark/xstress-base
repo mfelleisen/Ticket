@@ -1,6 +1,6 @@
 #!/bin/bash 
 
-XSTRESS=../Benchmark/xstress-no-trace.out 
+XSTRESS=../Benchmark/xstress-base.out 
 
 echo "making"
 raco make xbench

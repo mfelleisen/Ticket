@@ -11,6 +11,8 @@ exec racket -t "$0" -- ${1+"$@"}
 
 (define re #px"(\\d+.\\d+)user")
 
+(displayln "--- measuring ---")
+
 (define (average file)
   (define lines (file->lines file))
   (define title (first lines))

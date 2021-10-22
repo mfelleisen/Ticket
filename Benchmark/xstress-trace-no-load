@@ -1,10 +1,10 @@
 #!/bin/bash 
 
-XSTRESS=../Benchmark/xstress-load-free.out
+XSTRESS=../Benchmark/xstress-trace-no-load.out
 
 echo "swap"
 pushd ../Common/
-cp player-interface-no-load.rkt player-interface.rkt
+cp player-interface-trace-no-load.rkt player-interface.rkt
 popd
 
 echo "making"
