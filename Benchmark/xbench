@@ -1,0 +1,159 @@
+#! /bin/sh
+#| -*- racket -*-
+exec racket -tm "$0" -- ${1+"$@"}
+|#
+#lang racket
+
+(define T# 1) ;; how many times each tournament is run 
+
+(provide main)
+
+;; ---------------------------------------------------------------------------------------------------
+(require "get.rkt")
+
+(require Trains/Common/basic-constants)
+(require Trains/Common/map)
+(require Trains/Common/map-serialize)
+(require Trains/Player/istrategy)
+(require Trains/Player/player)
+(require (submod Trains/Admin/manager examples))
+(require Trains/Admin/manager)
+
+(require SwDev/Contracts/unique)
+(require SwDev/Testing/communication)
+
+;; ---------------------------------------------------------------------------------------------------
+(define (main)
+  (define gm (get (compose (game-map-validate 'xmanager) parse-game-map) 'xmanager "Map"))
+  (define ps (get (get-players gm MIN-PLAYER-PER-GAME +inf.0) 'xmanager "JSON Players"))
+  (define cs (get get-colors 'xmanager "JSON Colors"))
+
+   (for ([i (in-range T#)])
+     (manager ps #:cards cs))
+  
+  (match (manager ps #:cards cs)
+    [(? string? em) (send-message em)]
+    [results (send-message (manager-results->names results))]))
+
+;; ---------------------------------------------------------------------------------------------------
+(define ((game-map-validate tag) gm)
+  (cond
+    [(boolean? gm) #false]
+    [else
+     ;; if it is a game-map, the parser guarantees that there are no duplicate names and places
+     ;; let's enforce size constraiints here 
+     (unless (<= (length (game-map-cities gm)) CITY#) (error tag "too many cities"))
+     (unless (<= (set-count (game-map-all-connections gm)) CONN#) (error tag "too many connections"))
+     gm]))
+
+;; ---------------------------------------------------------------------------------------------------
+(define ((get-players gm min-p max-p) j)
+  (match j
+    [(and `([,(? player-name? p-name) ,(? strategy-name? p-strat)] ...)
+          (? (λ (j) (distinct? (map first j))))
+          (? (λ (j) (<= min-p (length j) max-p))))
+     (for/list ([name p-name] [strat p-strat])
+       (make-player-from-strategy-path (->strat strat) #:gm gm #:name name))]
+    [_ #false]))
+
+(define (player-name? x)
+  (and (string? x) (<= (string-length x) MAX-PLAYER-NAME) (regexp-match PLAYER-NAME-PX x)))
+
+(define STRATS
+  `[[,HOLD-10 Trains/Player/hold-10-strategy]
+    [,BUY-NOW Trains/Player/buy-now-strategy]
+    [,CHEAT   Trains/Player/cheat-strategy]])
+
+(define (strategy-name? x)
+  (assoc x STRATS))
+
+(define (->strat x)
+  (second (assoc x STRATS)))
+
+;; ---------------------------------------------------------------------------------------------------
+(define (get-colors j)
+  (match j
+    [(and `[,(? color?) ...] (? (λ _ (= (length j) CARDS-PER-GAME)))) (map string->symbol j)]
+    [_ #false]))
+
+;                                          
+;                                          
+;                                          
+;     ;                       ;            
+;     ;                       ;            
+;   ;;;;;;   ;;;;    ;;;;   ;;;;;;   ;;;;  
+;     ;      ;  ;;  ;    ;    ;     ;    ; 
+;     ;     ;    ;  ;         ;     ;      
+;     ;     ;;;;;;  ;;;       ;     ;;;    
+;     ;     ;          ;;;    ;        ;;; 
+;     ;     ;            ;    ;          ; 
+;     ;      ;      ;    ;    ;     ;    ; 
+;      ;;;   ;;;;;   ;;;;      ;;;   ;;;;  
+;                                          
+;                                          
+;                                          
+;                                          
+
+(module+ test
+  (require "big-map.rkt")
+  (require (submod Trains/Common/map-serialize examples))
+  
+  (require SwDev/Testing/testing)
+  (require SwDev/Lib/should-be-racket)
+  
+  (require rackunit))
+
+;; ---------------------------------------------------------------------------------------------------
+;; protect the students from bad JSON test 
+(module+ test
+  ;; ill-foremd and invalid:
+  (check-exn (regexp ILL) (λ () (dev/null (with-input-from-string "{ \"width\" : [1" main))) "ill 1")
+  (check-exn (regexp INV) (λ () (dev/null (with-input-from-string "{ \"height\" : []}" main))) "inv"))
+
+(module+ test
+  (define 2players `[["Cameron" ,HOLD-10] ["Ben" ,BUY-NOW]])
+  (define not-enough-players (rest 2players))
+
+  (r-check-exn (regexp INV)
+               main
+               `{,vrectangle-serialized ,not-enough-players ,(make-list CARDS-PER-GAME "blue")}
+               "too few players")
+
+  (r-check-exn (regexp INV)
+               main
+               `{,vrectangle-serialized ,2players ,(rest (make-list CARDS-PER-GAME "blue"))}
+               "too few colors"))
+
+;; ---------------------------------------------------------------------------------------------------
+;; ForStudents tests (simple in, out; one true one false)
+
+(module+ test ;; exanples 
+  
+  (define 5players
+    `[["Matthias" ,CHEAT]
+      ["Alan"     ,CHEAT]
+      ["Jason"    ,HOLD-10]
+      ["Cameron"  ,HOLD-10]
+      ["BenL"     ,BUY-NOW]])
+
+  (define mf-wins-2 (append (rest 5players) `[["Matthias" ,BUY-NOW]]))
+
+  (define (mk-holds l) (map (λ (x) (list (~a x) HOLD-10)) l))
+  (define 9more (mk-holds '[Cam Eshi Neha Darp Man Lana Sati Shob Sinr]))
+  (define yet   (mk-holds '[BenG Susi Juli Kani Petr Mowi Dhav Evan Akan Riti Deep Moha Feli]))
+
+  (define 14players (append 9more 5players))
+  (define 27players (append yet 14players))
+
+  (define rankings
+    '[[#; "first place:" "BenL"]
+      [#; "cheats:"      "Alan" "Matthias"]])
+
+  (define mf-rankings
+    '[[#; "first place:" "BenL" "Matthias"]
+      [#; "cheats:"      "Alan"]])
+  
+  (r-check-equal? main `[,big-map ,5players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "5")
+  (r-check-equal? main `[,big-map ,mf-wins-2 ,(make-list CARDS-PER-GAME "white")] `{,mf-rankings} "2")
+  (r-check-equal? main `[,big-map ,14players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "14")
+  (r-check-equal? main `[,big-map ,27players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "14"))
