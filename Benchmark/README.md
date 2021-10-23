@@ -12,7 +12,7 @@ The outcome is something like this:
 --- measuring ---
 '("16.6" "start:  ../Benchmark/xstress-base.out")
 '("81.1" "start:  ../Benchmark/xstress-trace.out")
-'("20" "start:  ../Benchmark/xstress-trace-no-load.out")
+'("20.0" "start:  ../Benchmark/xstress-trace-no-load.out")
 '("21.4" "start:  ../Benchmark/xstress-fold.out")
 '("19.1" "start:  ../Benchmark/xstress-fold-no-load.out")
 ```
