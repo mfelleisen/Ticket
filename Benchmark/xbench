@@ -4,7 +4,7 @@ exec racket -tm "$0" -- ${1+"$@"}
 |#
 #lang racket
 
-(define T# 1) ;; how many times each tournament is run 
+(define T# 10) ;; how many times each tournament is run 
 
 (provide main)
 
