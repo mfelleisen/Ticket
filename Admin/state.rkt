@@ -9,7 +9,7 @@
 
  #; {RefereeState (U False [List MePlayer Boolean] [List MePlayer [Listof Cards]])
                   -> [Listf RefereeState Boolean]}
- if-rstate-update
+ rstate-conditional-update
 
  #; {RefereeState -> RefereeState}
  ;; ASSUME there is a first player 
@@ -129,7 +129,8 @@
   (define players (map ii-payload-- (rstate-players rs)))
   (pstate (first players) (map ii-connections (rest players))))
 
-(define (if-rstate-update the-state false-or-nup)
+;; this is a weird function 
+(define (rstate-conditional-update the-state false-or-nup)
   (match false-or-nup
     [#false #false]
     [(list nup (? boolean? final?)) (list (rstate-update the-state nup) final?)]
