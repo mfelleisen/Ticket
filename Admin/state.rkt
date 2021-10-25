@@ -7,8 +7,12 @@
 
 (provide
 
- #; {RefereeState (U False [List MePlayer Boolean] [List MePlayer [Listof Cards]])
-                  -> [Listf RefereeState Boolean]}
+ #; {RefereeState
+     (U False [List MePlayer (U Boolean [Listof Cards])])
+     ->
+     (U False [Listf RefereeState Boolean])}
+ ;; update the active player field and the cards field && compute whether it's final now
+ ;; #false if #false is given 
  rstate-conditional-update
 
  #; {RefereeState -> RefereeState}
