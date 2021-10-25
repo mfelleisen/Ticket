@@ -372,31 +372,35 @@
       [(list nup _) (rstate-rotate nup)])))
 
 #; {RefereeState GameMap -> (U False [List RefereeState Boolean])}
+;; interact with external player for 1 turn to compute updated state && whether it's final
+;; #false if the player misbehaves or requests an illegal acquisigion
 (define (play-1-turn the-state gm)
-  (define next (first (rstate-players the-state)))
-  (define the-player-state (rstate->pstate the-state))
-  (match (xsend (ii-payload next) play the-player-state)
+  (define next-player        (first (rstate-players the-state)))
+  (define the-player-state   (rstate->pstate the-state))
+  (define result-of-xsend    (xsend (ii-payload next-player) play the-player-state))
+  (match result-of-xsend
     [(? failed?) #false]
     [(? (curry equal? MORE))
-     (if-rstate-update the-state (play-1-more-cards next (rstate-cards the-state)))]
+     (rstate-conditional-update the-state (play-1-more-cards next-player (rstate-cards the-state)))]
     [response
-     (and
-      (legal-action? the-player-state gm response)
-      (if-rstate-update the-state (player-1-acquire next response)))]))
+     (rstate-conditional-update the-state (play-1-acquire the-state gm response))]))
 
 #; {MePlayer [Listof Card] -> (U False [List MePlayer {listof Card}])}
 (define (play-1-more-cards next remaining)
   (cond
     [(< (length remaining) CARDS-PER) (list next '[])]
     [else (define new-cards (take remaining CARDS-PER))
-          (and (not (failed? (xsend (ii-payload next) more new-cards)))
-               (list (ii+cards next new-cards) new-cards))]))
+          (define call-more (xsend (ii-payload next) more new-cards))
+          (if (failed? call-more) #false (list (ii+cards next new-cards) new-cards))]))
 
-#; {MePlayer Response -> (U False [Listf MePlayer Boolean])}
-(define (player-1-acquire next response)
-  (let* ([iplayer next]
-         [iplayer (ii-acquire iplayer response)])
-    (list iplayer (ii-final? iplayer))))
+#; {RefereeState GameMap Response -> (U False [Listf MePlayer Boolean])}
+(define (play-1-acquire the-state gm response)
+  (define next-active-player (first (rstate-players the-state)))
+  (define the-player-state   (rstate->pstate the-state))  
+  (cond
+    [(not (legal-action? the-player-state gm response)) #false]
+    [else [define iplayer (ii-acquire next-active-player response)]
+          (list iplayer (ii-final? iplayer))]))
 
 ;                                          
 ;                                          
@@ -416,11 +420,19 @@
 ;                                          
 ;                                          
 
-(module+ test ;; tests for turns 
+(module+ test ;; tests for turns
+
+  ;; a complete transition 
   
-  ;; -------------------------------------------------------------------------------------------------
-  ;; player-1-acquire 
-  (check-equal? (player-1-acquire ii-play vtriangle-boston-seattle) (list ii-final #t))
+  (define active1 (ii-default 'red 3))
+  (define rstate1 (rstate (list active1) '[] '[]))
+  (define istate1++ (ii-default #:rails 0 #:con `[,vtriangle-boston-seattle]))
+  (define rstate1++ (rstate (list istate1++) '[] '[]))
+
+ ;; -------------------------------------------------------------------------------------------------
+  ;; player-1-acquire
+ 
+  (check-equal? (play-1-acquire rstate1 vtriangle vtriangle-boston-seattle) (list istate1++ #true))
   
   ;; -------------------------------------------------------------------------------------------------
   ;; player-1-more-cards
@@ -431,10 +443,7 @@
   
   ;; -------------------------------------------------------------------------------------------------
   ;; player-1-turn
-  (define active1 (ii-default 'red 3))
-  (check-equal? 
-   (play-1-turn (rstate (list active1) '[] '[]) vtriangle)
-   (list (rstate (list (ii-default #:rails 0 #:con `[,vtriangle-boston-seattle])) '[] '[]) #true))
+  (check-equal? (play-1-turn rstate1 vtriangle) (list rstate1++ #true))
   (define active2 (ii-default))
   (check-false (play-1-turn (rstate (list active2) '[] '[]) vtriangle))
 
