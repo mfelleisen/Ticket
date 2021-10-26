@@ -516,6 +516,7 @@
               [+scored (score-longest-path +scored)]
               [+scored (score-destinations +scored)])
          +scored))
+
      (define ranking (rank +scored))
      ;; --- rank and inform -- 
      (xinform ranking (rstate-drop-outs the-state))]))
@@ -725,8 +726,11 @@
                             the-map
                             #:shuffle sorted-destinations
                             #:cards (make-list CARDS-PER-GAME 'white)))
-                  (ref-results->names `{[[,@buy-nows] [,@hold-10s]] ,cheaters})))
+                  (let ([1st (if (> buy-now# 0) `[,@buy-nows] (take hold-10s 2))]
+                        [2nd (if (> buy-now# 0) `[,@hold-10s] (drop hold-10s 2))])
+                    (ref-results->names `{[,1st ,2nd] ,cheaters}))))
   
   (check-referee vrectangle 1 1 1)
   (check-referee vrectangle 1 1 0)
-  (check-referee big-map 7 1 0))
+  (check-referee big-map 7 1 0)
+  (check-referee big-map 7 0 0))
