@@ -230,10 +230,12 @@
          [(? failed?) (loop others Cs Ds good (cons xplayer drop-outs))]
          [_ (define pick-from (apply set (take Ds PICKS-PER)))
             (match (xsend xplayer pick pick-from)
-              [(? failed?) (loop others Cs Ds good (cons xplayer drop-outs))]
+              [(? failed?)
+               (loop others Cs Ds good (cons xplayer drop-outs))]
               [rejects
                (match (legal-picks pick-from rejects Ds)
-                 [#false (loop others Cs Ds good (cons xplayer drop-outs))]
+                 [#false
+                  (loop others Cs Ds good (cons xplayer drop-outs))]
                  [(list (list d-1 d-2) remaining)
                   (define iplayer (ii d-1 d-2 RAILS-PER (->hash cards) (set) xplayer))
                   (loop others (drop Cs CARD0-PER) remaining (cons iplayer good) drop-outs)])])])])))
