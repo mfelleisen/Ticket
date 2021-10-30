@@ -99,29 +99,25 @@
     ;; lexicographic ordering, by symbol<?, of destinations:
     ;; -- sort and let `inner` decide which ones to pick 
     (define/pubment (pick-destinations five-destinations0)
-      (define five-destinations (set->list five-destinations0))
+      (define five-destinations   (set->list five-destinations0))
       (define sorted-destinations (sort five-destinations lexi<?))
-      (define chosen (inner '[] pick-destinations sorted-destinations))
+      (define chosen               (inner '[] pick-destinations sorted-destinations))
       (set!-values (destination1 destination2) (apply values chosen))
       (apply set (remove* chosen five-destinations)))
 
     #; {type Action = (U MORE Connection)}
     #; {PlayerState -> Action}
     (define/public (choose-action ps)
-      (define I (pstate-I ps))
+      (define I      (pstate-I ps))
       (define cards  (ii-cards I))
       (define rails# (ii-rails I))
-      
       (define-values (stop? result) (stop-here cards rails#))
-
       (cond
         [stop? result]
         [else
          (define available  (set->list (all-available-connections the-game-map ps)))
          (define acquirable (filter (can-acquire? rails# cards) available))
-         (if (empty? acquirable)
-             MORE
-             (first (sort acquirable lexi->length->color<?)))]))
+         (if (empty? acquirable) MORE (first (sort acquirable lexi->length->color<?)))]))
 
     #; {[Listof Cards] N -> (values Boolean Action)}
     (define/public (stop-here cards rails#)

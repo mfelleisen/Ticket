@@ -79,9 +79,6 @@
 
 (define buy-now-strategy%
   (class base-strategy%
-    
-    (inherit-field the-game-map rails# cards destination1 destination2)
-
     #; {type Destination = [List City City] : symbol<? holds for the 2 cities}
     #; {Graph [List Destination Destination Destination Destination Destination]
               ->
