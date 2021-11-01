@@ -523,27 +523,32 @@
      ;; --- rank and inform -- 
      (xinform ranking (rstate-drop-outs the-state))]))
 
-#; {type Scored = [Listof (List PlayerState N GameMap)]}
+#; {type Scored = [Listof Score1]}
+#; {Type Score1 = (List PlayerState N GameMap)}
 
+;; ---------------------------------------------------------------------------------------------------
 #; {Scored -> Scored}
 (define (score-connections +scored)
   (for/list ([p.s +scored])
     (match-define (list p s gmp) p.s)
     (list p (ii-conn-score p) gmp)))
 
+;; ---------------------------------------------------------------------------------------------------
 #; {Scored -> Scored}
 (define (score-destinations +scored)
   (for/list ([p.s +scored])
     (match-define (list p s gm) p.s)
     (list p (+ s (ii-destinations-connected p gm)) gm)))
 
+;; ---------------------------------------------------------------------------------------------------
 #; {Scored -> Scored}
 (define (score-longest-path +scored)
-  (define players.longest-path 
-    (for/list ([p.s +scored])
-      (match-define (list p s gm) p.s)
-      (cons p.s (if (set=? (ii-connections p) (set)) 0 (game-map-longest-path gm)))))
+  (define players.longest-path (the-longest-paths-of-all-players +scored))
   (define the-longest (apply max (map cdr players.longest-path)))
+  (points-for-all-with-longest-path +scored players.longest-path the-longest))
+
+#; {Scored N [Listof (Cons Score1 N)] -> Scored}
+(define (points-for-all-with-longest-path +scored players.longest-path the-longest)
   (cond
     [(zero? the-longest) +scored]
     [else 
@@ -553,6 +558,13 @@
            (cons (list p (+ s LONG-PATH) gm) result)
            (cons p.s result)))]))
 
+#; {Scored -> [Listof (Cons Score1 N)]}
+(define (the-longest-paths-of-all-players +scored)
+ (for/list ([p.s +scored])
+   (match-define (list p s gm) p.s)
+   (cons p.s (if (set=? (ii-connections p) (set)) 0 (game-map-longest-path gm)))))
+
+;; ---------------------------------------------------------------------------------------------------
 #; {Scored -> Ranking}
 (define (rank +scored)
   (define sorted (sort +scored > #:key second))
