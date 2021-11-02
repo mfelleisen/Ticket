@@ -26,15 +26,19 @@ action 2:
       | <=============================================== | 
       |                                |                 |
       .                                .                 .
-      .                                .                 . % repeat until a player
-      .                                .                 . % has less than 3 rails
-      .                                .                 . % or all remaining 
-      .                                .                 . % players have chosen 
-      .                                .                 . % to ask for more cards
-      .                                .                 . % when there are none
       .                                .                 .
-      |                                |                 | % one last round 
-      |   play(state)                  |                 |
+      .                                .                 . play until end condition:
+      .                                .                 .
+      .                                .                 . % When one of the player’s number of
+      .                                .                 . % rails drops to 2, 1, or 0 at the  
+      .                                .                 . % end of a turn, each of the all    
+      .                                .                 . % other remaining players get to    
+      .                                .                 . % take one more turn.               
+      .                                .                 .                                     
+      .                                .                 . % The game also ends if every       
+      .                                .                 . % remaining player has had an       
+      |                                |                 | % opportunity to play a turn and the
+      |   play(state)                  |                 | % state of the game does not change.
       | -----------------------------> |                 | 
       |     action                     |                 |
       | <============================  |                 |
