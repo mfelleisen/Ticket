@@ -78,7 +78,7 @@
             [pick  set?]
             [play  (or/c action? MORE)]
             [more  (listof color?)]
-            [win   any/c])
+            [win   boolean?])
     
     (class/c
      [setup
@@ -99,7 +99,7 @@
      
      [win
       ;; inform the player whether it won (#t)/lost (#f) the game 
-      (->m boolean? (tag-trace win))])
+      (->m (tag-trace win) any)])
     
     ;; A proper game interaction sequence is a word in this regular expression:
     ;;    setup, pick, {play | more}*, win
@@ -114,6 +114,9 @@
 
 ;; checks the protocol specified above 
 (define (proper-call-order? trace-0)
+
+  ; (displayln `[trace0 is ,(for/list ([x (in-stream trace-0)]) x)] (current-error-port))
+
   (define starter (first (stream-first trace-0)))
   (and
    (equal? 'setup starter)
@@ -128,18 +131,18 @@
        [else (match-define `[,one ,two] (stream-first t))
              (define others (stream-rest t))
              (case one
-               [(setup) #false]
+               [(setup) (-> '(win)   (L others 'setup))]
                [(pick)  (-> '[setup] (L others 'pick))]
                [(play)  (-> PPM      (L others (if (equal? MORE two) 'more one)))]
                [(more)  (-> `[more]  (L others 'more))]
-               [(win)   (-> PPM      (stream-empty? others))]
+               [(win)   (-> PPM      (if (false? two) (stream-empty? others) (L others 'win)))]
                [else    #false])]))))
 
 ;; debugging aid
 (define (show-error last-seen lst trace0 t)
+  (displayln `[failure at ,(for/list ([x (in-stream t)]) x)] (current-error-port))
   (displayln `[last-seen is ,last-seen lst is ,lst] (current-error-port))
   (displayln `[trace0 is ,(for/list ([x (in-stream trace0)]) x)] (current-error-port))
-  (displayln `[failure at ,(for/list ([x (in-stream t)]) x)] (current-error-port))
   #false)
 
 ;; ---------------------------------------------------------------------------------------------------

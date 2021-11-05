@@ -21,6 +21,7 @@
 ;                                                          
 
 (require Trains/Player/istrategy)
+(require (only-in Trains/Common/player-interface-trace referee-player%/c))
 
 (provide
 
@@ -60,7 +61,7 @@
 ;                   ;                                                                              
 ;                                                                                                  
 
-(require Trains/Common/player-interface)
+(require (except-in Trains/Common/player-interface referee-player%/c))
 (require Trains/Common/map)
 (require Trains/Common/connection)
 (module+ test
@@ -98,7 +99,7 @@
   (new player% [strategy% strat%] [name name] [the-map gm]))
                                          
 (define player%
-  (class object% [init-field strategy% [name (gensym 'player)] [the-map #false] [quiet #true]]
+  (class object% [init-field strategy% [name (gensym 'player)] [the-map #false] [quiet #false]]
     (field [strategy #false])
 
     (define/public (start . x) the-map)

@@ -97,23 +97,25 @@
       (match-define `[,one ,two] trace-0)
       
       (and
-       (if (not last-seen)
-           (if (equal? 'setup one) one FAILED)
+       (cond
+         [(false? last-seen) (if (equal? 'setup one) one FAILED)]
+         [(eq? last-seen #t) (if (equal? 'setup one) one FAILED)]
+         [else 
            (case one
-             [(setup) FAILED]
+             [(setup) (-> '(win)   one)]
              [(pick)  (-> '[setup] one)]
              ;; not sure why I need equal? instead of eq? :::
              [(play)  (-> PPM      (if (equal? MORE two) 'more one))]
              [(more)  (-> '[more]  one)]
-             [(win)   (-> PPM      #false)]
-             [else    FAILED]))))))
+             [(win)   (-> PPM      (if (false? two) #true one))]
+             [else    FAILED])])))))
 
 (define referee-player%/c
   (trace/c ([setup any/c]
             [pick  set?]
             [play  (or/c action? MORE)]
             [more  (listof color?)]
-            [win   any/c])
+            [win   boolean?])
     
     (class/c
      [setup
@@ -134,7 +136,7 @@
      
      [win
       ;; inform the player whether it won (#t)/lost (#f) the game 
-      (->m boolean? (tag-trace win))])
+      (->m (tag-trace win) any)])
     
     ;; A proper game interaction sequence is a word in this regular expression:
     ;;    setup, pick, {play | more}*, win

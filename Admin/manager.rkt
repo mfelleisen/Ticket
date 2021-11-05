@@ -239,7 +239,7 @@
   #; {GameMap N N N -> Test}
   ;; the numbers cannot be chosen freely
   ;; assumes that hold-10s are stupid, all buy-nows win 
-  (define (check-manager the-map hold-10# buy-now# cheat#)
+  (define (check-manager the-map hold-10# buy-now# cheat# [msg ""])
     (match-define [list hold-10s buy-nows cheaters] (make-players the-map hold-10# buy-now# cheat#))
     (check-equal? (manager-results->names
                    (manager (append hold-10s buy-nows cheaters)
@@ -247,8 +247,10 @@
                             #:cards (make-list CARDS-PER-GAME 'white)))
                   (manager-results->names `{[,@buy-nows] ,cheaters})))
 
+  (require SwDev/Debugging/spy)
+
   (check-manager vrectangle 1 1 1)
   (check-manager vrectangle 1 1 0)
-  (check-manager vrectangle 0 1 0)
+  (check-manager vrectangle 0 1 0 "too few players, no game")
   (check-manager big-map 17 1 10)
   (check-manager big-map 27 1 12))

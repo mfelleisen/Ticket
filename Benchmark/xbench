@@ -104,27 +104,6 @@ exec racket -tm "$0" -- ${1+"$@"}
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
-;; protect the students from bad JSON test 
-(module+ test
-  ;; ill-foremd and invalid:
-  (check-exn (regexp ILL) (λ () (dev/null (with-input-from-string "{ \"width\" : [1" main))) "ill 1")
-  (check-exn (regexp INV) (λ () (dev/null (with-input-from-string "{ \"height\" : []}" main))) "inv"))
-
-(module+ test
-  (define 2players `[["Cameron" ,HOLD-10] ["Ben" ,BUY-NOW]])
-  (define not-enough-players (rest 2players))
-
-  (r-check-exn (regexp INV)
-               main
-               `{,vrectangle-serialized ,not-enough-players ,(make-list CARDS-PER-GAME "blue")}
-               "too few players")
-
-  (r-check-exn (regexp INV)
-               main
-               `{,vrectangle-serialized ,2players ,(rest (make-list CARDS-PER-GAME "blue"))}
-               "too few colors"))
-
-;; ---------------------------------------------------------------------------------------------------
 ;; ForStudents tests (simple in, out; one true one false)
 
 (module+ test ;; exanples 
@@ -154,6 +133,6 @@ exec racket -tm "$0" -- ${1+"$@"}
       [#; "cheats:"      "Alan"]])
   
   (r-check-equal? main `[,big-map ,5players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "5")
-  (r-check-equal? main `[,big-map ,mf-wins-2 ,(make-list CARDS-PER-GAME "white")] `{,mf-rankings} "2")
-  (r-check-equal? main `[,big-map ,14players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "14")
-  (r-check-equal? main `[,big-map ,27players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "14"))
+  ; (r-check-equal? main `[,big-map ,mf-wins-2 ,(make-list CARDS-PER-GAME "white")] `{,mf-rankings} "2")
+  ; (r-check-equal? main `[,big-map ,14players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "14")
+  #; (r-check-equal? main `[,big-map ,27players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "14"))
