@@ -134,6 +134,6 @@ exec racket -tm "$0" -- ${1+"$@"}
       [#; "cheats:"      "Alan"]])
   
   (r-check-equal? main `[,big-map ,5players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "5")
-  ; (r-check-equal? main `[,big-map ,mf-wins-2 ,(make-list CARDS-PER-GAME "white")] `{,mf-rankings} "2")
-  ; (r-check-equal? main `[,big-map ,14players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "14")
-  #; (r-check-equal? main `[,big-map ,27players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "14"))
+  (r-check-equal? main `[,big-map ,mf-wins-2 ,(make-list CARDS-PER-GAME "white")] `{,mf-rankings} "2")
+  (r-check-equal? main `[,big-map ,14players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "14")
+  (r-check-equal? main `[,big-map ,27players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "14"))
