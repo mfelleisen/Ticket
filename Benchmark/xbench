@@ -4,7 +4,7 @@ exec racket -tm "$0" -- ${1+"$@"}
 |#
 #lang racket
 
-(define T# 10) ;; how many times each tournament is run 
+(define T# 3) ;; how many times each tournament is run 
 
 (provide main)
 
@@ -28,10 +28,11 @@ exec racket -tm "$0" -- ${1+"$@"}
   (define ps (get (get-players gm MIN-PLAYER-PER-GAME +inf.0) 'xmanager "JSON Players"))
   (define cs (get get-colors 'xmanager "JSON Colors"))
 
-   (for ([i (in-range T#)])
-     (manager ps #:cards cs))
+  (for ([i (in-range T#)])
+    (let ([ps (map (λ (p) [p]) ps)])
+      (manager ps #:cards cs)))
   
-  (match (manager ps #:cards cs)
+  (match (manager (map (λ (p) [p]) ps) #:cards cs)
     [(? string? em) (send-message em)]
     [results (send-message (manager-results->names results))]))
 
@@ -53,7 +54,7 @@ exec racket -tm "$0" -- ${1+"$@"}
           (? (λ (j) (distinct? (map first j))))
           (? (λ (j) (<= min-p (length j) max-p))))
      (for/list ([name p-name] [strat p-strat])
-       (make-player-from-strategy-path (->strat strat) #:gm gm #:name name))]
+       (λ () (make-player-from-strategy-path (->strat strat) #:gm gm #:name name)))]
     [_ #false]))
 
 (define (player-name? x)

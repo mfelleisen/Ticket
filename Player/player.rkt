@@ -21,7 +21,7 @@
 ;                                                          
 
 (require Trains/Player/istrategy)
-(require (only-in Trains/Common/player-interface-trace referee-player%/c))
+(require (only-in Trains/Common/player-interface referee-player%/c))
 
 (provide
 
@@ -99,27 +99,31 @@
   (new player% [strategy% strat%] [name name] [the-map gm]))
                                          
 (define player%
-  (class object% [init-field strategy% [name (gensym 'player)] [the-map #false] [quiet #false]]
+  (class object% [init-field strategy% [name (gensym 'player)] [the-map #false] [quiet #true]]
     (field [strategy #false])
 
     (define/public (start . x) the-map)
     (define/public (end . x) 'thanks)
-
+    
     [define/public (setup gm rails cards)
+      (unless quiet (displayln `[,name does setup] (current-error-port)))
       (set! strategy (new strategy% [the-game-map gm] [rails# rails]))]
 
     [define/public (pick destinations)
+      (unless quiet (displayln `[,name does pick] (current-error-port)))
       (send strategy pick-destinations destinations)]
 
     [define/public (play s)
+      (unless quiet (displayln `[,name does play] (current-error-port)))
       (send strategy choose-action s)]
 
     [define/public (more cards)
+      (unless quiet (displayln `[,name does play] (current-error-port)))
       cards]
 
     [define/public (win did-i-win?)
       (unless quiet 
-        (displayln `[,name did ,(if did-i-win? 'WIN 'LOSE)]))]
+        (displayln `[,name did ,(if did-i-win? 'WIN 'LOSE)] (current-error-port)))]
     
     (super-new)))
 
