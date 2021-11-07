@@ -3,31 +3,31 @@
 rm -rf *.out 
 
 echo "--- trace ---"
-for i in 1 # 2 3 4 5  
+for i in 1 2 3 4 5  
 do
     ./xstress-trace 
 done
 
 echo "--- trace no load ---"
-for i in 1 # 2 3 4 5  
+for i in 1 2 3 4 5  
 do
     ./xstress-trace-no-load 
 done
 
 echo "--- fold ---"
-for i in 1 # 2 3 4 5  
+for i in 1 2 3 4 5  
 do
     ./xstress-fold 
 done
 
 echo "--- fold no load ---"
-for i in 1 # 2 3 4 5  
+for i in 1 2 3 4 5  
 do
     ./xstress-fold-no-load 
 done
 
 echo "--- base ---"
-for i in 1 # 2 3 4 5  
+for i in 1 2 3 4 5  
 do
     ./xstress-base
 done
