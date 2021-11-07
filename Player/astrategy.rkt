@@ -101,7 +101,7 @@
     (define/pubment (pick-destinations five-destinations0)
       (define five-destinations   (set->list five-destinations0))
       (define sorted-destinations (sort five-destinations lexi<?))
-      (define chosen               (inner '[] pick-destinations sorted-destinations))
+      (define chosen              (inner '[] pick-destinations sorted-destinations))
       (set!-values (destination1 destination2) (apply values chosen))
       (apply set (remove* chosen five-destinations)))
 
