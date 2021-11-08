@@ -17,8 +17,8 @@
   (class/c
    (init-field
     (the-game-map game-map?)
-    (rails# natural?)
-    (cards (listof color?)))
+    (rails#       natural?)
+    (cards        (listof color?)))
 
    ;; pick DESTS-PER cards from the given set for this game-map,
    ;; return the remaining cards 

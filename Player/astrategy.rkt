@@ -61,6 +61,7 @@
 ;                   ;                                                                              
 ;                                                                                                  
 
+(require Trains/Common/basic-constants)
 (require Trains/Common/connection)
 (require Trains/Common/map)
 (require Trains/Common/state)
@@ -93,15 +94,15 @@
      [destination2 #false])
 
     #; {type Destination = [List City City] : symbol<? holds for the 2 cities}
-    #; {Graph [Set Destination Destination Destination Destination Destination]
-              ->
-              [Set Destination Destination Destination]}
+    #; {GameMap [Set Destination Destination Destination Destination Destination]
+                ->
+                [Set Destination Destination Destination]}
     ;; lexicographic ordering, by symbol<?, of destinations:
     ;; -- sort and let `inner` decide which ones to pick 
     (define/pubment (pick-destinations five-destinations0)
       (define five-destinations   (set->list five-destinations0))
       (define sorted-destinations (sort five-destinations lexi<?))
-      (define chosen              (inner '[] pick-destinations sorted-destinations))
+      (define chosen              (take (inner '[] pick-destinations sorted-destinations) DESTS-PER))
       (set!-values (destination1 destination2) (apply values chosen))
       (apply set (remove* chosen five-destinations)))
 

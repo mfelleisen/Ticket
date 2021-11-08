@@ -85,7 +85,7 @@
               [List Destination Destination Destination]}
     ;; take the first 2 of the sorted destinations
     (define/augment (pick-destinations sorted-destinations)
-      (take (reverse sorted-destinations) DESTS-PER))
+      (reverse sorted-destinations))
 
     #; {[Listof Cards] N -> (values Boolean Action)}
     ;; don't hold back if you can buy (#false), otherwise ask for MORE cards 
