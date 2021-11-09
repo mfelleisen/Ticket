@@ -89,7 +89,7 @@
     #; {[Listof Cards] N -> (values Boolean Action)}
     ;; buy if you have more than 10 cards, otherwise ask for MORE cards 
     (define/override (stop-here cards rails#)
-      (values (< (total-number-of-cards cards) 10) MORE))
+      (values (<= (total-number-of-cards cards) 10) MORE))
 
     (super-new)))
 
@@ -130,6 +130,7 @@
   (check-equal? (send strat-tri choose-action (like-pstate2 'green 3)) MORE)
   (check-equal? (send strat-tri more-cards 'green 'red) (void))
   (check-equal? (send strat-rec choose-action (like-pstate2 'green 2)) (connection Orlando |San Diego| blue 5))
+  (check-equal? (send strat-rec choose-action (like-pstate2 'green -3)) MORE "Megan & Ryan bug")
 
   (define okay [connection Boston Orlando green 5])
   (check-equal? (send strat-tri choose-action pstate-play) okay)
