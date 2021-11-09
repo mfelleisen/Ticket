@@ -35,10 +35,6 @@
 ;                                                          
 
 (provide
- ERR
-
- #; {GameMap N -> Boolean}
- enough-destinations
 
  #; {type [RefereeResult X] = (List [Listof [Listof X]] [Listof X]) }
 
@@ -48,7 +44,14 @@
                        #:shuffle [[Listof Destination] -> [Listof Destination]]
                        ->
                        (U ERR [RefereeResult XPlayer])]}
- referee)
+ referee
+
+ ;; the next two exports are about "are there enough destinations in a given map:
+ ;; same error string, same decisin making function 
+ ERR
+
+ #; {GameMap N -> Boolean}
+ enough-destinations)
  
 (module+ examples ;; from referee to manager 
   (provide
