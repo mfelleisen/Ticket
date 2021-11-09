@@ -125,16 +125,13 @@
   (values (map first loxy) (map second loxy)))
 
 #; {[Listof GameMap]N  -> GameMap}
+;; pick the first map that has enugh destinations for the given number of players
 (define (pick-a-map all-the-maps player#)
   (cond
     [(empty? all-the-maps) ERR]
     [else
-     (define the-game-map (first all-the-maps))
-     (define destination* (all-destinations the-game-map))
-     (cond 
-       [(< (length destination*) (+ (- PICKS-PER DESTS-PER) (* DESTS-PER player#)))
-        (pick-a-map (rest all-the-maps) player#)]
-       [else the-game-map])]))
+     (define the-map (first all-the-maps))
+     (if (enough-destinations the-map player#) the-map (pick-a-map (rest all-the-maps) player#))]))
 
 ;; ---------------------------------------------------------------------------------------------------
 #;{[Listof Player] Referee -> (values [Listof Player] [Listof Player])}

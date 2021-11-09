@@ -37,6 +37,9 @@
 (provide
  ERR
 
+ #; {GameMap N -> Boolean}
+ enough-destinations
+
  #; {type [RefereeResult X] = (List [Listof [Listof X]] [Listof X]) }
 
  #; {[[Listof XPlayer] GameMap
@@ -185,14 +188,17 @@
   (define destination* (shuffle (all-destinations the-game-map)))
   
   ;; is this too expensive as a contract? 
-  (cond
-    [(< (length destination*) (+ (- PICKS-PER DESTS-PER) (* DESTS-PER (length the-external-players))))
-     ERR]
-    [else
-     (let* ([the-state (setup-all-players the-external-players the-game-map cards destination*)]
-            [the-state (play-turns the-state the-game-map)]
-            [results   (score-game the-state the-game-map)])
-       results)]))
+  (if (not (enough-destinations the-game-map (length the-external-players)))
+      ERR
+      (let* ([the-state (setup-all-players the-external-players the-game-map cards destination*)]
+             [the-state (play-turns the-state the-game-map)])
+        (score-game the-state the-game-map))))
+
+#; {GameMap N -> Boolean }
+;; are there enough destinations on this game-map for the specified number of players 
+(define (enough-destinations the-game-map player#)
+  (define destination* (all-destinations the-game-map))
+  (>= (length destination*) (+ (- PICKS-PER DESTS-PER) (* DESTS-PER player#))))
 
 (module+ test
   (define-values (m1 m2) (values (new (mock%)) (new (mock%))))
@@ -431,7 +437,7 @@
   (define istate1++ (ii-default #:rails 0 #:con `[,vtriangle-boston-seattle]))
   (define rstate1++ (rstate (list istate1++) '[] '[]))
 
- ;; -------------------------------------------------------------------------------------------------
+  ;; -------------------------------------------------------------------------------------------------
   ;; player-1-acquire
  
   (check-equal? (play-1-acquire rstate1 vtriangle vtriangle-boston-seattle) (list istate1++ #true))
@@ -560,9 +566,9 @@
 
 #; {Scored -> [Listof (Cons Score1 N)]}
 (define (the-longest-paths-of-all-players +scored)
- (for/list ([p.s +scored])
-   (match-define (list p s gm) p.s)
-   (cons p.s (if (set=? (ii-connections p) (set)) 0 (game-map-longest-path gm)))))
+  (for/list ([p.s +scored])
+    (match-define (list p s gm) p.s)
+    (cons p.s (if (set=? (ii-connections p) (set)) 0 (game-map-longest-path gm)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 #; {Scored -> Ranking}
