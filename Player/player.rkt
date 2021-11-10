@@ -28,7 +28,14 @@
   [make-player-from-strategy-path
    (->* [(or/c module-path? path-string?)] (#:gm game-map? #:name (or/c string? symbol?))
         (instanceof/c referee-player%/c))]
-  [player% referee-player%/c]))
+  [player% referee-player%/c]
+  [player-bad-start% referee-player%/c]
+  [player-bad-end% referee-player%/c]
+  [player-bad-setup% referee-player%/c]
+  [player-bad-pick% referee-player%/c]
+  [player-bad-play% referee-player%/c]
+  [player-bad-more% referee-player%/c]
+  [player-bad-win% referee-player%/c]))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -51,6 +58,9 @@
 (require Trains/Common/player-interface)
 (require Trains/Common/map)
 (require Trains/Common/connection)
+(require Trains/Player/buy-now-strategy)
+(require (for-syntax syntax/parse))
+(require (for-syntax racket))
 (module+ test
   (require (submod ".."))
   (require (submod Trains/Player/astrategy examples))
@@ -85,27 +95,55 @@
 (define player%
   (class object% [init-field strategy% [name (gensym 'player)] [the-map #false] [quiet #true]]
     (field [strategy #false])
-
-    (define/public (start . x) the-map)
-    (define/public (end . x) 'thanks)
-
-    [define/public (setup gm rails cards)
-      (set! strategy (new strategy% [the-game-map gm] [rails# rails]))]
-
-    [define/public (pick destinations)
-      (send strategy pick-destinations destinations)]
-
-    [define/public (play s)
-      (send strategy choose-action s)]
-
-    [define/public (more cards)
-      (void)]
-
+    (define/public (start x) the-map)
+    (define/public (end x) 'thanks)
+    [define/public (setup gm r _) (set! strategy (new strategy% [the-game-map gm] [rails# r]))]
+    [define/public (pick destinations) (send strategy pick-destinations destinations)]
+    [define/public (play s) (send strategy choose-action s)]
+    [define/public (more cards) (void)]
     [define/public (win did-i-win?)
-      (unless quiet 
-        (displayln `[,name did ,(if did-i-win? 'WIN 'LOSE)]))]
-    
+      (unless quiet (displayln `[,name did ,(if did-i-win? 'WIN 'LOSE)]))]
     (super-new)))
+
+;                                                          
+;                                                          
+;   ;                    ;       ;     ;                   
+;   ;                    ;       ;                         
+;   ;                    ;       ;                         
+;   ; ;;;     ;;;    ;;; ;   ;;; ;   ;;;     ;;;;    ;;;;  
+;   ;;  ;;   ;   ;  ;;  ;;  ;;  ;;     ;    ;    ;  ;    ; 
+;   ;    ;       ;  ;    ;  ;    ;     ;    ;;;;;;  ;      
+;   ;    ;   ;;;;;  ;    ;  ;    ;     ;    ;        ;;;;  
+;   ;    ;  ;    ;  ;    ;  ;    ;     ;    ;            ; 
+;   ;;  ;;  ;   ;;  ;;  ;;  ;;  ;;     ;    ;;   ;  ;    ; 
+;   ; ;;;    ;;; ;   ;;; ;   ;;; ;   ;;;;;   ;;;;;   ;;;;  
+;                                                          
+;                                                          
+;                                                          
+;                                                          
+
+(define-syntax (def/broken stx)
+  (syntax-parse stx
+    [(_ name:id (~optional n:number #:defaults ([n #'0])))
+     #:do [(define class-id    (string->symbol (~a "player-bad-" (syntax-e #'name) "%")))
+           (define class-name% (datum->syntax stx class-id stx stx))]
+     #`(define #,class-name%
+         (class player%
+           (super-new)
+           (define count n)
+           (define/override (name . x)
+             (cond
+               [(> count 0) (set! count (- count 1)) (super name . x)]
+               [else (displayln `[diverging ,'name ,@x] (current-error-port)) (let L () (L))]))))]))
+
+(def/broken start)
+(def/broken end)
+(def/broken setup)
+(def/broken pick)
+(def/broken play 3)
+(def/broken more)
+(def/broken win)
+
 
 ;                                          
 ;                                          

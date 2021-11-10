@@ -64,6 +64,8 @@
 
    #; {GameMap N N N -> [List [Listof XPlayer/Hold-10][Listof XPlayer/NuyNow][Listof XPlayer/Cheats]]}
    make-players
+   #; {GameMap N -> [Listof XPlayer/Hold-10]}
+   make-baddies 
 
    #; {[Listof XPlayer] -> [Listof String]}
    ;; extract nanes, sort by string<?
@@ -121,6 +123,7 @@
   (require (submod Trains/Common/map examples))
   (require (submod Trains/Common/state examples))
   (require Trains/Common/connection)
+  (require Trains/Player/player)
   (require rackunit))
 
 ;                                                                  
@@ -194,8 +197,9 @@
   (if (not (enough-destinations the-game-map (length the-external-players)))
       ERR
       (let* ([the-state (setup-all-players the-external-players the-game-map cards destination*)]
-             [the-state (play-turns the-state the-game-map)])
-        (score-game the-state the-game-map))))
+             [the-state (play-turns the-state the-game-map)]
+             [rank+drop (score-game the-state the-game-map)])
+        (xinform (first rank+drop) (second rank+drop)))))
 
 #; {GameMap N -> Boolean }
 ;; are there enough destinations on this game-map for the specified number of players 
@@ -529,7 +533,9 @@
          +scored))
 
      (define ranking (rank +scored))
-     ;; --- rank and inform -- 
+     ;; --- rank and inform --
+     [list ranking (rstate-drop-outs the-state)]
+     #;
      (xinform ranking (rstate-drop-outs the-state))]))
 
 #; {type Scored = [Listof Score1]}
@@ -581,20 +587,6 @@
   (for/list ([group grouped])
     (for/list ([p.s group])
       (ii-payload (first p.s)))))
-
-#; {Ranking [Listof XPlayer] -> [List Ranking [Listof XPlayer]]}
-(define (xinform rankings drops)
-  (define (if-cons a d) (if (empty? a) d (cons a d)))
-  (match rankings
-    ['() (list rankings drops)]
-    [(cons prelim-winners losers)
-     (define-values (goods bads) (xmap-send (λ (a) (xsend a win #true)) prelim-winners))
-     (let loop ([losers losers] [ranks (if-cons (map first goods) '[])] [drops (append bads drops)])
-       (match losers
-         ['() (list (reverse ranks) drops)]
-         [(cons group others)
-          (define-values (goods bads) (xmap-send (λ (a) (xsend a win #false)) group))
-          (loop others (if-cons (map first goods) ranks) (append bads drops))]))]))
 
 ;                                          
 ;                                          
@@ -684,11 +676,42 @@
   (check-equal? (xinform '() '[]) [list '() '()])
 
   (define fail-on-win (new (mock% #:play values #:win (λ _ (raise 'bad)))))
-  (check-equal? (xinform (cons (list fail-on-win) lop4-ranked) '[]) `[,lop4-ranked (,fail-on-win)])
+  (check-equal? (xinform (cons (list fail-on-win) lop4-ranked) '[])
+                `[(() . ,lop4-ranked) (,fail-on-win)])
 
   ;; -------------------------------------------------------------------------------------------------
   ;; `score-game`
   (check-equal? (score-game (rstate lop-ask-more '() '()) vtriangle) [list lop4-ranked '[]]))
+
+;                                                   
+;                           ;;                      
+;             ;            ;                        
+;                          ;                        
+;   ;   ;   ;;;   ; ;;   ;;;;;   ;;;    ;;;; ;;;;;; 
+;    ; ;      ;   ;;  ;    ;    ;; ;;   ;;  ;;  ;  ;
+;    ;;;      ;   ;   ;    ;    ;   ;   ;    ;  ;  ;
+;     ;       ;   ;   ;    ;    ;   ;   ;    ;  ;  ;
+;    ;;;      ;   ;   ;    ;    ;   ;   ;    ;  ;  ;
+;    ; ;      ;   ;   ;    ;    ;; ;;   ;    ;  ;  ;
+;   ;   ;   ;;;;; ;   ;    ;     ;;;    ;    ;  ;  ;
+;                                                   
+;                                                   
+;                                                   
+
+#; {Ranking [Listof XPlayer] -> [List Ranking [Listof XPlayer]]}
+(define (xinform rankings drops)
+  (match rankings
+    ['() (list rankings drops)]
+    [(cons prelim-winners losers)
+     (define-values (goods bads) (xmap-send (λ (a) (xsend a win #true)) prelim-winners))
+     (let loop ([losers losers] [ranks (list (map first goods))] [drops (append bads drops)])
+       (match losers
+         ['() (list (reverse ranks) drops)]
+         [(cons group others)
+          (define-values (goods bads) (xmap-send (λ (a) (xsend a win #false)) group))
+          (loop others (cons (map first goods) ranks) (append bads drops))]))]))
+
+(require SwDev/Debugging/spy)
 
 ;                                                                                  
 ;                                                                                  
@@ -715,7 +738,8 @@
 
 #; {[Listof XPlayer] -> [Listof String]}
 (define (players->names players)
-  (sort (map (λ (p) (~a (get-field name p))) players) string<?))
+  (sort
+   (map (λ (p) (~a (get-field name p))) players) string<?))
 
 (module+ examples 
 
@@ -732,6 +756,12 @@
 
     `[,hold-10-players ,buy-now-players ,cheater-players])
 
+  (define (make-baddies the-map player% n)
+    (build-list n
+                (λ (i)
+                  (define name (~a "abaddy" (make-string i #\b)))
+                  (new player% [strategy% buy-now:strategy%] [the-map the-map] [name name]))))
+
   (define-runtime-path map1 "map-1.json")
   (define big-map (with-input-from-file map1 read-and-parse-map))
   
@@ -742,18 +772,29 @@
   ;; the numbers cannot be chosen freely
   ;; assumes that hold-10s are stupid, all buy-nows win 
   
-  (define (check-referee the-map hold-10# buy-now# cheat#)
+  (define (check-referee the-map hold-10# buy-now# cheat# [baddy% #false][bad# 0])
     (match-define [list hold-10s buy-nows cheaters] (make-players the-map hold-10# buy-now# cheat#))
+    (define bad-players (make-baddies the-map baddy% bad#))
     (check-equal? (ref-results->names
-                   (referee (append hold-10s buy-nows cheaters)
+                   (referee (append hold-10s buy-nows cheaters bad-players)
                             the-map
                             #:shuffle sorted-destinations
                             #:cards (make-list CARDS-PER-GAME 'white)))
                   (let ([1st (if (> buy-now# 0) `[,@buy-nows] (take hold-10s 2))]
-                        [2nd (if (> buy-now# 0) `[,@hold-10s] (drop hold-10s 2))])
-                    (ref-results->names `{[,1st ,2nd] ,cheaters}))))
+                        [2nd (cond
+                               [(eq? baddy% player-bad-win%) '()]
+                               [(> buy-now# 0) `[,@hold-10s]]
+                               [else (drop hold-10s 2)])])
+                    (ref-results->names `[{,1st ,2nd} ,(append bad-players cheaters)]))))
   
   (check-referee vrectangle 1 1 1)
   (check-referee vrectangle 1 1 0)
   (check-referee big-map 7 1 0)
-  (check-referee big-map 7 0 0))
+  (check-referee big-map 7 0 0)
+
+  (check-referee big-map 7 0 0 player-bad-setup% 1)
+  (check-referee big-map 7 0 0 player-bad-pick% 2)
+  (check-referee big-map 7 0 0 player-bad-play% 3)
+  (check-referee big-map 7 0 0 player-bad-more% 4)
+  (check-referee big-map 0 1 0 player-bad-win% 1))
+

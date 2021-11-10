@@ -81,6 +81,7 @@
   (require (submod ".." examples))
   (require (submod ".."))
   (require (submod Trains/Common/map examples))
+  (require (submod Trains/Player/player))
   (require (submod Trains/Admin/referee examples))
   (require rackunit))
 
@@ -233,16 +234,25 @@
   #; {GameMap N N N -> Test}
   ;; the numbers cannot be chosen freely
   ;; assumes that hold-10s are stupid, all buy-nows win 
-  (define (check-manager the-map hold-10# buy-now# cheat#)
+  (define (check-manager the-map hold-10# buy-now# cheat# [baddy% #false] [bad# 0])
     (match-define [list hold-10s buy-nows cheaters] (make-players the-map hold-10# buy-now# cheat#))
+    (define bad-players (make-baddies the-map baddy% bad#))
     (check-equal? (manager-results->names
-                   (manager (append hold-10s buy-nows cheaters)
+                   (manager (append hold-10s buy-nows cheaters bad-players)
                             #:shuffle sorted-destinations
                             #:cards (make-list CARDS-PER-GAME 'white)))
-                  (manager-results->names `{[,@buy-nows] ,cheaters})))
+                  (spy (manager-results->names `{[,@buy-nows] ,(append bad-players cheaters)}))))
+
+  (require SwDev/Debugging/spy)
 
   (check-manager vrectangle 1 1 1)
   (check-manager vrectangle 1 1 0)
   (check-manager vrectangle 0 1 0)
   (check-manager big-map 17 1 10)
-  (check-manager big-map 27 1 12))
+  (check-manager big-map 27 1 12)
+
+  (check-manager big-map 27 1 0 player-bad-start% 1)
+  (check-manager big-map 27 1 0 player-bad-end% 1)
+  (check-manager big-map 0 0 1 player-bad-end% 1) ;; <--- this one must become a milestone 10 test
+  (check-manager big-map 0 1 0 player-bad-end% 3)
+  (check-manager big-map 0 1 0 player-bad-win% 1))
