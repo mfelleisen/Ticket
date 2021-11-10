@@ -2,6 +2,7 @@
 
 ;; the basic constants describing the server specs 
 
+#;
 (provide
  MAX-TIME
  MIN-PLAYERS

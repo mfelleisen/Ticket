@@ -241,9 +241,7 @@
                    (manager (append hold-10s buy-nows cheaters bad-players)
                             #:shuffle sorted-destinations
                             #:cards (make-list CARDS-PER-GAME 'white)))
-                  (spy (manager-results->names `{[,@buy-nows] ,(append bad-players cheaters)}))))
-
-  (require SwDev/Debugging/spy)
+                  (manager-results->names `{[,@buy-nows] ,(append bad-players cheaters)})))
 
   (check-manager vrectangle 1 1 1)
   (check-manager vrectangle 1 1 0)

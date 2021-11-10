@@ -104,17 +104,17 @@
 ;                                                          
 
 (define DEFAULT-CONFIG
-    (hash
-     PORT       45670
-     SERVER-WAIT   20
-     MIN-T-PLAYERS  5
-     MAX-T-PLAYERS 50
-     SERVER-TRIES   1
-     TIME-PER-TURN 1.2
-     ;; a lit of optional keyword arguments:
-     #; {[#:shuffle . shuffle-proc] [#:cards DOT list-of color]}
-     MAN-SPEC     '[]
-     QUIET         #true))
+  (hash
+   PORT       45670
+   SERVER-WAIT   20
+   MIN-T-PLAYERS  5
+   MAX-T-PLAYERS 50
+   SERVER-TRIES   1
+   TIME-PER-TURN 1.2
+   ;; a lit of optional keyword arguments:
+   #; {[#:shuffle . shuffle-proc] [#:cards DOT list-of color]}
+   MAN-SPEC     '[]
+   QUIET         #true))
 
 (define SHORT MAX-PLAYER-NAME)
 
@@ -340,22 +340,32 @@
   (test-case "player 1"
              (check-true (cons? result-1))
              (check-true (empty? (rest (first result-1))) "one winner")
-             (check-true (empty? (second result-1)) "no cheaters"))
+             (check-true (empty? (second result-1)) "no cheaters"))) 
 
-  ;; - - - test case 2 (adapted from manager)
-  (define hold-10# 17)
-  (define buy-now#  1)
-  [define cheat#   10]
-  [define bundles   (make-players big-map hold-10# buy-now# cheat#)]
-  [define players-2 (apply append bundles)]
-  (define man-spec  `[[#:shuffle . ,sorted-destinations]
-                      [#:cards . ,(make-list CARDS-PER-GAME 'white)]])
-  (define qconfig   (hash-set DEFAULT-CONFIG QUIET #true))
-  [define result-2  (test-server-client-with players-2 0 man-spec reverse qconfig)]
+(module+ test ;; real players 
+
+  #; {GameMap N N N -> Test}
+  ;; the numbers cannot be chosen freely
+  ;; assumes that hold-10s are stupid, all buy-nows win 
+  (define (check-manager the-map hold-10# buy-now# cheat# [baddy% #false] [bad# 0])
+    (match-define [list hold-10s buy-nows cheaters] (make-players the-map hold-10# buy-now# cheat#))
+    (define man-spec    `[[#:shuffle . ,sorted-destinations]
+                          [#:cards . ,(make-list CARDS-PER-GAME 'white)]])
+    (define qconfig     (hash-set DEFAULT-CONFIG QUIET #true))
+    (define bad-players (make-baddies the-map baddy% bad#))
+    (define all-players (append hold-10s buy-nows cheaters bad-players))
+    (define the-results (test-server-client-with all-players 0 man-spec reverse qconfig))
+    (check-equal? (manager-results->names the-results)
+                  (manager-results->names `{[,@buy-nows] ,(append bad-players cheaters)})))
+
+  (require SwDev/Debugging/spy)
   
-  (test-case "player 2"
-             (check-true (cons? result-2))
-             (check-true (empty? (rest (first result-2))) "one winner")
-             (check-equal? (length (second result-2)) cheat# "no cheaters")
-             (check-equal? (manager-results->names result-2)
-                           (manager-results->names `{[,@(second bundles)] ,(third bundles)}))))
+  (check-manager big-map 17 1 10)
+  (check-manager big-map 27 1 12)
+
+  (check-manager big-map 27 1 0 player-bad-start% 1)
+  (check-manager big-map 27 1 0 player-bad-end% 1)
+  (check-manager big-map 0 0 1 player-bad-end% 1) ;; <--- this one must become a milestone 10 test
+  (check-manager big-map 0 1 0 player-bad-end% 3)
+  (check-manager big-map 0 1 0 player-bad-win% 1))
+

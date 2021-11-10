@@ -134,7 +134,7 @@
            (define/override (name . x)
              (cond
                [(> count 0) (set! count (- count 1)) (super name . x)]
-               [else (displayln `[diverging ,'name ,@x] (current-error-port)) (let L () (L))]))))]))
+               [else (let L () (L))]))))]))
 
 (def/broken start)
 (def/broken end)
