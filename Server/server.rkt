@@ -109,8 +109,8 @@
    SERVER-WAIT   20
    MIN-T-PLAYERS  5
    MAX-T-PLAYERS 50
-   SERVER-TRIES   1
-   TIME-PER-TURN 1.2
+   SERVER-TRIES     2
+   TIME-PER-TURN  1.8
    ;; a lit of optional keyword arguments:
    #; {[#:shuffle . shuffle-proc] [#:cards DOT list-of color]}
    MAN-SPEC     '[]
@@ -139,7 +139,7 @@
 (define DEFAULT-RESULT '[[] []])
 
 (define test-run?  (make-parameter #false))
-(define MIN-ERROR  "server did not sign up enough ~a players")
+(define MIN-ERROR  "server did not sign up enough [~a] players")
 
 ;; get at least min players, at most max players
 ;; wait for at most 30s
@@ -163,12 +163,14 @@
   (define MAX-TRIES   (dict-ref config SERVER-TRIES))
 
   ;; set up custodian so `server` can clean up all threads, TCP ports in case it is re-used
-  (parameterize ([current-custodian (make-custodian)])
+  (define err-out  (if (dict-ref config QUIET) (open-output-string) (current-error-port)))
+  (parameterize ([current-custodian  (make-custodian)]
+                 [current-error-port err-out])
     (define players (wait-for-players port house-players MAX-TRIES MAX-TIME MIN-PLAYERS MAX-PLAYERS))
     (begin0 
       (cond
-        [(empty? players) (fprintf (current-error-port) MIN-ERROR MIN-PLAYERS) DEFAULT-RESULT]
-        [(test-run?) => (λ (result) (channel-put result (age-ordering players)) DEFAULT-RESULT)]
+        [(empty? players) (fprintf (current-error-port) MIN-ERROR MIN-PLAYERS) (show DEFAULT-RESULT)]
+        [(test-run?) => (λ (result) (channel-put result (age-ordering players))(show DEFAULT-RESULT))]
         [else (configure-and-run-manager (age-ordering players) config show)])
       (custodian-shutdown-all (current-custodian)))))
 
@@ -185,33 +187,33 @@
 (define (wait-for-players port house-players MAX-TRIES MAX-TIME MIN-PLAYERS MAX-PLAYERS)
   (define communicate-with-sign-up (make-channel))
   (thread (sign-up-players port communicate-with-sign-up house-players MIN-PLAYERS MAX-PLAYERS))
-  (let loop ([n MAX-TRIES])
+  (let loop ([n MAX-TRIES] [min-players MIN-PLAYERS])
     (cond
       [(zero? n) '()]
       [(sync/timeout MAX-TIME communicate-with-sign-up) => values] ;; order by age 
       [else
-       (channel-put communicate-with-sign-up (~a "are there at least " MIN-PLAYERS " signed up"))
+       (channel-put communicate-with-sign-up min-players)
        (cond
          [(channel-get communicate-with-sign-up) => values]
-         [else (loop (- n 1))])])))
+         [else (loop (- n 1) MIN-PLAYER-PER-GAME)])])))
 
 #; {Port Channel [Listof Player] Int Int -> Void}
-(define [(sign-up-players port send-players house-players MIN-PLAYERS MAX-PLAYERS)]
+(define [(sign-up-players port communicate-w/wait house-players MIN-PLAYERS MAX-PLAYERS)]
   (define listener (tcp-listen port MAX-TCP REOPEN))
   (let collect-players ([players house-players])
     (cond
       [(= (length players) MAX-PLAYERS)
-       (channel-put send-players players)]
+       (channel-put communicate-w/wait players)]
       [else
        (sync
         (handle-evt listener
                     (λ (_)
                       (collect-players (add-player players listener))))
-        (handle-evt send-players
-                    (λ (_)
+        (handle-evt communicate-w/wait
+                    (λ (min-players)
                       (cond
-                        [(>= (length players) MIN-PLAYERS) (channel-put send-players players)]
-                        [else (channel-put send-players #false) (collect-players players)]))))])))
+                        [(>= (length players) min-players) (channel-put communicate-w/wait players)]
+                        [else (channel-put communicate-w/wait #f) (collect-players players)]))))])))
 
 #; (TCP-Listener [Listof Player] -> [Listof Player])
 (define (add-player players listener)
@@ -221,6 +223,7 @@
     (cond
       [(short-string? name)
        (define next (if (test-run?) (add1 (length players)) (make-remote-player name in out)))
+       (displayln `[,name sogned up] (current-error-port))
        (cons next players)]
       [else
        (define m
@@ -315,7 +318,6 @@
                [config (hash-set config PORT PORT#)]
                [config (hash-set config MAN-SPEC man-spec)]
                ;; badly named players drop out: 
-               [config (hash-set config MIN-T-PLAYERS (- (length players) bad-during-signup#))]
                [config (hash-set config MAX-T-PLAYERS (- (length players) bad-during-signup#))]) 
           config))
       (define err-out  (if (dict-ref config3 QUIET) (open-output-string) (current-error-port)))
@@ -351,14 +353,16 @@
     (match-define [list hold-10s buy-nows cheaters] (make-players the-map hold-10# buy-now# cheat#))
     (define man-spec    `[[#:shuffle . ,sorted-destinations]
                           [#:cards . ,(make-list CARDS-PER-GAME 'white)]])
-    (define qconfig     (hash-set DEFAULT-CONFIG QUIET #true))
+    (define qconfig     (let* ([s DEFAULT-CONFIG]
+                               [s (hash-set s QUIET #true)]
+                               [s (hash-set s MIN-T-PLAYERS (hash-ref s MIN-T-PLAYERS))])
+                          s))
     (define bad-players (make-baddies the-map baddy% bad#))
     (define all-players (append hold-10s buy-nows cheaters bad-players))
     (define the-results (test-server-client-with all-players 0 man-spec reverse qconfig))
     (check-equal? (manager-results->names the-results)
-                  (manager-results->names `{[,@buy-nows] ,(append bad-players cheaters)})))
-
-  (require SwDev/Debugging/spy)
+                  (manager-results->names `{[,@buy-nows] ,(append bad-players cheaters)})
+                  (~a hold-10# buy-now# cheat# baddy% bad#)))
   
   (check-manager big-map 17 1 10)
   (check-manager big-map 27 1 12)
