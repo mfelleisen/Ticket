@@ -96,7 +96,7 @@
 ;                                                                          
 ;                                                                          
 
-(define EXN:fmt "xdynamic-send: ~a raised an exception for ~a:\n")
+(define EXN:fmt "xdynamic-send: ~a raised an exception for ~a\n")
 
 (struct failed (value) #:transparent)
 
@@ -105,9 +105,17 @@
 
 (define-syntax (xsend stx)
   (syntax-parse stx 
-    [(xsend o m (~optional (~seq #:caller name)) a ...)
-     (with-syntax ([n (if (attribute name) #'name #'#false)])
-       #'(xdynamic-send o 'm #:caller n a ...))]))
+    [(xsend o m (~optional (~seq #:caller xname)) a ...)
+     (with-syntax ([n (if (attribute xname) #'xname #'#false)])
+       #'(let* ([p o]
+                [name (or n (try-to-get-name p))])
+           (xdynamic-send p 'm #:caller name a ...)))]))
+
+#; {Any -> (U String False)}
+(define (try-to-get-name o)
+  (and (object? o)
+       (with-handlers ([exn:fail? (λ _ #false)])
+         (~a "callee: " (get-field name o)))))
 
 (define (xmap-send action actors)
   (let loop ([actors actors] [failures '()] [actor+result* '()])
@@ -124,7 +132,7 @@
                        #:thrown [throw-hdler failed]
                        #:timed-out [time-out-hdler (λ _ (failed 'time))]
                        . a)
-  (define fmt (string-append (format EXN:fmt target m) "~e"))
+  (define fmt (string-append (format EXN:fmt (or name target) m) "~e"))
   (define f (lambda a (apply dynamic-send target m a)))
   (apply xcall f #:caller name #:thrown throw-hdler #:timed-out time-out-hdler #:f-msg-format fmt a))
 
@@ -132,7 +140,8 @@
                #:caller (name #false)
                #:thrown (throw-handler failed)
                #:timed-out (time-out-handler (λ _ (failed 'time)))
-               #:f-msg-format (fmt (string-append (format "xcall: ~a:\n" (object-name f)) "~e"))
+               #:f-msg-format
+               (fmt (string-append (format "xcall: ~a:\n" (or name (object-name f))) "~e"))
                . a)
   (define cust (make-custodian))
   ;; (custodian-limit-memory cust 1048576) ;; memory limit
