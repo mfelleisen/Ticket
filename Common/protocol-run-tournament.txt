@@ -9,9 +9,9 @@ manager                         player (p_1) . . . player (p_n)
   .                      .         .                 . % (see below)
   .                      .         .                 .
   .                      .         .                 .
-  |                      |         |                 |
-  | players*[],players[] |         |                 | % the ranking
-  | <=================== |         |                 | % & cheaters 
+  |                      |         |                 | % the ranking
+  | ranking, players[]   |         |                 | % & cheaters 
+  | <=================== |         |                 | 
   .                     ___        .                 .
   .                                .                 .
   .                                .                 . % as long as 
@@ -27,8 +27,8 @@ manager                         player (p_1) . . . player (p_n)
   .                      .         .                 .
   .                      .         .                 .
   |                      |         |                 |
-  | players*[],players[] |         |                 | % the ranking
-  | players[]            |         |                 | % the "cheaters"
+  |                      |         |                 | % the ranking
+  | ranking, players[]   |         |                 | % the "cheaters"
   | <=================== |         |                 |
   .                     ___        .                 .
   |                                |                 |
