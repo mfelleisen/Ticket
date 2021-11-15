@@ -110,7 +110,7 @@
    MIN-T-PLAYERS  5
    MAX-T-PLAYERS 50
    SERVER-TRIES     2
-   TIME-PER-TURN  1.8
+   TIME-PER-TURN  1.8 ;; this is needed on occasion (1.3 might do)
    ;; a lit of optional keyword arguments:
    #; {[#:shuffle . shuffle-proc] [#:cards DOT list-of color]}
    MAN-SPEC     '[]
@@ -181,6 +181,7 @@
   (parameterize ([time-out-limit game-time-out])
     (define result (keyword-apply/dict manager man-specifics (list players)))
     (send-message (manager-results->names result))
+    (close-output-port (current-output-port))
     (show result)))
 
 #;{Port# [Listof Player] Int Int Int -> [Listof Player]}
