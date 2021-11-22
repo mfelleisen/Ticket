@@ -4,7 +4,7 @@ server                           client (c_1) ... client (c_n)
   |                                |                 | 
   |< ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ |                 | tcp connect 
   |                                |                 |
-  |   PlayerName           	   |                 | *
+  |   PlayerName                   |                 | *
   |< ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ |                 | no reply 
   |                                |                 |
   |                                |                 |
