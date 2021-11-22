@@ -143,7 +143,7 @@
                #:f-msg-format
                (fmt (string-append (format "xcall: ~a:\n" (or name (object-name f))) "~e"))
                . a)
-  (define cust (make-custodian))
+  ;; (define cust (make-custodian))
   ;; (custodian-limit-memory cust 1048576) ;; memory limit
   (struct okay (value))
   (struct thrw (value))
