@@ -576,13 +576,13 @@
 #; {Scored -> [Listof (Cons Score1 N)]}
 (define (the-longest-paths-of-all-players +scored)
   (for/list ([p.s +scored])
-    (match-define (list p s gm) p.s)
+    (match-define (list p __s gm) p.s)
     (cons p.s (if (set=? (ii-connections p) (set)) 0 (game-map-longest-path gm)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 #; {Scored -> Ranking}
 (define (rank +scored)
-  (define sorted (sort +scored > #:key second))
+  (define sorted  (sort +scored > #:key second))
   (define grouped (group-by second sorted))
   (for/list ([group grouped])
     (for/list ([p.s group])
