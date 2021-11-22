@@ -42,6 +42,7 @@
  PORT SERVER-TRIES SERVER-WAIT MAX-T-PLAYERS MIN-T-PLAYERS TIME-PER-TURN MAN-SPEC QUIET
 
  SHORT
+ SIGNUP
 
  (contract-out
   (DEFAULT-CONFIG (hash-carrier/c options))
@@ -109,14 +110,15 @@
    SERVER-WAIT   20
    MIN-T-PLAYERS  5
    MAX-T-PLAYERS 50
-   SERVER-TRIES     2
-   TIME-PER-TURN  1.8 ;; this is needed on occasion (1.3 might do)
+   SERVER-TRIES   2
+   TIME-PER-TURN  2.0 ;; this is needed on occasion (1.3 might do)
    ;; a lit of optional keyword arguments:
    #; {[#:shuffle . shuffle-proc] [#:cards DOT list-of color]}
    MAN-SPEC     '[]
    QUIET         #true))
 
-(define SHORT MAX-PLAYER-NAME)
+(define SHORT  MAX-PLAYER-NAME)
+(define SIGNUP 3)
 
 ;                                            
 ;                                            
@@ -136,7 +138,7 @@
 (define LOCAL     "127.0.0.1")
 (define MAX-TCP   30)
 (define REOPEN    #t)
-(define DEFAULT-RESULT '[[] []])
+(define DEFAULT-RESULT '[[] []]) (provide DEFAULT-RESULT)
 
 (define test-run?  (make-parameter #false))
 (define MIN-ERROR  "server did not sign up enough [~a] players")
@@ -200,27 +202,31 @@
 
 #; {Port Channel [Listof Player] Int Int -> Void}
 (define [(sign-up-players port communicate-w/wait house-players MIN-PLAYERS MAX-PLAYERS)]
-  (define listener (tcp-listen port MAX-TCP REOPEN))
-  (let collect-players ([players house-players])
-    (cond
-      [(= (length players) MAX-PLAYERS)
-       (channel-put communicate-w/wait players)]
-      [else
-       (sync
-        (handle-evt listener
-                    (λ (_)
-                      (collect-players (add-player players listener))))
-        (handle-evt communicate-w/wait
-                    (λ (min-players)
-                      (cond
-                        [(>= (length players) min-players) (channel-put communicate-w/wait players)]
-                        [else (channel-put communicate-w/wait #f) (collect-players players)]))))])))
+  (with-handlers ((exn:fail:network?
+                   (lambda (x)
+                     (log-error "listener: ~a" (exn-message x))
+                     (channel-put communicate-w/wait '[]))))
+    (define listener (tcp-listen port MAX-TCP REOPEN))
+    (let collect-players ([players house-players])
+      (cond
+        [(= (length players) MAX-PLAYERS)
+         (channel-put communicate-w/wait players)]
+        [else
+         (sync
+          (handle-evt listener
+                      (λ (_)
+                        (collect-players (add-player players listener))))
+          (handle-evt communicate-w/wait
+                      (λ (min-players)
+                        (cond
+                          [(>= (length players) min-players) (channel-put communicate-w/wait players)]
+                          [else (channel-put communicate-w/wait #f) (collect-players players)]))))]))))
 
 #; (TCP-Listener [Listof Player] -> [Listof Player])
 (define (add-player players listener)
   (with-handlers ((exn:fail:network? (lambda (x) (log-error "connect: ~a" (exn-message x)) players)))
     (define-values (in out) (tcp-accept listener))
-    (define name (read-message in))
+    (define name (parameterize ([time-out-limit SIGNUP]) (read-message in)))
     (cond
       [(short-string? name)
        (define next (if (test-run?) (add1 (length players)) (make-remote-player name in out)))
@@ -287,7 +293,7 @@
       (if k (channel-get result) (get-output-string err-out))
       (custodian-shutdown-all custodian)))
 
-  (check-equal? (run-server-test 45671 #f) (format MIN-ERROR 5) "no sign ups")
+  (check-equal? (run-server-test 45671 #f) "" #;(format MIN-ERROR 5) "no sign ups")
   (check-equal? (run-server-test 45677 10) (build-list 10 add1) "sign up enough players")
   (check-equal? (run-server-test 45676 9) (build-list  9 add1) "sign up too few players"))
 
