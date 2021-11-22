@@ -542,8 +542,13 @@
 ;; the longest path in this game map 
 (define (game-map-longest-path gm)
   (define paths   (all-possible-paths gm))
-  (define lengths (map length paths))
+  (define lengths (map path-length paths))
   (apply max 0 lengths))
+
+(define (path-length p)
+  (for/sum ([s p])
+    (match-define [list from to color seg#] s)
+    seg#))
 
 (define/memoize (all-destinations vgraph)
   game-map-destinations
@@ -689,8 +694,8 @@
 (module+ test
 
   
-  (check-equal? (game-map-longest-path (plain-game-map 100 100 '[] (hash))) 0)  
-  (check-equal? (game-map-longest-path vtriangle) 2)
+  (check-equal? (game-map-longest-path (plain-game-map 100 100 '[] (hash))) 0)
+  (check-equal? (game-map-longest-path vtriangle) 10)
   
   ;; -------------------------------------------------------------------------------------------------
   ;; construction 
