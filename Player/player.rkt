@@ -134,7 +134,7 @@
            (define/override (name . x)
              (cond
                [(> count 0) (set! count (- count 1)) (super name . x)]
-               [else (let L () (sleep 1) (log-error "looping") (L))]))))]))
+               [else (let L () (L))]))))]))
 
 (def/broken start)
 (def/broken end)
