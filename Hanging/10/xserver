@@ -20,7 +20,7 @@ exec racket -W error -tm "$0" -- ${1+"$@"}
 (require Trains/Common/basic-constants)
 (require Trains/Common/map-serialize)
 
-(require 21SwDev/Code/get)
+(require "../get.rkt")
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (main p-str)

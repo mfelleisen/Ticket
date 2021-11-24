@@ -29,7 +29,7 @@ exec racket -tm "$0" -- ${1+"$@"}
 (require (submod Trains/Admin/referee examples))
 (require Trains/Admin/referee)
 
-(require 21SwDev/Code/get)
+(require "../get.rkt")
 
 (require SwDev/Testing/communication)
 (require SwDev/Contracts/unique)

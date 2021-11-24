@@ -20,7 +20,7 @@ exec racket -tm "$0" -- ${1+"$@"}
 (require (submod Trains/Admin/manager examples))
 (require Trains/Admin/manager)
 
-(require 21SwDev/Code/get)
+(require "../get.rkt")
 
 (require SwDev/Testing/communication)
 
