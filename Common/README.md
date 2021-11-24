@@ -29,8 +29,9 @@ security, or fairness.
 
 | file | purpose |
 |--------------------- | ------- |
+| [action-serialize.rkt](action-serialize.rkt) | de/serialize actions between the server-based referee and remote players | 
 | [basic-constants-serialize.rkt](basic-constants-serialize.rkt) | de/serializing basic constants | 
-| [basic-constants.rkt](basic-constants.rkt) | ovide | 
+| [basic-constants.rkt](basic-constants.rkt) | basic constants and functions for the game | 
 | [connection.rkt](connection.rkt) | represent individual connections | 
 | [json.rkt](json.rkt) | for generating serializing and deserializing plain values from and to JSexpr | 
 | [map-serialize.rkt](map-serialize.rkt) | serialization of board maps to JSON | 

@@ -2,7 +2,7 @@
 
 ;; create the README.md files from README.source in the top-level and all code directories 
 
-(define EXCEPTIONS '["Client" "Remote" "Server" "scribblings" "Docs"]) ;; no need for organization tables 
+(define EXCEPTIONS '["scribblings" "Docs"]) ;; no need for organization tables 
 
 (require SwDev/Debugging/spy)
 
