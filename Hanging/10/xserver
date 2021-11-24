@@ -1,0 +1,113 @@
+#! /bin/sh
+#| -*- racket -*-
+exec racket -W error -tm "$0" -- ${1+"$@"}
+|#
+#lang racket
+
+;; main p:port-number (between 10,000 and 60,000) launches a tournament server on this port
+
+;; ****************************************************************************************
+;; THE TESTS DO __NOT__ USE MAIN TO GENERATE THE INTEGRATION TESTS BUT THE MANAGER FROM 9.
+;; ****************************************************************************************
+
+(provide main)
+
+;; ---------------------------------------------------------------------------------------------------
+(require "run-server-client.rkt")
+(require (only-in "../3/xmap" game-map-validate))
+(require (only-in "../8/xref" get-players get-colors))
+
+(require Trains/Common/basic-constants)
+(require Trains/Common/map-serialize)
+
+(require 21SwDev/Code/get)
+
+;; ---------------------------------------------------------------------------------------------------
+(define (main p-str)
+  (define port    (string->port-number p-str))
+  (define _gm     (get (compose (game-map-validate 'xserver) parse-game-map) 'xserver "Map"))
+  (define _layers (get (make-players _gm) 'xserver "JSON Player Instances"))
+  (define cards   (get get-colors 'xserver "JSON colored cards"))
+  (run-server port `[[#:cards . ,cards]]))
+
+(define (make-players gm)
+  (get-players gm MIN-PLAYER-PER-GAME +inf.0 player-kind? make-different-kind-of-player))
+
+;                                     
+;                                     
+;     ;                    ;          
+;     ;                    ;          
+;   ;;;;;   ;;;    ;;;   ;;;;;   ;;;  
+;     ;    ;;  ;  ;   ;    ;    ;   ; 
+;     ;    ;   ;; ;        ;    ;     
+;     ;    ;;;;;;  ;;;     ;     ;;;  
+;     ;    ;          ;    ;        ; 
+;     ;    ;      ;   ;    ;    ;   ; 
+;     ;;;   ;;;;   ;;;     ;;;   ;;;  
+;                                     
+;                                     
+;                                     
+
+;; These tests are for the students' clients, which run in my server. 
+
+(module+ test
+  (require (rename-in "../9/xmanager" [main xmanager]))
+  (require Trains/Player/istrategy)
+  (require SwDev/Testing/testing)
+  (require racket/runtime-path)
+  (require json))
+
+(module+ test ;; real players
+  (start-at 0)
+  (recording "ClientTests/")
+
+  #; {GameMap N N N -> Test}
+  ;; the numbers cannot be chosen freely
+  ;; assumes that hold-10s are stupid, all buy-nows win 
+  (define (check-manager gm hold-10# buy-now# cheat# pick-winners-&-elims [baddy% #false] [bad# 0])
+    (define (make-player-names n strat% prefix)
+      (build-list n (λ (i) (list (~a prefix (make-string i #\a)) strat%))))
+    (define hold-10s (make-player-names hold-10# HOLD-10 "holdten"))
+    (define buy-nows (make-player-names buy-now# BUY-NOW "buynoww"))
+    (define cheaters (make-player-names cheat#   CHEAT   "cheater"))
+    (define bad-players (build-list bad# (λ (i) (list (~a "abaddy" (make-string i #\b)) baddy%))))
+    (define all-players (append hold-10s buy-nows cheaters bad-players))
+    
+    (r-check-equal? (λ () (xmanager make-players))
+                    `[,gm ,all-players ,(make-list CARDS-PER-GAME "white")]
+                    (pick-winners-&-elims hold-10s buy-nows cheaters bad-players)
+                    (~a hold-10# buy-now# cheat# baddy% bad#))))
+
+(module+ test
+  (define-runtime-path p-map1 "../8/map-1.json")
+  (define bm1 (with-input-from-file p-map1 read-json))
+  (define (pick1 hold-10s buy-nows cheaters bad-players)
+    `{[(,@(map first buy-nows)) ,(map first (append bad-players cheaters))]})
+
+  (check-manager bm1 17 1 10 pick1)
+  (check-manager bm1 27 1 12 pick1))
+
+(module+ test 
+  (define-runtime-path p-map2 "map-2.json")
+  (define bm2 (with-input-from-file p-map2 read-json))
+  (define (pick2 hold-10s buy-nows cheaters bad-players)
+    `{[(,@(map first buy-nows)) ,(map first (append bad-players cheaters))]})
+
+  (check-manager bm2 17 1 10 pick2)
+  (check-manager bm2 27 1 12 pick2))
+
+(module+ test 
+  (define-runtime-path p-map3 "map-3.json")
+  (define bm3 (with-input-from-file p-map3 read-json))
+  (define winners3
+    '("holdten"
+      "holdtena"
+      "holdtenaa"
+      "holdtenaaa"
+      "holdtenaaaaaaaaaaaaaaaa"
+      "holdtenaaaaaaaaaaaaaaaaa"))
+  (define ([pick3 [winners winners3] [losers values]] _hold-10s _buy-nows cheaters bad-players)
+    `{[(,@winners) ,(losers (map first (append bad-players cheaters)))]})
+
+  (check-manager bm3 17 1 10 pick2)
+  (check-manager bm3 27 1 12 [pick3]))

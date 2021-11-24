@@ -1,0 +1,28 @@
+#! /bin/sh
+#|
+exec racket -tm "$0" -- ${1+"$@"}
+|#
+#lang racket
+
+;; This test files tests the students' TCP exploration file.
+;; It runs their server and throws JSON at it. 
+
+(provide main)
+
+;; -----------------------------------------------------------------------------
+(require SwDev/Testing/harness)
+(require SwDev/Testing/communication)
+
+(test-plain-and-pretty-json?             #f)
+(test-fast-and-slow-delivery?            #f)
+(test-with-and-without-trailing-newline? #f)
+(test-with-and-without-escaped-unicode?  #f)
+
+;; Send all inputs first before looking for output
+(test-with-batch-mode?                   #t)
+
+;; this is a generous time-out for reading tests
+;; 10s fails the third test case, 20 is okay 
+(unset-time-out #:limit 20) ;; in s
+
+(define main (client #:check values))

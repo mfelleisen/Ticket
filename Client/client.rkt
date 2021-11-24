@@ -1,7 +1,7 @@
 #lang racket
 
-;; a client that signs up some players with a server at a given IP address
-;; and port, and then participates in a distributed tournament 
+;; a client that creates players and signs them up some with a server
+;; at a given IP address and port 
 
 ;                                                          
 ;                                                          
@@ -31,7 +31,7 @@
    ;; runs a client that connects all players to a server at ip on port#
    ;; waits for all of them if wait? is #t -- NEEDED FOR INDEPENDENT
    ;; RUNS of the client in a shell process 
-   (->* ([listof manager-player/c]) (port/c boolean? string?) any)]))
+   (->* ([listof manager-player/c]) (port/c boolean? string? #:quiet boolean?) any)]))
 
 ;                                                                                                  
 ;                                                                                                  

@@ -163,7 +163,7 @@
   (define MIN-PLAYERS (dict-ref config MIN-T-PLAYERS))
   (define MAX-PLAYERS (dict-ref config MAX-T-PLAYERS))
   (define MAX-TRIES   (dict-ref config SERVER-TRIES))
-
+  
   ;; set up custodian so `server` can clean up all threads, TCP ports in case it is re-used
   (define err-out  (if (dict-ref config QUIET) (open-output-string) (current-error-port)))
   (parameterize ([current-custodian  (make-custodian)]
@@ -182,7 +182,10 @@
   (define man-specifics (dict-ref config MAN-SPEC '[]))
   (parameterize ([time-out-limit game-time-out])
     (define result (keyword-apply/dict manager man-specifics (list players)))
-    (send-message (manager-results->names result))
+    (displayln `[tournament done] (current-error-port))
+    (define print (if (string? result) result (manager-results->names result)))
+    (send-message print)
+    (displayln `[tournament done ,print] (current-error-port))
     (close-output-port (current-output-port))
     (show result)))
 
@@ -201,26 +204,32 @@
          [else (loop (- n 1) MIN-PLAYER-PER-GAME)])])))
 
 #; {Port Channel [Listof Player] Int Int -> Void}
-(define [(sign-up-players port communicate-w/wait house-players MIN-PLAYERS MAX-PLAYERS)]
+(define [(sign-up-players port ch-2-wait house-players MIN-PLAYERS MAX-PLAYERS)]
   (with-handlers ((exn:fail:network?
                    (lambda (x)
                      (log-error "listener: ~a" (exn-message x))
-                     (channel-put communicate-w/wait '[]))))
+                     (channel-put ch-2-wait '[]))))
     (define listener (tcp-listen port MAX-TCP REOPEN))
-    (let collect-players ([players house-players])
+    #; {[Listof Player] -> Void}
+    (define [collect-players players]
+      (if (= (length players) MAX-PLAYERS)
+          (channel-put ch-2-wait players)
+          (sync
+           (handle-evt listener  (add-1-player players))
+           (handle-evt ch-2-wait (talk-2-wait players)))))
+    #; {[Listof Player] -> Any -> Void}
+    (define [(add-1-player players) _]
+      (collect-players (add-player players listener)))
+    #; {[Listof Player] -> N -> Void}
+    (define [(talk-2-wait players) min-players]
       (cond
-        [(= (length players) MAX-PLAYERS)
-         (channel-put communicate-w/wait players)]
+        [(>= (length players) min-players)
+         (channel-put ch-2-wait players)]
         [else
-         (sync
-          (handle-evt listener
-                      (λ (_)
-                        (collect-players (add-player players listener))))
-          (handle-evt communicate-w/wait
-                      (λ (min-players)
-                        (cond
-                          [(>= (length players) min-players) (channel-put communicate-w/wait players)]
-                          [else (channel-put communicate-w/wait #f) (collect-players players)]))))]))))
+         (channel-put ch-2-wait #f)
+         (collect-players players)]))
+    ;; --- IN ---
+    (collect-players house-players)))
 
 #; (TCP-Listener [Listof Player] -> [Listof Player])
 (define (add-player players listener)
@@ -230,7 +239,7 @@
     (cond
       [(short-string? name)
        (define next (if (test-run?) (add1 (length players)) (make-remote-player name in out)))
-       (displayln `[,name sogned up] (current-error-port))
+       (displayln `[,name signed up] (current-error-port))
        (cons next players)]
       [else
        (define m
