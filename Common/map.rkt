@@ -119,7 +119,6 @@
 
 
 (require (except-in Trains/Common/basic-constants width? height? color? seg#?))
-(require (prefix-in htdp: 2htdp/image))
 
 (module+ test
   (require (submod ".."))
