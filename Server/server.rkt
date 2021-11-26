@@ -182,10 +182,8 @@
   (define man-specifics (dict-ref config MAN-SPEC '[]))
   (parameterize ([time-out-limit game-time-out])
     (define result (keyword-apply/dict manager man-specifics (list players)))
-    (displayln `[tournament done] (current-error-port))
     (define print (if (string? result) result (manager-results->names result)))
     (send-message print)
-    (displayln `[tournament done ,print] (current-error-port))
     (show result)))
 
 #;{Port# [Listof Player] Int Int Int -> [Listof Player]}
