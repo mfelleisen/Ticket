@@ -1,4 +1,4 @@
-#lang racket/gui
+#lang racket ; /gui
 
 ;; encode PNG files as data-urls, extract PNG images from data urls
 
@@ -50,6 +50,7 @@
 ;                                                                                                  
 
 (require net/base64)
+(require (only-in racket/draw bitmap%))
 (module+ picts
   (require (submod "..")))
 

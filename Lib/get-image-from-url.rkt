@@ -1,4 +1,4 @@
-#lang racket/gui
+#lang racket ; /gui
 
 ;; retrieve image via a relative file path, a file URL, or a net URL
 
@@ -46,6 +46,7 @@
 ;                                                                                                  
 
 (require net/url)
+(require (only-in racket/draw bitmap%))
 
 (module+ picts
   (require (submod "..")))
