@@ -186,7 +186,6 @@
     (define print (if (string? result) result (manager-results->names result)))
     (send-message print)
     (displayln `[tournament done ,print] (current-error-port))
-    (close-output-port (current-output-port))
     (show result)))
 
 #;{Port# [Listof Player] Int Int Int -> [Listof Player]}
@@ -323,15 +322,16 @@
 
 
 (module+ test
+  (define port# 45678)
   (define (test-server-client-with players bad-during-signup#
                                    (man-spec '[])
                                    (age-ordering reverse)
                                    (config0 DEFAULT-CONFIG))
-    (define PORT# 45674)
+    (set! port# (+ port# 1))
     (parameterize ([current-custodian (make-custodian)])
       (define config3
         (let* ([config config0]
-               [config (hash-set config PORT PORT#)]
+               [config (hash-set config PORT port#)]
                [config (hash-set config MAN-SPEC man-spec)]
                ;; badly named players drop out: 
                [config (hash-set config MAX-T-PLAYERS (- (length players) bad-during-signup#))]) 
@@ -341,7 +341,7 @@
         (thread
          (λ ()
            (parameterize ([current-error-port err-out])
-             (client players PORT#)))))
+             (client players port#)))))
       (define result
         (parameterize ([current-error-port err-out])
           (server config3 age-ordering #:result values)))
