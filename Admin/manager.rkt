@@ -1,4 +1,4 @@
-#lang racket/gui
+#lang racket ; /gui
 
 ;; a tournament manager that plays a complete tournament with players given ranked by "age"
 ;; and produces the list of first-placed players; it informs all non-cheaters whether they were
