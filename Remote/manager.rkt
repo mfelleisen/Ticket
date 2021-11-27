@@ -1,6 +1,7 @@
 #lang racket
 
-;; a remote manager that connects a single player to a client system, which connects to a server 
+;; a remote manager that connects a single player to a client system, which connects to a server
+;; plus remote managers that "fuzzy test" the server's JSON reading 
 
 ;                                                          
 ;                                                          
@@ -109,9 +110,9 @@
 (define-syntax (def-and-add-rm stx)
   (syntax-parse stx
     [(_ name:id add?
-        (~optional (~seq #:start ret-start) #:defaults ([ret-start #'game-map]))
-        (~optional (~seq #:pick  ret-pick)  #:defaults ([ret-pick  #'destination-set]))
-        (~optional (~seq #:play  ret-play)  #:defaults ([ret-play  #'action])))
+        (~optional (~seq #:start ret-start:id) #:defaults ([ret-start #'game-map]))
+        (~optional (~seq #:pick  ret-pick:id)  #:defaults ([ret-pick  #'destination-set]))
+        (~optional (~seq #:play  ret-play:id)  #:defaults ([ret-play  #'action])))
      #:do [[define name-as-string (~a (syntax-e #'name))]]
      #`(begin
          (define-remote-manager name
@@ -134,7 +135,8 @@
 (def-and-add-rm rm-ill-formed-action #true  #:play  ill-formed-action)
 (def-and-add-rm rm-non-json-action   #true  #:play  non-json-action)
 
-;; translate x into JSexpr, then cut the last char off the corresponding JSON string 
+#; {[X -> JXexpr] -> X -> [broken String]}
+;; translate x into JSexpr wih f, then cut the last char off the corresponding JSON string 
 (define ((ill-formed-json f) x)
   (define y (jsexpr->string (f x)))
   [broken (~a (make-string 4090 #\space) (substring y 0 (sub1 (string-length y))))])
@@ -143,9 +145,10 @@
 (define ill-formed-pick->jsexpr     (ill-formed-json destination-set->jsexpr))
 (define ill-formed-action->jsexpr   (ill-formed-json action->jsexpr))
 
+#; {[X -> JXexpr] [JSexpr -> JSexpr] -> X -> [broken String]}
+;; translate x into JSexpr with f, then turn it into invalid JSexpr with g; send as `broken string`
 (define ((invalid-json f g) x)
-  (define y (jsexpr->string (g (f x))))
-  [broken y])
+  [broken (jsexpr->string (g (f x)))])
 
 (define invalid-game-map->jsexpr (invalid-json game-map->jsexpr (λ (x) (hash-update x 'cities rest))))
 (define invalid-pick->jsexpr (invalid-json destination-set->jsexpr list))
