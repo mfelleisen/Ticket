@@ -94,7 +94,7 @@
 (define (([make-remote-manager make-dispatcher] receiver) player)
   (define done? (box (gensym)))
   (define dispatcher (make-dispatcher player done?))
-  (parameterize ([io-time-out 1000])
+  (parameterize ([io-time-out 100]) ;; <---- ARGH: 2 x 20 PLUS 10 to be on the safe side ***********************
     (let loop ()
       (with-handlers ([void (λ (xn)
                               (fprintf (current-error-port) "~a" (exn-message xn))
