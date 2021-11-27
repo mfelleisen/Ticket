@@ -32,14 +32,17 @@
 ;; -- call the appropriate method in the given player and then
 ;; -- turn the result into a JSexpr that can be sent back 
 ;; 
-;; the `receiver` is supposed to be a function that handles the side of a remote-call interaction 
+;; the `receiver` is supposed to be a function that handles the client of a remote-call interaction 
 ;; -- its argument is called on the received JSON or EOF turned into JSxpr or EOF
 ;;    and its result is what the `receiver` turns back into a remote reply
 ;;    [I have developed a library that sets up both a sender and a receiver.]
 ;;    
 ;; `create-reply` is the best name I could come up with for the argument of the `receiver`
 
-(provide (contract-out [make-remote-manager remote-manager/c]))
+(provide
+ (contract-out
+  [make-remote-manager remote-manager/c]
+  [pick-manager        (-> string? remote-manager/c)]))
 
 ;                                                                                      
 ;       ;                                  ;                                           
@@ -65,12 +68,14 @@
 (require Trains/Common/state-serialize)
 (require Trains/Common/state)
 (require Trains/Common/map)
+(require SwDev/Testing/make-client)
 
 (module+ test
   (require (submod ".."))
   (require (submod Trains/Common/map examples))
   (require (submod Trains/Common/map-serialize examples))
   (require (submod Trains/Common/state-serialize examples))
+  (require Trains/Common/connection)
   (require Trains/Player/player)
   (require Trains/Player/hold-10-strategy)
   (require SwDev/Lib/should-be-racket)
@@ -99,8 +104,50 @@
   [[play  pstate] action]
   [[more  color*] void]
   [[win   boolean] void]
-  ;; when the last clause matches, the dispatcher signals the end of the cycle by setting done? to #t
+  ;; when the last clause matches, the dispatcher shuts down 
   [[end   boolean] void])
+
+(define-remote-manager make-remote-baddy-manager 
+  [[start boolean] ill-formed-game-map]
+  [[setup game-map natural color*] void]
+  [[pick  destination-set] destination-set]
+  [[play  pstate] action]
+  [[more  color*] void]
+  [[win   boolean] void]
+  ;; when the last clause matches, the dispatcher shuts down 
+  [[end   boolean] void])
+
+
+(define manager-list
+  [list [list "make-remote-baddy-manager" make-remote-baddy-manager]])
+
+(define (pick-manager x)
+  (define r (assoc x manager-list))
+  (and r (second r)))
+
+(require (only-in json jsexpr->string))
+
+;; turn the map into a string that lacks the closing "}"
+(define (ill-formed-game-map->jsexpr gm)
+  (define jgm (game-map->jsexpr gm))
+  (define sgm (jsexpr->string jgm))
+  [broken (~a (make-string 4090 #\space) (substring sgm 0 (sub1 (string-length sgm))))])
+
+;; turn the map into one that is missing the first city 
+(define (invalid-game-map->jsexpr gm)
+  (define jgm (game-map->jsexpr gm))
+  (define sgm (jsexpr->string (hash-update jgm 'cities rest)))
+  [broken sgm])
+
+;; turn the action into a string that lacks the last char 
+(define (ill-formed-action->jsexpr a)
+  (define ja (action->jsexpr a))
+  (define sa (jsexpr->string ja))
+  [broken (substring sa 0 (sub1 (string-length sa)))])
+
+;; turn the action into a plain word, w/o quotes when it comes in "over the wire"
+(define (non-json-action->jsexpr a)
+  [broken "MORE"])
 
 ;                                     
 ;                                     
@@ -157,3 +204,11 @@
  
   (check-pred exn? (dev/null ((make-remote-manager (λ (f) (f `[0 [#true]]))) plr1))))
 
+;; ---------------------------------------------------------------------------------------------------
+;; test the broken-generating manager 
+(module+ test
+  (check-pred broken? (invalid-game-map->jsexpr vtriangle))
+  (check-pred broken? (ill-formed-game-map->jsexpr vtriangle))
+
+  (check-pred broken? (ill-formed-action->jsexpr [connection 'Boston 'Chicago 'blue 3]))
+  (check-pred broken? (non-json-action->jsexpr [connection 'Boston 'Chicago 'blue 3])))

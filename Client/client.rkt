@@ -31,7 +31,10 @@
    ;; runs a client that connects all players to a server at ip on port#
    ;; waits for all of them if wait? is #t -- NEEDED FOR INDEPENDENT
    ;; RUNS of the client in a shell process 
-   (->* ([listof manager-player/c]) (port/c boolean? string? #:quiet boolean?) any)]))
+   (->* ([listof manager-player/c])
+        (port/c boolean? string?
+                #:remote-manager any/c
+                #:quiet boolean?) any)]))
 
 ;                                                                                                  
 ;                                                                                                  
@@ -75,20 +78,23 @@
 (define LOCAL "127.0.0.1")
 (define PORT0 45678)
 
-(define (client players (port PORT0) (wait? #false) (ip LOCAL) #:quiet (quiet #true))
+(define (client players (port PORT0) (wait? #f) (ip LOCAL)
+                #:quiet (quiet #true)
+                #:remote-manager (rm make-remote-manager))
   (define (connector name)
     (if (not name)
         (connect-to-server-as-receiver ip port)
         (connect-to-server-as-receiver ip port #:init (λ (ip) (send-message name ip)))))
-  (define player-threads (make-players wait? players connector quiet))
+  (define player-threads (make-players wait? players connector quiet rm))
   (when wait?
-    (wait-for-all player-threads)
+    ;; this is needed so that they don't shut down before the server is ready to accept them
+    (wait-for-some player-threads)
     (displayln "all done")))
 
 #; {type ChanneledThreads = [Listof [List Channel Thread]]}
 
-#; {Boolean [Listof Player] [-> (values InputPort OutputPort)] Boolean -> ChanneledThreads}
-(define (make-players wait? players connector quiet)
+#; {Boolean [Listof Player] [-> (values InputPort OutputPort)] Boolean RemoteManager -> ChannlThreads}
+(define (make-players wait? players connector quiet make-remote-manager)
   (define done (make-channel))
   (for/list ((1player players) (i (in-naturals)))
     (define-values (name behavior manager)
@@ -108,10 +114,10 @@
 
 #; {ChanneledThreads -> Void}
 ;; display the results 
-(define (wait-for-all player-threads)
+(define (wait-for-some player-threads)
   (when (cons? player-threads)
     (define removes-itself
       (for/list ((dp player-threads))
         (match-define [list done th] dp)
-        (handle-evt done (λ (r) (log-info "~a" r) (wait-for-all (remq dp player-threads))))))
+        (handle-evt done (λ (r) (log-info "~a" r) (wait-for-some (remq dp player-threads))))))
     (apply sync removes-itself)))
