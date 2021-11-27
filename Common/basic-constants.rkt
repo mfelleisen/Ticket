@@ -87,7 +87,7 @@
 (define RAILS-MIN  3) ;; the minimum number of rails a player must own to continue playing
 
 (define POINTS-PER 10)
-(define LONG-PATH  10)
+(define LONG-PATH  20)
 
 (define MIN-PLAYER-PER-GAME 2)
 (define MAX-PLAYER-PER-GAME 8)
