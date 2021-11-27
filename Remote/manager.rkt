@@ -42,7 +42,7 @@
 (provide
  (contract-out
   [make-remote-manager remote-manager/c]
-  [pick-manager        (-> string? remote-manager/c)]))
+  [pick-manager        (-> string? (or/c #false remote-manager/c))]))
 
 ;                                                                                      
 ;       ;                                  ;                                           
@@ -69,6 +69,9 @@
 (require Trains/Common/state)
 (require Trains/Common/map)
 (require SwDev/Testing/make-client)
+(require (only-in json jsexpr->string))
+(require (for-syntax syntax/parse))
+(require (for-syntax racket))
 
 (module+ test
   (require (submod ".."))
@@ -97,35 +100,39 @@
 ;   ;                           ;;
 
 
-(define-remote-manager make-remote-manager 
-  [[start boolean] game-map]
-  [[setup game-map natural color*] void]
-  [[pick  destination-set] destination-set]
-  [[play  pstate] action]
-  [[more  color*] void]
-  [[win   boolean] void]
-  ;; when the last clause matches, the dispatcher shuts down 
-  [[end   boolean] void])
-
-(define-remote-manager make-remote-baddy-manager 
-  [[start boolean] ill-formed-game-map]
-  [[setup game-map natural color*] void]
-  [[pick  destination-set] destination-set]
-  [[play  pstate] action]
-  [[more  color*] void]
-  [[win   boolean] void]
-  ;; when the last clause matches, the dispatcher shuts down 
-  [[end   boolean] void])
-
-
-(define manager-list
-  [list [list "make-remote-baddy-manager" make-remote-baddy-manager]])
+(define *manager-list '())
 
 (define (pick-manager x)
-  (define r (assoc x manager-list))
+  (define r (assoc x *manager-list))
   (and r (second r)))
 
-(require (only-in json jsexpr->string))
+(define-syntax (def-and-add-rm stx)
+  (syntax-parse stx
+    [(_ name:id add?
+        (~optional (~seq #:start ret-start) #:defaults ([ret-start #'game-map]))
+        (~optional (~seq #:pick  ret-pick)  #:defaults ([ret-pick  #'destination-set]))
+        (~optional (~seq #:play  ret-play)  #:defaults ([ret-play  #'action])))
+     #:do [[define name-as-string (~a (syntax-e #'name))]]
+     #`(begin
+         (define-remote-manager name
+           [[start boolean] ret-start]
+           [[setup game-map natural color*] void]
+           [[pick  destination-set] ret-pick]
+           [[play  pstate] ret-play]
+           [[more  color*] void]
+           [[win   boolean] void]
+           ;; when the last clause matches, the dispatcher shuts down 
+           [[end   boolean] void])
+         (when add?
+           (set! *manager-list (cons [list #,name-as-string name] *manager-list))))]))
+
+(def-and-add-rm make-remote-manager  #false)
+(def-and-add-rm rm-ill-formed-start  #true  #:start ill-formed-game-map)
+(def-and-add-rm rm-invalid-game-map  #true  #:start invalid-game-map)
+(def-and-add-rm rm-ill-formed-pick   #true  #:pick  ill-formed-pick)
+(def-and-add-rm rm-invalid-pick      #true  #:pick  invalid-pick)
+(def-and-add-rm rm-ill-formed-action #true  #:play  ill-formed-action)
+(def-and-add-rm rm-non-json-action   #true  #:play  non-json-action)
 
 ;; turn the map into a string that lacks the closing "}"
 (define (ill-formed-game-map->jsexpr gm)
@@ -137,6 +144,16 @@
 (define (invalid-game-map->jsexpr gm)
   (define jgm (game-map->jsexpr gm))
   (define sgm (jsexpr->string (hash-update jgm 'cities rest)))
+  [broken sgm])
+
+(define (ill-formed-pick->jsexpr dests)
+  (define jgm (game-map->jsexpr dests))
+  (define sgm (jsexpr->string jgm))
+  [broken (~a (make-string 4090 #\space) (substring sgm 0 (sub1 (string-length sgm))))])
+
+(define (invalid-pick->jsexpr dests)
+  (define jgm (game-map->jsexpr dests))
+  (define sgm (list jgm))
   [broken sgm])
 
 ;; turn the action into a string that lacks the last char 
