@@ -134,33 +134,21 @@
 (def-and-add-rm rm-ill-formed-action #true  #:play  ill-formed-action)
 (def-and-add-rm rm-non-json-action   #true  #:play  non-json-action)
 
-;; turn the map into a string that lacks the closing "}"
-(define (ill-formed-game-map->jsexpr gm)
-  (define jgm (game-map->jsexpr gm))
-  (define sgm (jsexpr->string jgm))
-  [broken (~a (make-string 4090 #\space) (substring sgm 0 (sub1 (string-length sgm))))])
+;; translate x into JSexpr, then cut the last char off the corresponding JSON string 
+(define ((ill-formed-json f) x)
+  (define y (jsexpr->string (f x)))
+  [broken (~a (make-string 4090 #\space) (substring y 0 (sub1 (string-length y))))])
 
-;; turn the map into one that is missing the first city 
-(define (invalid-game-map->jsexpr gm)
-  (define jgm (game-map->jsexpr gm))
-  (define sgm (jsexpr->string (hash-update jgm 'cities rest)))
-  [broken sgm])
+(define ill-formed-game-map->jsexpr (ill-formed-json game-map->jsexpr))
+(define ill-formed-pick->jsexpr     (ill-formed-json destination-set->jsexpr))
+(define ill-formed-action->jsexpr   (ill-formed-json action->jsexpr))
 
-(define (ill-formed-pick->jsexpr dests)
-  (define jgm (game-map->jsexpr dests))
-  (define sgm (jsexpr->string jgm))
-  [broken (~a (make-string 4090 #\space) (substring sgm 0 (sub1 (string-length sgm))))])
+(define ((invalid-json f g) x)
+  (define y (jsexpr->string (g (f x))))
+  [broken y])
 
-(define (invalid-pick->jsexpr dests)
-  (define jgm (game-map->jsexpr dests))
-  (define sgm (list jgm))
-  [broken sgm])
-
-;; turn the action into a string that lacks the last char 
-(define (ill-formed-action->jsexpr a)
-  (define ja (action->jsexpr a))
-  (define sa (jsexpr->string ja))
-  [broken (substring sa 0 (sub1 (string-length sa)))])
+(define invalid-game-map->jsexpr (invalid-json game-map->jsexpr (λ (x) (hash-update x 'cities rest))))
+(define invalid-pick->jsexpr (invalid-json destination-set->jsexpr list))
 
 ;; turn the action into a plain word, w/o quotes when it comes in "over the wire"
 (define (non-json-action->jsexpr a)
