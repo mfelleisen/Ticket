@@ -53,9 +53,9 @@
 (module+ test
   (require (submod ".."))
   (require Trains/Remote/remote-testing)
+  (require (submod Trains/Common/map examples))
   (require Trains/Common/connection)
   (require (submod Trains/Common/state examples))
-  (require (submod Trains/Common/map examples))
   (require (submod Trains/Common/map-serialize examples)))
 
 ;                                            
