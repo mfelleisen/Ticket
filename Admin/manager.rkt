@@ -135,45 +135,58 @@
      (if (enough-destinations the-map player#) the-map (pick-a-map (rest all-the-maps) player#))]))
 
 ;; ---------------------------------------------------------------------------------------------------
-#;{[Listof Player] Referee -> (values [Listof Player] [Listof Player])}
+#;{Player* Referee -> (values Player* Player*)}
 ;; generative recursion: terminates because either the number of players shrinks per round
 ;; or the tournament is forcibly stopped because the surviving winners all tie for first place
 (define (run-all-games lop0 run-one-game)
   ;; accumulators: previous-winners and cheats 
-  (let loop ([lop1 lop0] [previous-winners '()] [cheats '()])
+  (let loop ([lop1 lop0] [previous-winners '()] [all-losers '()] [cheats '()])
     (define lop  (re-sort lop1 lop0))
     (define lop# (length lop))
     (cond
       ;; not enough for one game 
       [(< lop# MIN-PLAYER-PER-GAME)
-       (values (list lop) cheats)]
+       (values (list lop all-losers) cheats)]
       ;; just enough for one game 
       [(<= lop# MAX-PLAYER-PER-GAME)
        (match-define [list ranked new-cheats] (run-one-game lop))
-       (values ranked (append new-cheats cheats))]
+       (define c (append new-cheats cheats))
+       (if (empty? ranked)
+           (values (list '() all-losers) c)
+           (values (list (first ranked) (apply append all-losers (rest ranked))) c))]
       [else ;; keep going with rounds of games
        (define games (prepare-games MIN-PLAYER-PER-GAME MAX-PLAYER-PER-GAME lop))
-       (match-define `[,winners0 ,new-cheats] (run-one-round-of-games games run-one-game))
-       (define winners (apply append winners0))
+       (match-define `[,winners ,losers ,new-cheats] (run-one-round-of-games games run-one-game))
        (if (equal? winners previous-winners)
-           (values winners (append new-cheats cheats))
-           (loop winners lop# (append new-cheats cheats)))])))
+           (values (list winners losers) (append new-cheats cheats))
+           (loop winners lop#  (append losers all-losers) (append new-cheats cheats)))])))
 
 ;; ---------------------------------------------------------------------------------------------------
 #; {Player* Referee -> [List Player* Player*]}
 (define (run-one-round-of-games games run-one-game)
-  (define results  (map run-one-game games))
-  (define winners
-    (map first
-         (filter-map 
-          (λ (r)
-            (match-define [list ranked _] r)
-            (match ranked
-              ['[] #f]
-              [_ ranked]))
-          results)))
-  (define cheaters (append-map second results))
-  (list winners cheaters))
+  (define results   (map run-one-game games))
+  (define 1stplaced (retrieve winners results))
+  (define others    (retrieve losers results))
+  (define cheaters  (append-map second results))
+  (list 1stplaced others cheaters))
+
+#; {[Ranked Player* -> Player*] [Listof [List Ranked Player*]] -> [Listof Player*]}
+(define (retrieve winners results)
+  (for*/fold ([x '()]) ([r results] [ranked (in-value (first r))] #:when (cons? ranked))
+    (winners ranked x)))
+
+(define (winners ranked x) (append (first ranked) x))
+
+(define (losers ranked x) (apply append x (rest ranked)))
+
+#;
+  (map first
+       (filter-map (λ (r)
+                     (match-define [list ranked _] r)
+                     (match ranked
+                       ['[] #f]
+                       [_ ranked]))
+        results))
 
 ;; ---------------------------------------------------------------------------------------------------
 #;{Player* Player* -> Player*}
