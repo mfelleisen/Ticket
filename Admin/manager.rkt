@@ -145,8 +145,7 @@
     (define lop# (length lop))
     (cond
       ;; not enough for one game 
-      [(< lop# MIN-PLAYER-PER-GAME)
-       (values (list lop all-losers) cheats)]
+      [(< lop# MIN-PLAYER-PER-GAME) (values (list lop all-losers) cheats)]
       ;; just enough for one game 
       [(<= lop# MAX-PLAYER-PER-GAME)
        (match-define [list ranked new-cheats] (run-one-game lop))
@@ -159,7 +158,7 @@
        (match-define `[,winners ,losers ,new-cheats] (run-one-round-of-games games run-one-game))
        (if (equal? winners previous-winners)
            (values (list winners losers) (append new-cheats cheats))
-           (loop winners lop#  (append losers all-losers) (append new-cheats cheats)))])))
+           (loop winners winners (append losers all-losers) (append new-cheats cheats)))])))
 
 ;; ---------------------------------------------------------------------------------------------------
 #; {Player* Referee -> [List Player* Player*]}
@@ -178,15 +177,6 @@
 (define (winners ranked x) (append (first ranked) x))
 
 (define (losers ranked x) (apply append x (rest ranked)))
-
-#;
-  (map first
-       (filter-map (λ (r)
-                     (match-define [list ranked _] r)
-                     (match ranked
-                       ['[] #f]
-                       [_ ranked]))
-        results))
 
 ;; ---------------------------------------------------------------------------------------------------
 #;{Player* Player* -> Player*}
