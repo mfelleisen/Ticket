@@ -37,7 +37,7 @@ writing great strategies.
  | Client                     |                           | Server                     |
  +----------------------------+                           +----------------------------+
  | player mechanism           |                           | tournament manager         |
- | strategy                   | relies on      relies on  | referees                   |
+ | strategy                   | relies on      relies on  | referees, its game state   |
  | GUI mechanism for people?  |-----------+  +------------| observers                  |
  +----------------------------+           |  |            +----------------------------+
                                           |  |
@@ -46,9 +46,9 @@ writing great strategies.
                  | the common ontology of Clients and Server               |
                  +---------------------------------------------------------+
                  | player interface and protocols                          |
-                 | the rules of the game, expressed as complete game trees |
-                 | formulated in terms of game states                      |
-                 | which are made up of boards, fish, and penguins         |
+                 | the player's game state: its possessions,               |
+                 |     plus knowledge about others                         |
+                 | basic game pieces and constants, specifically maps      |
                  +---------------------------------------------------------+
 ```
 
@@ -92,4 +92,3 @@ calls with respect to the server and the sample player in this repository.
 ### Organization 
 
 The repo consists of the following folders, with the links pointing to additinal "read me" files:
-
