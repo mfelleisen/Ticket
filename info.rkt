@@ -17,6 +17,7 @@
      "htdp-lib"
      "gregor-lib"
      "gui-lib"
+     "draw-lib"
      "racket-doc"
      "profile-lib"
      "rackunit-lib"
