@@ -1,0 +1,34 @@
+#!/bin/bash 
+
+pushd 3/
+./xtest ForStudents/ ./xmap
+./xtest Tests/ ./xmap
+popd
+
+pushd 4/
+./xvisualize < Vis/1-in.json
+popd
+
+pushd 5
+./xtest ForStudents/ ./xlegal
+./xtest Tests/ ./xlegal
+popd
+
+pushd 6
+./xtest ForStudents/ ./xstrategy 
+./xtest Tests/ ./xstrategy 
+popd
+
+pushd 8
+./xtest ForStudents/ ./xref 
+./xtest Tests/ ./xref 
+popd
+
+pushd 9
+./xtest ForStudents/ ./xmanager 
+popd
+
+pushd 10
+./xtest ../9/ForStudents/ ./xclients ./xserver 
+popd
+

@@ -1,0 +1,103 @@
+#! /bin/sh
+#| -*- racket -*-
+exec racket -tm "$0" -- ${1+"$@"}
+|#
+#lang racket
+
+;; test the "hold-10" strategy: given a state, what does the strategy recommend as an action?
+
+(provide main)
+
+;; ---------------------------------------------------------------------------------------------------
+(require (only-in "../3/xmap" game-map-validate))
+
+(require Trains/Milestones/get)
+(require Trains/Common/state-serialize)
+(require Trains/Common/action-serialize)
+(require Trains/Common/map-serialize)
+(require Trains/Player/hold-10-strategy)
+
+(require SwDev/Testing/communication)
+
+;; ---------------------------------------------------------------------------------------------------
+(define (main)
+  (define gm (get (compose (game-map-validate 'xstrategy) parse-game-map) 'xstrategy "Map"))
+  (define ps (get (λ (j) (parse-pstate j gm)) 'xstrategy "JSON PlayerState"))
+  
+  (define st (new hold-10-strategy% [the-game-map gm] [rails# 0] [cards '()]))
+  (define ac (send st choose-action ps))
+  (send-message (action->jsexpr ac)))
+
+;                                          
+;                                          
+;                                          
+;     ;                       ;            
+;     ;                       ;            
+;   ;;;;;;   ;;;;    ;;;;   ;;;;;;   ;;;;  
+;     ;      ;  ;;  ;    ;    ;     ;    ; 
+;     ;     ;    ;  ;         ;     ;      
+;     ;     ;;;;;;  ;;;       ;     ;;;    
+;     ;     ;          ;;;    ;        ;;; 
+;     ;     ;            ;    ;          ; 
+;     ;      ;      ;    ;    ;     ;    ; 
+;      ;;;   ;;;;;   ;;;;      ;;;   ;;;;  
+;                                          
+;                                          
+;                                          
+;                                          
+
+(module+ test
+  (require (submod Trains/Common/state examples))
+  (require (submod Trains/Common/map examples))
+  (require (submod Trains/Common/map-serialize examples))
+  (require Trains/Common/player-interface)
+
+  (require SwDev/Testing/testing)
+  (require SwDev/Lib/should-be-racket)
+  
+  (require rackunit))
+
+;; ---------------------------------------------------------------------------------------------------
+;; protect the students from bad JSON test 
+(module+ test
+  ;; ill-foremd and invalid:
+  (check-exn (regexp ILL) (λ () (dev/null (with-input-from-string "{ \"width\" : [1" main))) "ill 1")
+  (check-exn (regexp INV) (λ () (dev/null (with-input-from-string "{ \"height\" : []}" main))) "inv")
+  
+  (define pstate1-serialized (pstate->jsexpr pstate1))
+  (define pstate2-serialized (pstate->jsexpr pstate2))
+  (define okay     '["Boston" "Orlando" "green" 5])
+  (define occupied '["Boston" "Seattle" "red" 3])
+  (define bad      '["Boston" "Seattle" "pink" 3])
+  
+  (r-check-exn #px"missing" main `[] "iv2")
+  (r-check-exn #px"State" main `[,vtriangle-serialized ,(hash-ref pstate1-serialized 'acquired)] "i3")
+  (r-check-exn #px"Map" main `[,(hash-remove vtriangle-serialized 'width) ,pstate1-serialized] "i4"))
+
+;; ---------------------------------------------------------------------------------------------------
+;; ForStudents tests (simple in, out; one true one false)
+(module+ test
+  (start-at 0)
+  (recording "ForStudents/")
+  
+  (r-check-equal? main `[,vtriangle-serialized ,pstate1-serialized] `[,MORE] "more")
+  (r-check-equal? main `[,vtriangle-serialized ,pstate2-serialized] `[,okay] "okay"))
+
+;; ---------------------------------------------------------------------------------------------------
+;; test fest tests 
+(module+ test
+
+  (start-at 0)
+  (recording "Tests/")
+
+  (define pstate-play-s  (pstate->jsexpr pstate-play))
+  (define pstate-final-s (pstate->jsexpr pstate-final))
+  
+  (r-check-equal? main `[,vtriangle-serialized ,pstate-play-s] `[,okay] "fest 1")
+  (r-check-equal? main `[,vtriangle-serialized ,pstate-final-s] `[,MORE] "fest 2")
+
+  (define vtriangle++-serialized (game-map->jsexpr vtriangle++))
+
+  (define pstate-play+-s (pstate->jsexpr pstate-play+))
+  (r-check-exn (regexp INV) main `[,vtriangle++-serialized ,pstate-play+-s] "dests not connected")
+  (r-check-equal? main `[,vtriangle++-serialized ,pstate-play-s] `[,okay] "fest 3"))

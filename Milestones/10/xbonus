@@ -1,0 +1,119 @@
+#! /bin/sh
+#| -*- racket -*-
+exec racket -tm "$0" -- ${1+"$@"}
+|#
+#lang racket
+
+;; `main p [IP] < <n>-in.json` makes client players as specified in the first two pieces of STDIN
+;; and points them to port p at IP, which defaults to LOCALHOST
+
+;; ****************************************************************************************
+;; THE TESTS DO __NOT__ USE MAIN TO GENERATE THE INTEGRATION TESTS BUT THE MANAGER FROM 9.
+;; ****************************************************************************************
+
+(provide main)
+
+;; ---------------------------------------------------------------------------------------------------
+(require "run-server-client.rkt")
+(require (only-in "../3/xmap" game-map-validate))
+(require (only-in "../8/xref" get-player-names create-players get-colors))
+(require Trains/Milestones/get)
+(require Trains/Remote/manager)
+(require Trains/Common/basic-constants)
+(require Trains/Common/map-serialize)
+
+;; ---------------------------------------------------------------------------------------------------
+(define (main p-str [ip LOCALHOST])
+  (define port    (string->port-number p-str))
+  (define gm     (get (compose (game-map-validate 'xbonus) parse-game-map) 'xbonus "Map"))
+  (define names  (get (make-names gm) 'xserver "JSON Player Instances"))
+  (define _cards (get get-colors 'xbonus "JSON colored cards"))
+  (define badman (get make-remote-manager 'xbonus "name of bad remote manager"))
+  
+  (thread (λ _ (run-clients port ((make-players gm) (rnames names)) ip #:remote-manager badman)))
+  (run-clients port ((make-players gm) names) ip))
+
+#; {JSexpr -> RemoteManager}
+(define (make-remote-manager x)
+  (and (string? x) (pick-manager x)))
+
+#; {GameMap -> JSexpr -> PlayerSpec}
+(define (make-names gm)
+  (get-player-names gm MIN-PLAYER-PER-GAME +inf.0 player-kind?))
+
+#; {PlayerSpec -> PlayerSpec}
+(define (rnames j)
+  (for/list ([x j])
+    (match-define [list name s] x)
+    (list (~a "r" name) s)))
+
+#; {GameMap -> PlayerSpec -> [Listof Player]}
+(define ((make-players gm) names+strat-kind)
+  (create-players names+strat-kind gm make-different-kind-of-player))
+
+;                                     
+;                                     
+;     ;                    ;          
+;     ;                    ;          
+;   ;;;;;   ;;;    ;;;   ;;;;;   ;;;  
+;     ;    ;;  ;  ;   ;    ;    ;   ; 
+;     ;    ;   ;; ;        ;    ;     
+;     ;    ;;;;;;  ;;;     ;     ;;;  
+;     ;    ;          ;    ;        ; 
+;     ;    ;      ;   ;    ;    ;   ; 
+;     ;;;   ;;;;   ;;;     ;;;   ;;;  
+;                                     
+;                                     
+;                                     
+
+;; Tests with good players, cheating players, and misbehaving ones.
+;; The configuration works for my `xclients` only. 
+
+(module+ test
+  (require (rename-in "../9/xmanager" [main xmanager]))
+  (require Trains/Player/istrategy)
+  (require SwDev/Testing/testing)
+  (require racket/runtime-path)
+  (require json))
+
+(module+ test ;; real players
+  (start-at 0)
+  (recording "BonusTests/")
+
+  #; {GameMap N N N -> Test}
+  ;; the numbers cannot be chosen freely
+  ;; assumes that hold-10s are stupid, all buy-nows win 
+  (define (check-manager gm hold-10# buy-now# cheat# pick-winners-&-elims remote-manager)
+    (define (make-player-names n strat% prefix)
+      (build-list n (λ (i) (list (~a prefix (make-string i #\a)) strat%))))
+    (define hold-10s (make-player-names hold-10# HOLD-10 "holdten"))
+    (define buy-nows (make-player-names buy-now# BUY-NOW "buynoww"))
+    (define cheaters (make-player-names cheat#   CHEAT   "cheater"))
+    (define all-players (append hold-10s buy-nows cheaters))
+    (define rplayers    (rnames all-players))
+    (define cards
+      (take
+       (let zip ([white (make-list CARDS-PER-GAME "white")] [t (make-list CARDS-PER-GAME "blue")])
+         (cond
+           [(empty? white) '()]
+           [else (list* (first white) #;(first t) (zip (rest white) (rest t)))]))
+       CARDS-PER-GAME))
+       
+    (r-check-equal? (λ () (xmanager make-players #:mixins (map first rplayers)))
+                    `[,gm ,all-players ,cards ,remote-manager]
+                    (pick-winners-&-elims hold-10s buy-nows cheaters rplayers)
+                    (~a hold-10# buy-now# cheat#))))
+
+(module+ test 
+  (define-runtime-path p-map2 "map-2.json")
+  (define bm2 (with-input-from-file p-map2 read-json))
+  (define (pick2 hold-10s buy-nows cheaters rplayers)
+    `{[(,@(map first buy-nows)) ,(sort (map first (append rplayers cheaters)) string<?)]})
+  
+  (check-manager bm2 2 1 1 pick2 "rm-ill-formed-start")
+  (check-manager bm2 2 1 1 pick2 "rm-invalid-game-map")
+
+  (check-manager bm2 2 1 1 pick2 "rm-ill-formed-pick")
+  (check-manager bm2 2 1 1 pick2 "rm-invalid-pick")
+  (check-manager bm2 2 1 1 pick2 "rm-ill-formed-action")
+  (check-manager bm2 2 1 1 pick2 "rm-non-json-action"))

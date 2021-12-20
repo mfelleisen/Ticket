@@ -1,0 +1,2 @@
+{"cities":[["Boston",[100,100]],["Orlando",[30,300]],["Seattle",[200,20]],["St. Louis",[150,150]],["Kansas City",[160,140]]],"connections":{"Boston":{"Orlando":{"green":5,"white":3},"Seattle":{"green":4,"red":3}},"Kansas City":{"St. Louis":{"green":4}},"Orlando":{"Seattle":{"blue":5}},"Seattle":{},"St. Louis":{}},"height":800,"width":800}
+{"acquired":[[["Orlando","Seattle","blue",5]]],"this":{"acquired":[["Orlando","Seattle","blue",5]],"cards":{"blue":7,"green":5,"red":6},"destination1":["Boston","Seattle"],"destination2":["Boston","Orlando"],"rails":5}}

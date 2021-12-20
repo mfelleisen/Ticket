@@ -1,0 +1,130 @@
+#! /bin/sh
+#| -*- racket -*-
+exec racket -tm "$0" -- ${1+"$@"}
+|#
+#lang racket
+
+;; playing a game; given a game map, dynamic player specs, and cards, what's the result of a game 
+;; All players send the given map to the manager when the tournament is set up. 
+;; ASSUME the feasible destinations are ordered in a fixed (lexicographic) manner
+
+(provide main)
+
+;; ---------------------------------------------------------------------------------------------------
+(require (only-in "../3/xmap" game-map-validate))
+(require (only-in "../8/xref" get-players get-colors))
+
+(require Trains/Milestones/get)
+(require Trains/Common/basic-constants)
+(require Trains/Common/map-serialize)
+(require Trains/Player/astrategy)
+(require (submod Trains/Admin/manager examples))
+(require Trains/Admin/manager)
+
+(require SwDev/Testing/communication)
+
+;; ---------------------------------------------------------------------------------------------------
+(define (make-players gm) (get-players gm MIN-PLAYER-PER-GAME +inf.0))
+
+(define (main [make-players make-players] #:mixins [mixins '[]])
+  (define gm (get (compose (game-map-validate 'xmanager) parse-game-map) 'xmanager "Map"))
+  (define ps (get (make-players gm) 'xmanager "JSON Players"))
+  (define cs (get get-colors 'xmanager "JSON Colors"))
+  
+  (match (manager ps #:cards cs)
+    [(? string? em) (send-message em)]
+    [results (send-message (mixin-baddies mixins (manager-results->names results)))]))
+
+(define (mixin-baddies mixins results)
+  (match-define [list x baddies] results)
+  (list x (sort (append mixins baddies) string<?)))
+
+;                                          
+;                                          
+;                                          
+;     ;                       ;            
+;     ;                       ;            
+;   ;;;;;;   ;;;;    ;;;;   ;;;;;;   ;;;;  
+;     ;      ;  ;;  ;    ;    ;     ;    ; 
+;     ;     ;    ;  ;         ;     ;      
+;     ;     ;;;;;;  ;;;       ;     ;;;    
+;     ;     ;          ;;;    ;        ;;; 
+;     ;     ;            ;    ;          ; 
+;     ;      ;      ;    ;    ;     ;    ; 
+;      ;;;   ;;;;;   ;;;;      ;;;   ;;;;  
+;                                          
+;                                          
+;                                          
+;                                          
+
+(module+ test
+  (require (submod Trains/Common/map-serialize examples))
+  (require Trains/Player/istrategy)
+  
+  (require SwDev/Testing/testing)
+  (require SwDev/Lib/should-be-racket)
+  
+  (require racket/runtime-path)
+  (require json)
+  (require rackunit))
+
+;; ---------------------------------------------------------------------------------------------------
+;; protect the students from bad JSON test 
+(module+ test
+  ;; ill-foremd and invalid:
+  (check-exn (regexp ILL) (λ () (dev/null (with-input-from-string "{ \"width\" : [1" main))) "ill 1")
+  (check-exn (regexp INV) (λ () (dev/null (with-input-from-string "{ \"height\" : []}" main))) "inv"))
+
+(module+ test
+  (define 2players `[["Cameron" ,HOLD-10] ["Ben" ,BUY-NOW]])
+  (define not-enough-players (rest 2players))
+
+  (r-check-exn (regexp INV)
+               main
+               `{,vrectangle-serialized ,not-enough-players ,(make-list CARDS-PER-GAME "blue")}
+               "too few players")
+
+  (r-check-exn (regexp INV)
+               main
+               `{,vrectangle-serialized ,2players ,(rest (make-list CARDS-PER-GAME "blue"))}
+               "too few colors"))
+
+;; ---------------------------------------------------------------------------------------------------
+;; ForStudents tests (simple in, out; one true one false)
+
+(module+ test ;; exanples 
+  
+  (define 5players
+    `[["Matthias" ,CHEAT]
+      ["Alan"     ,CHEAT]
+      ["Jason"    ,HOLD-10]
+      ["Cameron"  ,HOLD-10]
+      ["BenL"     ,BUY-NOW]])
+
+  (define mf-wins-2 (append (rest 5players) `[["Matthias" ,BUY-NOW]]))
+
+  (define (mk-holds l) (map (λ (x) (list (~a x) HOLD-10)) l))
+  (define 9more (mk-holds '[Cam Eshi Neha Darp Man Lana Sati Shob Sinr]))
+  (define yet   (mk-holds '[BenG Susi Juli Kani Petr Mowi Dhav Evan Akan Riti Deep Moha Feli]))
+
+  (define 14players (append 9more 5players))
+  (define 27players (append yet 14players))
+
+  (define rankings
+    '[[#; "first place:" "BenL"]
+      [#; "cheats:"      "Alan" "Matthias"]])
+
+  (define mf-rankings
+    '[[#; "first place:" "BenL" "Matthias"]
+      [#; "cheats:"      "Alan"]])
+
+  (define-runtime-path map1 "../8/map-1.json")
+  (define big-map (with-input-from-file map1 read-json))
+  
+  (start-at 0)
+  (recording "ForStudents/")
+  
+  (r-check-equal? main `[,big-map ,5players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "5")
+  (r-check-equal? main `[,big-map ,mf-wins-2 ,(make-list CARDS-PER-GAME "white")] `{,mf-rankings} "2")
+  (r-check-equal? main `[,big-map ,14players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "14")
+  (r-check-equal? main `[,big-map ,27players ,(make-list CARDS-PER-GAME "white")] `{,rankings} "14"))

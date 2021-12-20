@@ -1,0 +1,114 @@
+#! /bin/sh
+#| -*- racket -*-
+exec racket -tm "$0" -- ${1+"$@"}
+|#
+#lang racket
+
+;; test the legal-action functionaliy: given a game map, state, and action, is the latter legal? 
+
+(provide main)
+
+;; ---------------------------------------------------------------------------------------------------
+(require (only-in "../3/xmap" game-map-validate))
+
+(require Trains/Milestones/get)
+(require Trains/Common/map)
+(require Trains/Common/state)
+(require (prefix-in state: Trains/Common/state-serialize))
+(require Trains/Common/map-serialize)
+
+(require SwDev/Testing/communication)
+
+;; ---------------------------------------------------------------------------------------------------
+(define (main)
+  (define gm (get (compose (game-map-validate 'xlegal) parse-game-map) 'xlegal "Map"))
+  (define ps (get (λ (j) (state:parse-pstate j gm)) 'xlegal "JSON PlayerState"))
+  (define ac (get (parse-acquired-validate gm) 'xlegal "JSON Acquired"))
+  
+  (send-message (legal-action? ps gm ac)))
+
+(define (parse-acquired-validate gm) ;; this is unclean 
+  (define cities (game-map-cities gm))
+  (define conns  (game-map-all-connections gm))
+  (λ (j)
+    (let/ec done
+      (set-first
+       [(state:parse-acquired (λ (x) (displayln x (current-error-port)) (done #false)) cities conns)
+        [list j]]))))
+
+;                                          
+;                                          
+;                                          
+;     ;                       ;            
+;     ;                       ;            
+;   ;;;;;;   ;;;;    ;;;;   ;;;;;;   ;;;;  
+;     ;      ;  ;;  ;    ;    ;     ;    ; 
+;     ;     ;    ;  ;         ;     ;      
+;     ;     ;;;;;;  ;;;       ;     ;;;    
+;     ;     ;          ;;;    ;        ;;; 
+;     ;     ;            ;    ;          ; 
+;     ;      ;      ;    ;    ;     ;    ; 
+;      ;;;   ;;;;;   ;;;;      ;;;   ;;;;  
+;                                          
+;                                          
+;                                          
+;                                          
+
+(module+ test
+  (require (submod Trains/Common/state examples))
+  (require (submod Trains/Common/map examples))
+  (require (submod Trains/Common/map-serialize examples))
+
+  (require Trains/Editor/map-editor)
+  
+  (require SwDev/Testing/testing)
+  (require SwDev/Lib/should-be-racket)
+  (require rackunit))
+
+;; ---------------------------------------------------------------------------------------------------
+;; protect the students from bad JSON test 
+(module+ test
+  ;; ill-foremd and invalid:
+  (check-exn (regexp ILL) (λ () (dev/null (with-input-from-string "{ \"width\" : [1" main))) "ill 1")
+  (check-exn (regexp INV) (λ () (dev/null (with-input-from-string "{ \"height\" : []}" main))) "inv"))
+
+;; ---------------------------------------------------------------------------------------------------
+;; ForStudents tests (simple in, out; one true one false)
+(module+ test
+  (define pstate1-serialized (state:pstate->jsexpr pstate1))
+  (define okay     '["Boston" "Orlando" "green" 5])
+  (define occupied '["Boston" "Seattle" "red" 3])
+  (define bad      '["Boston" "Seattle" "pink" 3])
+
+  (start-at 0)
+  (recording "ForStudents/")
+  
+  (r-check-exn #px"Acquired" main `[,vtriangle-serialized ,pstate1-serialized ,bad] "iv2")
+  (r-check-equal? main `[,vtriangle-serialized ,pstate1-serialized ,occupied] `[#false] "occupied")
+  (r-check-equal? main `[,vtriangle-serialized ,pstate1-serialized ,okay] `[#true] "okay"))
+
+;; ---------------------------------------------------------------------------------------------------
+(module+ test
+
+  (start-at 0)
+  (recording "Tests/")
+
+  (define pstate-play-s  (state:pstate->jsexpr pstate-play))
+  (define pstate-final-s (state:pstate->jsexpr pstate-final))
+  (r-check-equal? main `[,vtriangle-serialized ,pstate-play-s ,okay] `[#true] "fest 1")
+  (r-check-equal? main `[,vtriangle-serialized ,pstate-final-s ,okay] `[#false] "fest 2")
+
+  (define vtriangle++-serialized (game-map->jsexpr vtriangle++))
+
+  ;; make a version of vtriangle with a disjointed component
+  ;; -- Kansas City St. Louis 
+  ;; -- add destination across clique to see whether states have to completely legal
+  ;; -- try to acquire cross-clique link to make sure it is rejected
+  ;; -- acquire the new internal one
+
+  (define non-existent '["Boston" "St. Louis" "white" 3])
+  (define pstate-play+-s  (state:pstate->jsexpr pstate-play+))
+  (r-check-exn (regexp INV) main `[,vtriangle++-serialized ,pstate-play+-s ,kc-st] "xn 1")
+  (r-check-exn (regexp INV) main `[,vtriangle++-serialized ,pstate-play-s ,non-existent] "xn 2")
+
+  (r-check-equal? main `[,vtriangle++-serialized ,pstate-play-s ,kc-st] `[#true] "fest 3"))

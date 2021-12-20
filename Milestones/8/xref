@@ -1,0 +1,205 @@
+#! /bin/sh
+#| -*- racket -*-
+exec racket -tm "$0" -- ${1+"$@"}
+|#
+#lang racket
+
+;; playing a game; given a game map, dynamic player specs, and cards, what's the result of a game 
+;; ASSUME the feasible destinations are ordered in a fixed (lexicographic) manner 
+
+(provide main)
+
+;; also
+
+(provide
+
+ #; {type PlayerSpec = [Listof [List String String]]}
+
+ #; {GameMap N (U N inf) ([Any -> Boolean] [[String #:gm GameMap #:name String] -> Player])
+             ->* JSexpr
+             -> [Listof Player]}
+ get-players
+
+ #; {GameMap N (U N inf) [Any -> Boolean] -> JSexpr -> (U False PlayerSpec)} 
+ get-player-names 
+
+ #; {PlayerSpec GameMap [[String #:gm GameMap #:name String] -> Player] -> [Listof Player]}
+ create-players
+
+ #; {JSExpr -> [Listof Color]}
+ get-colors)
+
+;; ---------------------------------------------------------------------------------------------------
+(require (only-in "../3/xmap" game-map-validate))
+
+(require Trains/Milestones/get)
+(require Trains/Common/basic-constants)
+(require Trains/Common/map-serialize)
+(require Trains/Player/istrategy)
+(require Trains/Player/astrategy)
+(require Trains/Player/player)
+(require (submod Trains/Admin/referee examples))
+(require Trains/Admin/referee)
+
+(require SwDev/Testing/communication)
+(require SwDev/Contracts/unique)
+
+;; ---------------------------------------------------------------------------------------------------
+(define (main)
+  (define gm (get (compose (game-map-validate 'xref) parse-game-map) 'xref "Map"))
+  (define ps (get (get-players gm MIN-PLAYER-PER-GAME MAX-PLAYER-PER-GAME) 'xref "JSON Players"))
+  (define cs (get get-colors 'xref "JSON Colors"))
+  
+  (match (referee ps gm #:cards cs #:shuffle (λ (destinatuons) (sort destinatuons lexi<?)))
+    [(? string? em) (send-message em)]
+    [results (send-message (ref-results->names results))]))
+
+;; ---------------------------------------------------------------------------------------------------
+(define bad (λ x (error 'get-players "bad: ~e" x)))
+(define ((get-players gm min-p max-p [player-kind? (λ (x) #false)] [different-player bad]) j)
+  (define names+strats-or-kinds [(get-player-names gm min-p max-p player-kind?) j])
+  (and names+strats-or-kinds (create-players names+strats-or-kinds gm different-player)))
+
+(define (create-players names+strats-or-kinds gm different-player)
+  (for/list ([x names+strats-or-kinds])
+    (match-define [list name sk] x)
+    (if (strategy-name? sk)
+        (make-player-from-strategy-path (->strat sk) #:gm gm #:name name)
+        (different-player sk #:gm gm #:name name))))
+
+
+;; retrieve the players' names and strategy-or-kind from the given JSexpr 
+(define [(get-player-names gm min-p max-p player-kind?) j]
+  (match j
+    [(and `([,(? player-name? p-name)
+             ,(or (? strategy-name? p-strat-or-kind) (? player-kind? p-strat-or-kind))] ...)
+          (? (λ (j) (distinct? (map first j))))
+          (? (λ (j) (<= min-p (length j) max-p))))
+     j]
+    [_ #false]))
+
+(define (player-name? x)
+  (and (string? x) (<= (string-length x) MAX-PLAYER-NAME) (regexp-match PLAYER-NAME-PX x)))
+
+(define STRATS
+  `[[,HOLD-10 Trains/Player/hold-10-strategy]
+    [,BUY-NOW Trains/Player/buy-now-strategy]
+    [,CHEAT   Trains/Player/cheat-strategy]])
+
+(define (strategy-name? x)
+  (assoc x STRATS))
+
+(define (->strat x)
+  (second (assoc x STRATS)))
+
+;; ---------------------------------------------------------------------------------------------------
+(define (get-colors j)
+  (match j
+    [(and `[,(? color?) ...] (? (λ _ (= (length j) CARDS-PER-GAME)))) (map string->symbol j)]
+    [_ #false]))
+
+;                                          
+;                                          
+;                                          
+;     ;                       ;            
+;     ;                       ;            
+;   ;;;;;;   ;;;;    ;;;;   ;;;;;;   ;;;;  
+;     ;      ;  ;;  ;    ;    ;     ;    ; 
+;     ;     ;    ;  ;         ;     ;      
+;     ;     ;;;;;;  ;;;       ;     ;;;    
+;     ;     ;          ;;;    ;        ;;; 
+;     ;     ;            ;    ;          ; 
+;     ;      ;      ;    ;    ;     ;    ; 
+;      ;;;   ;;;;;   ;;;;      ;;;   ;;;;  
+;                                          
+;                                          
+;                                          
+;                                          
+
+(module+ test
+  (require (submod Trains/Common/map-serialize examples))
+  
+  (require SwDev/Testing/testing)
+  (require SwDev/Lib/should-be-racket)
+  
+  (require racket/runtime-path)
+  (require json)
+  (require rackunit))
+
+;; ---------------------------------------------------------------------------------------------------
+;; protect the students from bad JSON test 
+(module+ test
+  ;; ill-foremd and invalid:
+  (check-exn (regexp ILL) (λ () (dev/null (with-input-from-string "{ \"width\" : [1" main))) "ill 1")
+  (check-exn (regexp INV) (λ () (dev/null (with-input-from-string "{ \"height\" : []}" main))) "inv"))
+
+(module+ test ;; exanples 
+
+  (define 2players `[["Cameron" ,HOLD-10] ["Ben" ,BUY-NOW]])
+  (define 2rankings
+    '[[#; "first place:" "Ben"]
+      [#; "second place:" "Cameron"]])
+
+  (define 3players `[["Matthias" ,CHEAT] ["Cameron" ,HOLD-10] ["Ben" ,BUY-NOW]])
+  (define 4players `[["Matthias" ,CHEAT] ["Jason" ,HOLD-10] ["Cameron" ,HOLD-10] ["Ben" ,BUY-NOW]])
+  (define 4rankings
+    '[[#; "first place:" "Ben"]
+      [#; "second place:" "Jason"]
+      [#; "third place:" "Cameron"]]))
+
+(module+ test
+  (define not-enough-players (rest 2players))
+
+  (r-check-exn (regexp INV)
+               main
+               `{,vrectangle-serialized ,not-enough-players ,(make-list CARDS-PER-GAME "blue")}
+               "too few players")
+
+  (r-check-exn (regexp INV)
+               main
+               `{,vrectangle-serialized ,2players ,(rest (make-list CARDS-PER-GAME "blue"))}
+               "too few colors"))
+
+;; ---------------------------------------------------------------------------------------------------
+;; ForStudents tests (simple in, out; one true one false)
+(module+ test
+  (start-at 0)
+  (recording "ForStudents/")
+
+  (r-check-equal? main
+                  `[,vtriangle-serialized ,2players ,(make-list CARDS-PER-GAME "blue")]
+                  `(,ERR)
+                  "a triangle per se doen't have enough destionales to set up a game for 2")
+  
+  (r-check-equal? main
+                  `[,vrectangle-serialized ,2players ,(make-list CARDS-PER-GAME "blue")]
+                  `{[ ,2rankings ()]}
+                  "a rectangle with a 'hold it' and 'buy now' strategy with all blue cards")
+
+  (r-check-equal? main
+                  `[,vrectangle-serialized ,3players ,(make-list CARDS-PER-GAME "blue")]
+                  `{[ ,2rankings ["Matthias"]]}
+                  "a rectangle with a 'hold it' and 'buy now' strategy with all blue cards"))
+
+;; ---------------------------------------------------------------------------------------------------
+;; test fest tests
+(module+ test
+
+  (define-runtime-path map1 "map-1.json")
+  (define big-map (with-input-from-file map1 read-json))
+  
+  (start-at 0)
+  (recording "Tests/")
+  
+  (r-check-equal? main
+                  `[,big-map ,2players ,(make-list CARDS-PER-GAME "white")]
+                  `{[ ,2rankings ()]}
+                  "")
+  (r-check-equal? main
+                  `[,big-map ,3players ,(make-list CARDS-PER-GAME "white")]
+                  `{[ ,2rankings ("Matthias")]}
+                  "")
+  (r-check-equal? main
+                  `[,big-map ,4players ,(make-list CARDS-PER-GAME "white")]
+                  `{[ ,4rankings ("Matthias")]}
+                  ""))

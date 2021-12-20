@@ -1,0 +1,56 @@
+#! /bin/sh
+#| -*- racket -*-
+exec racket -tm "$0" -- ${1+"$@"}
+|#
+#lang racket
+
+;; visualize a train map for a short amount of time 
+
+(provide main)
+
+(module+ homework
+  (provide SHOW-MAP-FOR-SECONDS))
+   
+;; ---------------------------------------------------------------------------------------------------
+(require "../3/xmap")
+
+(require Trains/Milestones/get)
+(require Trains/Common/map-serialize)
+(require Trains/Editor/map-editor)
+
+;; ---------------------------------------------------------------------------------------------------
+(define SHOW-MAP-FOR-SECONDS 10)
+
+(define (main)
+  (define gm (get (compose (game-map-validate 'xvisualize) parse-game-map) 'xvisualize "Map"))
+  
+  (max-visualize-time SHOW-MAP-FOR-SECONDS) ;; seconds for display
+  (void (map-editor gm)))
+
+;                                     
+;                                     
+;     ;                    ;          
+;     ;                    ;          
+;   ;;;;;   ;;;    ;;;   ;;;;;   ;;;  
+;     ;    ;;  ;  ;   ;    ;    ;   ; 
+;     ;    ;   ;; ;        ;    ;     
+;     ;    ;;;;;;  ;;;     ;     ;;;  
+;     ;    ;          ;    ;        ; 
+;     ;    ;      ;   ;    ;    ;   ; 
+;     ;;;   ;;;;   ;;;     ;;;   ;;;  
+;                                     
+;                                     
+;                                     
+
+(module+ test
+  (require (submod Trains/Common/map examples))
+  
+  (require SwDev/Testing/testing))
+
+(module+ test  
+  (r-check-exn #px"too many"  main `{,(game-map->jsexpr vtriangle-too-many)}  "too many cities")
+
+  (start-at 0)
+  ; (recording "Tests/")
+  
+  (r-check-equal? main `{,(game-map->jsexpr vrectangle)} '{} "a simple map"))

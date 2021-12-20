@@ -1,0 +1,3 @@
+"A"
+"B"
+{"cities":[["A",[10,10]],["B",[20,20]]],"connections":{"A":{"B":{"red":3}}},"height":200,"width":200}
