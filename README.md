@@ -1,5 +1,11 @@
 ## The Ticket-to-Ride Project for Sw Dev 2021 
 
+To re-generate this README file, run
+
+```
+$ racket readme.rkt 
+```
+
 The repository is a fully functioning game framework.  It is both an
 educational and a research project. The code is derived from the Fall
 2021 version of the "Software Development" course.  The "trace" branch
@@ -89,9 +95,12 @@ Since even a detailed interpretation may leave questions about their meaning wit
 rules of the game. the repository's `Common` directory publishes the code that interprets the remote
 calls with respect to the server and the sample player in this repository.
 
-### Organization 
+### Organization
 
-The repo consists of the following folders, with the links pointing to additinal "read me" files:
+The 2021 Sw Dev project milestones are separate from the project; see [README.md](Milestones/README.md).
+
+
+The source code for the project consists of the following folders, with the links pointing to additinal "read me" files: 
 
 | directory | purpose |
 |--------------------- | ------- |
