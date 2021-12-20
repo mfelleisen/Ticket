@@ -21,10 +21,7 @@ $ cd Ticket
 $ raco pkg install 
 ```
 
-This installs the package as a `collect` called `Trains`.
-
-The package depends on several other repos, including Cameron Moy's
-`trace` contracts. The `pkg install` will download and install those.
+This installs the package as a `collect` called `Trains`. The `info.rkt` file specifies the dependencies, which can be pulled in automatically (use `a`). 
 
 ### The Idea 
 
