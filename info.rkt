@@ -26,6 +26,7 @@
 (define build-deps
   `( ,sw-dev
       "gui-lib"
+      "racket/draw"
       "data-enumerate-lib"
       "at-exp-lib" 
       "rackunit-lib"))
